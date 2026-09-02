@@ -100,15 +100,21 @@ h1 { text-shadow:4px 4px 0 #4f286f, 0 0 22px rgba(255,95,189,.45); }
 .arcade-screen { text-decoration:none; cursor:pointer; }
 .arcade-screen:hover { border-color:var(--arcade-pink); box-shadow:inset 0 0 0 4px #21124d,inset 0 0 34px rgba(85,231,255,.42),0 0 24px rgba(255,95,189,.25); }
 .screen-subtitle { color:var(--arcade-gold); font-size:clamp(.6rem,1.5vw,.9rem); letter-spacing:.18em; }
-.arcade-controls { justify-content:space-between; }
-.arcade-joystick { position:relative; width:54px; height:68px; border:0; background:transparent; }
-.arcade-joystick:before { content:''; position:absolute; left:25px; top:22px; width:8px; height:38px; background:#a998e8; box-shadow:3px 3px 0 #493783; transform:rotate(8deg); transform-origin:bottom; }
-.arcade-joystick span { position:absolute; left:10px; top:5px; width:34px; height:25px; border-radius:50%; background:var(--arcade-pink); border:3px solid #ffb0e0; box-shadow:4px 4px 0 #7a286e; }
-.arcade-joystick:active span,.arcade-buttons button:active,.coin-slot:active { transform:translateY(4px); box-shadow:2px 2px 0 #7a286e; }
-.arcade-buttons { display:flex; gap:18px; align-items:center; }
-.arcade-buttons button { width:42px; height:42px; border:3px solid #ffb0e0; border-radius:50%; background:var(--arcade-pink); box-shadow:4px 4px 0 #7a286e; cursor:pointer; }
-.arcade-buttons button + button { background:var(--arcade-gold); border-color:#fff0ad; box-shadow:4px 4px 0 #9b632b; }
-.coin-slot { display:flex; flex-direction:column; align-items:center; justify-content:center; width:58px; height:48px; border:2px solid #7f70bc; border-radius:4px; color:var(--arcade-cyan); background:#17102f; cursor:pointer; box-shadow:3px 3px 0 #24134c; }
+.arcade-controls { justify-content:space-between; align-items:flex-end; }
+.player-controls { display:flex; flex-direction:column; gap:8px; align-items:flex-start; }
+.player-two { align-items:flex-end; }
+.player-label { color:#aaa0db; font-size:.6rem; font-weight:900; letter-spacing:.15em; }
+.arcade-buttons { display:flex; gap:12px; align-items:center; }
+.player-two .arcade-buttons { flex-direction:row-reverse; }
+.arcade-buttons button { width:42px; height:42px; border:3px solid #ffb0e0; border-radius:50%; background:var(--arcade-pink); box-shadow:4px 4px 0 #7a286e; cursor:pointer; transition:transform .12s ease,box-shadow .12s ease; }
+.arcade-buttons button:nth-child(2) { transform:translateY(-9px); background:var(--arcade-gold); border-color:#fff0ad; box-shadow:4px 4px 0 #9b632b; }
+.player-two .arcade-buttons button:first-child { background:var(--arcade-cyan); border-color:#baf6ff; box-shadow:4px 4px 0 #1b7490; }
+.player-two .arcade-buttons button:nth-child(2) { background:#a998e8; border-color:#ddd5ff; box-shadow:4px 4px 0 #493783; }
+.arcade-buttons button:active { transform:translateY(3px); box-shadow:1px 1px 0 #7a286e; }
+.arcade-buttons button:nth-child(2):active { transform:translateY(-6px); }
+.center-controls { display:flex; gap:10px; align-items:center; padding-bottom:6px; }
+.center-controls b { display:block; width:10px; height:10px; border-radius:50%; background:#5f5592; box-shadow:2px 2px 0 #24134c; }
+.coin-slot { display:flex; flex-direction:column; align-items:center; justify-content:center; width:48px; height:48px; border:2px solid #7f70bc; border-radius:4px; color:var(--arcade-cyan); background:#17102f; box-shadow:3px 3px 0 #24134c; }
 .coin-slot span { font-size:.55rem; letter-spacing:.1em; }
 .cabinet-hint { margin:16px 0 0; color:#9d91c7; text-align:center; font-size:.65rem; letter-spacing:.12em; text-transform:uppercase; }
 /* full-screen arcade portal */
