@@ -68,6 +68,16 @@ h1 { text-shadow:4px 4px 0 #4f286f, 0 0 22px rgba(255,95,189,.45); }
 .progress-line>div { height:7px; border:2px solid #433477; background:#16102c; padding:1px; }.progress-line i { background:repeating-linear-gradient(90deg,var(--arcade-pink) 0 10px,#ff9bda 10px 12px); }
 @media (prefers-reduced-motion:reduce){.portal-hero:after,.sigil,.completion-star{animation:none!important}}
 @layer base { * { outline-color:var(--ring); } }
+/* Cinematic starfield title arrival */
+.arcade-screen strong { transform-origin:center center; animation:camquest-z-arrival 2.15s cubic-bezier(.18,.82,.22,1) 1.65s both; filter:blur(7px) brightness(.35); text-shadow:0 0 0 transparent; }
+@keyframes camquest-z-arrival {
+  0% { opacity:0; transform:perspective(420px) translateZ(-260px) scale(.1); filter:blur(8px) brightness(.25); text-shadow:-7px 0 var(--arcade-cyan),7px 0 var(--arcade-pink); }
+  35% { opacity:.55; transform:perspective(420px) translateZ(-80px) scale(.62); filter:blur(4px) brightness(.7); text-shadow:-4px 0 var(--arcade-cyan),4px 0 var(--arcade-pink); }
+  72% { opacity:1; transform:perspective(420px) translateZ(18px) scale(1.12); filter:blur(1px) brightness(1.2); text-shadow:-3px 0 var(--arcade-cyan),3px 0 var(--arcade-pink),4px 4px 0 #652f85,0 0 22px var(--arcade-pink); }
+  88% { transform:perspective(420px) translateZ(0) scale(.97); filter:blur(0) brightness(1); }
+  100% { opacity:1; transform:perspective(420px) translateZ(0) scale(1); filter:blur(0) brightness(1); text-shadow:4px 4px 0 #652f85,0 0 18px var(--arcade-pink); }
+}
+@media (prefers-reduced-motion:reduce){.arcade-screen strong{animation:none!important;opacity:1;transform:none;filter:none;text-shadow:4px 4px 0 #652f85,0 0 18px var(--arcade-pink)}}
 /* playful cabinet replaces the static portal glow */
 .portal-hero:after { display:none; }
 .arcade-machine { position:relative; display:block; width:min(520px,92vw); margin:0 auto; padding:22px 24px 18px; background:linear-gradient(180deg,#3b1b68 0%,#241447 18%,#241447 100%); border:4px solid var(--arcade-cyan); border-radius:18px 18px 8px 8px; box-shadow:10px 10px 0 #160d2f, 0 0 42px rgba(255,95,189,.36); transform:perspective(520px) rotateX(2deg); } .arcade-machine:focus-visible { outline:3px solid var(--arcade-gold); outline-offset:6px; } .arcade-machine:hover { border-color:var(--arcade-pink); }
