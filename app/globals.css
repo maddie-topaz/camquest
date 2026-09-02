@@ -85,4 +85,18 @@ h1 { text-shadow:4px 4px 0 #4f286f, 0 0 22px rgba(255,95,189,.45); }
 @keyframes prompt-blink { 50% { opacity:.2; } }
 @keyframes button-pop { 50% { transform:scale(.82); } }
 @media (prefers-reduced-motion:reduce){.arcade-machine,.arcade-screen strong,.screen-prompt,.arcade-controls i{animation:none!important}}
+/* full-screen arcade portal */
+.arcade-home { min-height:calc(100svh - 86px); display:grid; place-items:center; padding:20px 16px 72px; }
+.arcade-home .portal-hero { width:100%; min-height:0; padding:0; }
+.arcade-home .arcade-machine { width:min(760px,94vw); padding:32px 42px 28px; border-width:6px; border-radius:34px 34px 14px 14px; box-shadow:16px 16px 0 #160d2f,0 0 70px rgba(255,95,189,.42); }
+.arcade-home .arcade-machine:before { margin-bottom:24px; padding:14px 18px 18px; border-width:4px; font-size:clamp(1rem,2.5vw,1.5rem); }
+.arcade-home .arcade-screen { min-height:clamp(360px,52vw,520px); padding:58px 30px; border-width:9px; gap:10px; }
+.arcade-home .arcade-screen strong { font-size:clamp(1.8rem,5vw,3.4rem); letter-spacing:.18em; text-shadow:6px 6px 0 #652f85,0 0 24px var(--arcade-pink); }
+.arcade-home .screen-stars { font-size:1rem; }
+.arcade-home .screen-prompt { font-size:clamp(.75rem,1.7vw,1rem); }
+.arcade-home .arcade-controls { gap:32px; padding:20px 18px 0; }
+.arcade-home .arcade-controls i { width:30px; height:30px; box-shadow:5px 5px 0 #7a286e; }
+.arcade-home .arcade-controls b { width:72px; height:10px; }
+@media (max-width:600px){ .arcade-home { padding-inline:10px; } .arcade-home .arcade-machine { padding:22px 20px 20px; border-width:4px; border-radius:24px 24px 10px 10px; } .arcade-home .arcade-screen { min-height:390px; padding:42px 18px; } .arcade-home .arcade-controls { gap:22px; } }
+@media (prefers-reduced-motion:reduce){.arcade-home .arcade-machine{animation:none!important}}
 
