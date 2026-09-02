@@ -9,11 +9,30 @@ const choiceIcons: Record<string, LucideIcon> = { Sun, Moon, TreePine, DoorOpen,
 
 function Shell({ children, minimal = false }: { children: React.ReactNode; minimal?: boolean }) { return <div className="min-h-screen bg-[#0d0b1b] text-[#f7f0ff]"><div className="stars" />{!minimal && <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-6" aria-label="Site header" />}{children}{!minimal && <footer className="relative z-10 mx-auto flex max-w-6xl justify-between px-5 py-8 text-xs text-[#77718f]"><span>Made for {siteConfig.companion}, with intent.</span><span>✦ v. 01</span></footer>}</div> }
 function useStoredProgress() { const [progress, setProgress] = useState<Record<string, AdventureProgress>>({}); useEffect(() => setProgress(getProgress()), []); return progress }
+function useCompletedSlugs() {
+  // Local progress only knows what this device has done. The database is
+  // shared across devices, so a quest either of us finished elsewhere still
+  // needs to show as completed here.
+  const [completedSlugs, setCompletedSlugs] = useState<Set<string>>(new Set())
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/quests/completions')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && Array.isArray(data?.slugs)) setCompletedSlugs(new Set(data.slugs))
+      })
+      .catch((error) => console.error('Failed to load quest completions', error))
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  return completedSlugs
+}
 function Portal() { return <Shell minimal><main className="arcade-home"><section className="portal-hero"><div className="arcade-machine" aria-label="Camquest arcade machine"><Link className="arcade-screen" to="/quest-log" aria-label="Start Camquest and open the quest log"><span className="screen-scanlines" aria-hidden="true" /><span className="pixel-sprite sprite-heart" aria-hidden="true">♥</span><span className="screen-stars">✦  ·  ✦  ·  ✦</span><strong>CAM⚡QUEST</strong><span className="screen-subtitle">READY UP. ADVENTURE CALLS.</span><span className="screen-prompt">[ PRESS START ]</span></Link><div className="arcade-controls" aria-label="Two-player arcade controls"><div className="player-controls" aria-label="Player one buttons"><div className="arcade-buttons"><button type="button" aria-label="Player one pink button"><span /></button><button type="button" aria-label="Player one gold button"><span /></button></div></div><div className="player-controls player-two" aria-label="Player two buttons"><div className="arcade-buttons"><button type="button" aria-label="Player two cyan button"><span /></button><button type="button" aria-label="Player two violet button"><span /></button></div></div></div></div></section></main></Shell> }
-function QuestLog() { const progress = useStoredProgress(); return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Quest log</h1></div><div className="quest-grid">{adventures.map((adventure) => <QuestCard key={adventure.id} adventure={adventure} progress={progress[adventure.slug]} />)}</div></main></Shell> }
-function QuestCard({ adventure, progress }: { adventure: Adventure; progress?: AdventureProgress }) {
+function QuestLog() { const progress = useStoredProgress(); const completedSlugs = useCompletedSlugs(); return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Quest log</h1></div><div className="quest-grid">{adventures.map((adventure) => <QuestCard key={adventure.id} adventure={adventure} progress={progress[adventure.slug]} serverCompleted={completedSlugs.has(adventure.slug)} />)}</div></main></Shell> }
+function QuestCard({ adventure, progress, serverCompleted }: { adventure: Adventure; progress?: AdventureProgress; serverCompleted?: boolean }) {
   const locked = adventure.status !== 'available' && adventure.status !== 'completed'
-  const completed = Boolean(progress?.completed) || adventure.status === 'completed'
+  const completed = Boolean(progress?.completed) || serverCompleted || adventure.status === 'completed'
   return (
     <article className={`quest-card ${locked ? 'is-locked' : ''}`}>
       <div className="card-top">
@@ -37,6 +56,7 @@ function QuestCard({ adventure, progress }: { adventure: Adventure; progress?: A
 }
 function Archive() {
   const progress = useStoredProgress()
+  const completedSlugs = useCompletedSlugs()
   return (
     <Shell>
       <main className="relative z-10 mx-auto max-w-4xl px-5 pb-16">
@@ -47,7 +67,7 @@ function Archive() {
         </div>
         <div className="archive-list">
           {adventures.map((a) => {
-            const completed = Boolean(progress[a.slug]?.completed)
+            const completed = Boolean(progress[a.slug]?.completed) || completedSlugs.has(a.slug)
             return (
               <div className="archive-row" key={a.id}>
                 <span className="archive-symbol">{a.symbol}</span>
