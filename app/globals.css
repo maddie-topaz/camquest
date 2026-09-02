@@ -100,16 +100,18 @@ h1 { text-shadow:4px 4px 0 #4f286f, 0 0 22px rgba(255,95,189,.45); }
 .arcade-screen { text-decoration:none; cursor:pointer; }
 .arcade-screen:hover { border-color:var(--arcade-pink); box-shadow:inset 0 0 0 4px #21124d,inset 0 0 34px rgba(85,231,255,.42),0 0 24px rgba(255,95,189,.25); }
 .screen-subtitle { color:var(--arcade-gold); font-size:clamp(.6rem,1.5vw,.9rem); letter-spacing:.18em; }
-  .arcade-controls { position:relative; display:flex; justify-content:center; align-items:flex-end; gap:clamp(12px,3vw,28px); padding:24px clamp(18px,5vw,58px) 10px; }
+  .arcade-controls { position:relative; display:grid; grid-template-columns:1fr 1fr auto; justify-content:stretch; align-items:end; gap:clamp(8px,1.5vw,14px); padding:24px clamp(18px,5vw,42px) 10px; }
   .player-controls { display:flex; flex-direction:column; gap:8px; align-items:flex-start; min-width:0; }
-  .player-controls:first-child { margin-right:auto; }
-  .player-two { align-items:flex-end; margin-left:auto; }
+  .player-controls:first-child { justify-self:end; }
+  .player-two { align-items:flex-start; justify-self:start; }
+  .arcade-controls > .coin-slot { grid-column:3; grid-row:1; align-self:end; margin:0 0 4px 2px; }
   .player-label { color:#aaa0db; font-size:.6rem; font-weight:900; letter-spacing:.15em; }
-  .coin-slot { display:none; }
+.coin-slot { display:none; }
   .player-label { color:#aaa0db; font-size:.6rem; font-weight:900; letter-spacing:.15em; }
-.arcade-buttons { display:grid; grid-template-columns:repeat(2, 42px); gap:12px 15px; align-items:center; }
-.player-two .arcade-buttons { direction:rtl; }
-.player-two .arcade-buttons button { direction:ltr; }
+  .arcade-buttons { display:grid; grid-template-columns:repeat(2, 42px); gap:12px 15px; align-items:center; }
+  .player-two .arcade-buttons { direction:ltr; }
+  .player-two .arcade-buttons button { direction:ltr; }
+  .arcade-controls > .coin-slot { display:flex; }
 .player-controls { position:relative; }
 .service-panel { position:relative; grid-column:1 / -1; width:78%; height:76px; margin:2px auto -8px; border:3px solid #6247a5; border-top:0; border-radius:0 0 8px 8px; background:linear-gradient(180deg,#251344,#120b27); box-shadow:0 8px 0 #100822; }
 .service-panel:before { content:'SERVICE'; position:absolute; top:12px; left:50%; transform:translateX(-50%); color:#7c70b8; font-size:.55rem; letter-spacing:.2em; }
