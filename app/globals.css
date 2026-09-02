@@ -68,3 +68,19 @@ h1 { text-shadow:4px 4px 0 #4f286f, 0 0 22px rgba(255,95,189,.45); }
 .progress-line>div { height:7px; border:2px solid #433477; background:#16102c; padding:1px; }.progress-line i { background:repeating-linear-gradient(90deg,var(--arcade-pink) 0 10px,#ff9bda 10px 12px); }
 @media (prefers-reduced-motion:reduce){.portal-hero:after,.sigil,.completion-star{animation:none!important}}
 @layer base { * { outline-color:var(--ring); } }
+/* playful cabinet replaces the static portal glow */
+.arcade-machine { width:min(248px,70vw); margin:0 auto 26px; padding:12px 12px 10px; background:#241447; border:3px solid var(--arcade-cyan); border-radius:10px 10px 5px 5px; box-shadow:7px 7px 0 #160d2f, 0 0 30px rgba(255,95,189,.3); transform:perspective(360px) rotateX(2deg); animation: cabinet-bounce 1.7s steps(3,end) infinite; }
+.arcade-screen { display:flex; flex-direction:column; align-items:center; gap:3px; min-height:156px; padding:18px 10px; border:4px solid #7f58c9; border-radius:4px; background:#100b27; box-shadow:inset 0 0 0 3px #21124d, inset 0 0 24px rgba(85,231,255,.35); color:var(--arcade-pink); text-shadow:3px 3px 0 #652f85, 0 0 13px var(--arcade-pink); }
+.arcade-screen strong { font-size:1.2rem; letter-spacing:.12em; animation: screen-flicker 2.8s steps(2,end) infinite; }
+.screen-stars { align-self:stretch; display:flex; justify-content:space-between; color:var(--arcade-gold); font-size:.7rem; margin-bottom:auto; }
+.screen-prompt { margin-top:auto; color:var(--arcade-cyan); font-size:.62rem; letter-spacing:.12em; animation: prompt-blink 1s steps(2,end) infinite; }
+.arcade-controls { display:flex; align-items:center; gap:22px; padding:11px 8px 0; }
+.arcade-controls i { display:block; width:18px; height:18px; border-radius:50%; background:var(--arcade-pink); box-shadow:3px 3px 0 #7a286e; animation: button-pop 1.4s steps(2,end) infinite; }
+.arcade-controls i:nth-child(2) { background:var(--arcade-gold); animation-delay:.25s; }
+.arcade-controls b { width:42px; height:6px; margin-left:auto; background:#8a6ad0; border-radius:4px; }
+@keyframes cabinet-bounce { 50% { transform:perspective(360px) rotateX(2deg) translateY(-5px); } }
+@keyframes screen-flicker { 0%,92%,100% { opacity:1; } 94% { opacity:.5; } }
+@keyframes prompt-blink { 50% { opacity:.2; } }
+@keyframes button-pop { 50% { transform:scale(.82); } }
+@media (prefers-reduced-motion:reduce){.arcade-machine,.arcade-screen strong,.screen-prompt,.arcade-controls i{animation:none!important}}
+
