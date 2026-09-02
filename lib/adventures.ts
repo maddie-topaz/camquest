@@ -1,5 +1,5 @@
 export type AdventureStatus = 'available' | 'completed' | 'locked' | 'coming-soon'
-export type MysteryCard = { label: string; reveal: string; outcome?: string }
+export type MysteryCard = { label: string; reveal: string; outcome?: string; icon?: string }
 export type ChallengeStep =
   | { type: 'choice'; id: string; title: string; prompt: string; options: string[] }
   | { type: 'mystery'; id: string; title: string; prompt: string; cards: MysteryCard[]; concealUntilComplete?: boolean }
@@ -35,8 +35,8 @@ export const adventures: Adventure[] = [
         prompt: 'Two save files. One decides how our Saturday begins. Pick the one calling to you.',
         concealUntilComplete: true,
         cards: [
-          { label: 'Sun Cartridge', reveal: 'Choice locked', outcome: 'A relaxed breakfast at a cosy café' },
-          { label: 'Moon Cartridge', reveal: 'Choice locked', outcome: 'Takeaway coffee and breakfast by the water' },
+          { label: 'Sun Cartridge', reveal: 'Choice locked', outcome: 'A relaxed breakfast at a cosy café', icon: 'Sun' },
+          { label: 'Moon Cartridge', reveal: 'Choice locked', outcome: 'Takeaway coffee and breakfast by the water', icon: 'Moon' },
         ],
       },
       {
@@ -46,8 +46,8 @@ export const adventures: Adventure[] = [
         prompt: 'The map has split into two unknown regions. Choose where we load in.',
         concealUntilComplete: true,
         cards: [
-          { label: 'Wild Path', reveal: 'Choice locked', outcome: 'A garden or trail made for wandering' },
-          { label: 'Secret Door', reveal: 'Choice locked', outcome: 'An indoor spot with something new to discover' },
+          { label: 'Wild Path', reveal: 'Choice locked', outcome: 'A garden or trail made for wandering', icon: 'TreePine' },
+          { label: 'Secret Door', reveal: 'Choice locked', outcome: 'An indoor spot with something new to discover', icon: 'DoorOpen' },
         ],
       },
       {
@@ -57,8 +57,8 @@ export const adventures: Adventure[] = [
         prompt: 'Every great campaign needs a side quest. Which token gets the slot?',
         concealUntilComplete: true,
         cards: [
-          { label: 'High Score', reveal: 'Choice locked', outcome: 'A playful stop for games and friendly competition' },
-          { label: 'Bonus Round', reveal: 'Choice locked', outcome: 'A creative stop with something worth exploring together' },
+          { label: 'High Score', reveal: 'Choice locked', outcome: 'A playful stop for games and friendly competition', icon: 'Trophy' },
+          { label: 'Bonus Round', reveal: 'Choice locked', outcome: 'A creative stop with something worth exploring together', icon: 'Gift' },
         ],
       },
       {
@@ -68,13 +68,13 @@ export const adventures: Adventure[] = [
         prompt: 'The last card decides where the day lands. Choose the ending screen.',
         concealUntilComplete: true,
         cards: [
-          { label: 'Golden Hour', reveal: 'Choice locked', outcome: 'A sunset picnic to finish the adventure' },
-          { label: 'Neon Night', reveal: 'Choice locked', outcome: 'A cosy dinner somewhere glowing after dark' },
+          { label: 'Golden Hour', reveal: 'Choice locked', outcome: 'A sunset picnic to finish the adventure', icon: 'Sunset' },
+          { label: 'Neon Night', reveal: 'Choice locked', outcome: 'A cosy dinner somewhere glowing after dark', icon: 'Zap' },
         ],
       },
     ],
-    completionMessage: 'Route generated. Your choices have built our Saturday adventure:',
-    reward: 'SATURDAY ROUTE READY',
+    completionMessage: 'Quest complete. Here is what your choices unlocked:',
+    reward: 'ALL CHOICES LOCKED IN',
   },
 ]
 

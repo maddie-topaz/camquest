@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Link, MemoryRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, BookOpen, Check, Clock3, Lock, RotateCcw, Sparkles } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, Check, Clock3, DoorOpen, Gift, Lock, Moon, RotateCcw, Sparkles, Sun, Sunset, TreePine, Trophy, Zap, type LucideIcon } from 'lucide-react'
 import { adventures, getAdventure, getProgress, resetAdventureProgress, resetProgress, saveProgress, siteConfig, type Adventure, type AdventureProgress, type ChallengeStep } from '@/lib/adventures'
+
+const choiceIcons: Record<string, LucideIcon> = { Sun, Moon, TreePine, DoorOpen, Trophy, Gift, Sunset, Zap }
 
 function Shell({ children, minimal = false }: { children: React.ReactNode; minimal?: boolean }) { return <div className="min-h-screen bg-[#0d0b1b] text-[#f7f0ff]"><div className="stars" />{!minimal && <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-6" aria-label="Site header" />}{children}{!minimal && <footer className="relative z-10 mx-auto flex max-w-6xl justify-between px-5 py-8 text-xs text-[#77718f]"><span>Made for {siteConfig.companion}, with intent.</span><span>✦ v. 01</span></footer>}</div> }
 function useStoredProgress() { const [progress, setProgress] = useState<Record<string, AdventureProgress>>({}); useEffect(() => setProgress(getProgress()), []); return progress }
@@ -171,7 +173,7 @@ function Completion({ adventure }: { adventure: Adventure }) {
   const outcomes = useMemo(() => adventure.steps.flatMap((step) => {
     if (step.type !== 'mystery') return []
     const selected = step.cards.find((card) => card.label === answers?.[step.id])
-    return selected?.outcome ? [{ choice: selected.label, outcome: selected.outcome }] : []
+    return selected?.outcome ? [{ choice: selected.label, outcome: selected.outcome, icon: selected.icon && choiceIcons[selected.icon] }] : []
   }), [adventure.steps, answers])
 
   const redo = () => {
@@ -179,7 +181,7 @@ function Completion({ adventure }: { adventure: Adventure }) {
     navigate(`/quest/${adventure.slug}/play`)
   }
 
-  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="completion-panel"><div className="completion-star">✦</div><p className="eyebrow">Quest complete</p><h1>Saturday unlocked.</h1><p className="challenge-prompt">{adventure.completionMessage}</p>{loading ? <div className="loading-block" role="status" aria-live="polite"><div className="loading-spinner"><span /><span /><span /><span /></div><p className="loading-label">Loading your Saturday…</p></div> : outcomes.length > 0 ? <div className="outcome-list">{outcomes.map((result, index) => <div className="outcome-stop" key={result.choice}><span>Stop {String(index + 1).padStart(2, '0')} · {result.choice}</span><strong>{result.outcome}</strong></div>)}</div> : <div className="final-note">{adventure.reward}</div>}{!loading && outcomes.length > 0 && adventure.reward && <div className="route-status">{adventure.reward}</div>}<div className="flex flex-wrap justify-center gap-3"><Link className="portal-button" to="/">Return to portal</Link><Link className="secondary-button" to="/archive">View archive</Link><button type="button" className="secondary-button" onClick={redo}><RotateCcw /> Redo this quest</button></div></div></main></Shell>
+  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="completion-panel"><div className="completion-star">✦</div><p className="eyebrow">Quest complete</p><h1>Saturday unlocked.</h1><p className="challenge-prompt">{adventure.completionMessage}</p>{loading ? <div className="loading-block" role="status" aria-live="polite"><div className="loading-spinner"><span /><span /><span /><span /></div><p className="loading-label">Loading your Saturday…</p></div> : outcomes.length > 0 ? <div className="outcome-list">{outcomes.map((result) => { const Icon = result.icon; return <div className="outcome-stop" key={result.choice}><span className="outcome-icon">{Icon ? <Icon aria-hidden="true" /> : <Sparkles aria-hidden="true" />}</span><div><span className="outcome-label">{result.choice}</span><strong>{result.outcome}</strong></div></div> })}</div> : <div className="final-note">{adventure.reward}</div>}<div className="flex flex-wrap justify-center gap-3"><Link className="portal-button" to="/">Return to portal</Link><Link className="secondary-button" to="/archive">View archive</Link><button type="button" className="secondary-button" onClick={redo}><RotateCcw /> Redo this quest</button></div></div></main></Shell>
 }
 function BrowserUrlSync() {
   const location = useLocation()
