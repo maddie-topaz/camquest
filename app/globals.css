@@ -179,3 +179,14 @@ h1 { text-shadow:4px 4px 0 #4f286f, 0 0 22px rgba(255,95,189,.45); }
 }
 @media (prefers-reduced-motion:reduce){.arcade-screen strong{animation:none!important;opacity:1;transform:none;filter:none;text-shadow:4px 4px 0 #652f85,0 0 18px var(--arcade-pink)}}
 
+/* A cinematic 80s starfield rushes out from behind the arriving title. */
+.arcade-screen .screen-stars { inset:0; padding:18px 22px; width:auto; overflow:hidden; }
+.arcade-screen .screen-stars::before,
+.arcade-screen .screen-stars::after { content:''; position:absolute; inset:10%; z-index:-1; pointer-events:none; background-image:radial-gradient(circle at 12% 24%,var(--arcade-cyan) 0 1px,transparent 2px),radial-gradient(circle at 34% 68%,#fff 0 1px,transparent 2px),radial-gradient(circle at 58% 18%,var(--arcade-pink) 0 1px,transparent 2px),radial-gradient(circle at 83% 72%,var(--arcade-gold) 0 1px,transparent 2px),radial-gradient(circle at 72% 42%,#fff 0 1px,transparent 2px); opacity:0; transform:scale(.18); transform-origin:center; }
+.arcade-screen .screen-stars::before { animation:starfield-rush 2.9s cubic-bezier(.18,.75,.2,1) 1.2s both; }
+.arcade-screen .screen-stars::after { filter:blur(1px); opacity:0; transform:scale(.12); animation:starfield-rush-soft 2.9s cubic-bezier(.18,.75,.2,1) 1.2s both; }
+@keyframes starfield-rush { 0% { opacity:0; transform:scale(.16); } 22% { opacity:.28; } 62% { opacity:.7; transform:scale(.8); } 100% { opacity:.22; transform:scale(1.55); } }
+@keyframes starfield-rush-soft { 0% { opacity:0; transform:scale(.12); } 30% { opacity:.2; } 70% { opacity:.48; transform:scale(1); } 100% { opacity:.08; transform:scale(1.8); } }
+@media (max-width:600px){.arcade-screen .screen-stars{padding:14px}.arcade-screen .screen-stars::before,.arcade-screen .screen-stars::after{inset:6%}}
+@media (prefers-reduced-motion:reduce){.arcade-screen .screen-stars::before,.arcade-screen .screen-stars::after{animation:none!important;opacity:.25;transform:none}}
+
