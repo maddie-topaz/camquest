@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@aws-sdk/rds-signer':
-        specifier: ^3.1124.0
-        version: 3.1124.0
+        specifier: 3.1123.0
+        version: 3.1123.0
       '@base-ui/react':
         specifier: ^1.5.0
         version: 1.5.0(@date-fns/tz@1.4.1)(@types/react@19.2.14)(date-fns@4.1.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -154,16 +154,16 @@ packages:
     resolution: {integrity: sha512-d3AGyVu759PGr35mEB2s22xxlNEA5rpdxtSPJthfPFJvoQ8dt357iVPECqWfUxXp1toJAvKmbtcIYVGigaGsCA==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/credential-providers@3.1124.0':
-    resolution: {integrity: sha512-W7KdAgg8zQ3QoBuOZJM1JR5Sxj1CIxwU/hqpdvIx284bP1iEfITGzXpOCWzV3gI1oji9usDew/AMBpYYI+/7nQ==}
+  '@aws-sdk/credential-providers@3.1123.0':
+    resolution: {integrity: sha512-hfpS7dywjHDyzDRLl/IF03Uy4FY9MpnPT7eSArkvTwP4F29G1r3PYwNyhCTa+wX/pyeyuVKkXX44XeQlWDiMJQ==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/nested-clients@3.997.44':
     resolution: {integrity: sha512-NhEgryjlBF9w38ZXqGymQV28IhkYa1mKhlbYnqIis57AYwWGVYfUPgg/qC2rLRqOUfblxx++irvju10kVTa8Vw==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/rds-signer@3.1124.0':
-    resolution: {integrity: sha512-+AQDDz7/MMkYAsowtJCLAPScF0Ce/DR+eh63e4P80LAD7F8ev5QbxdAUzyOp1b782fA5x6TWGHyMty0raL55GA==}
+  '@aws-sdk/rds-signer@3.1123.0':
+    resolution: {integrity: sha512-MC/5GreYv/46ANF/oAGywYXPbNvqrhQ6ueK6rPfgab7nh6jDacpT2CL0OM6U3KlPw0qTJQmD72c00+AtDbulBw==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/signature-v4-multi-region@3.996.46':
@@ -3033,7 +3033,7 @@ snapshots:
       '@smithy/types': 4.17.2
       tslib: 2.8.1
 
-  '@aws-sdk/credential-providers@3.1124.0':
+  '@aws-sdk/credential-providers@3.1123.0':
     dependencies:
       '@aws-sdk/core': 3.977.9
       '@aws-sdk/credential-provider-cognito-identity': 3.972.69
@@ -3063,10 +3063,10 @@ snapshots:
       '@smithy/types': 4.17.2
       tslib: 2.8.1
 
-  '@aws-sdk/rds-signer@3.1124.0':
+  '@aws-sdk/rds-signer@3.1123.0':
     dependencies:
       '@aws-sdk/core': 3.977.9
-      '@aws-sdk/credential-providers': 3.1124.0
+      '@aws-sdk/credential-providers': 3.1123.0
       '@smithy/core': 3.33.3
       '@smithy/signature-v4': 5.7.3
       '@smithy/types': 4.17.2

@@ -8,7 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@aws-sdk/rds-signer": "^3.1124.0",
+    "@aws-sdk/rds-signer": "3.1123.0",
     "@base-ui/react": "^1.5.0",
     "@vercel/analytics": "1.6.1",
     "@vercel/functions": "^3.9.5",
