@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { BrowserRouter, Link, MemoryRouter, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import { Link, MemoryRouter, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, BookOpen, Check, Clock3, Lock, RotateCcw, Sparkles } from 'lucide-react'
 import { adventures, getAdventure, getProgress, resetProgress, saveProgress, siteConfig, type Adventure, type ChallengeStep } from '@/lib/adventures'
 
@@ -18,11 +18,9 @@ function Completion({ adventure }: { adventure: Adventure }) { return <Shell><ma
 function AppRoutes() { return <Routes><Route path="/" element={<Portal />} /><Route path="/quests" element={<QuestLog />} /><Route path="/archive" element={<Archive />} /><Route path="/quest/:slug" element={<QuestIntroRoute />} /><Route path="/quest/:slug/play" element={<ChallengeRoute />} /><Route path="/quest/:slug/complete" element={<CompletionRoute />} /></Routes> }
 
 function App() {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
-
-  if (!mounted) return <MemoryRouter><AppRoutes /></MemoryRouter>
-  return <BrowserRouter><AppRoutes /></BrowserRouter>
+  // Keep one router mounted for the lifetime of the app so the CRT boot
+  // sequence is not restarted when hydration completes.
+  return <MemoryRouter><AppRoutes /></MemoryRouter>
 }
 function RouteAdventure({ children }: { children: (a: Adventure) => React.ReactNode }) { const { slug } = useParams(); const adventure = useMemo(() => getAdventure(slug || ''), [slug]); if (!adventure || adventure.status === 'coming-soon') return <Portal />; return <>{children(adventure)}</> }
 const QuestIntroRoute = () => <RouteAdventure>{(a) => <Intro adventure={a} />}</RouteAdventure>; const ChallengeRoute = () => <RouteAdventure>{(a) => <Challenge adventure={a} />}</RouteAdventure>; const CompletionRoute = () => <RouteAdventure>{(a) => <Completion adventure={a} />}</RouteAdventure>
