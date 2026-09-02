@@ -71,13 +71,13 @@ h1 { text-shadow:4px 4px 0 #4f286f, 0 0 22px rgba(255,95,189,.45); }
 /* playful cabinet replaces the static portal glow */
 .portal-hero:after { display:none; }
 .arcade-machine { display:block; width:min(520px,92vw); margin:0 auto; padding:22px 24px 18px; background:linear-gradient(180deg,#3b1b68 0%,#241447 18%,#241447 100%); border:4px solid var(--arcade-cyan); border-radius:18px 18px 8px 8px; box-shadow:10px 10px 0 #160d2f, 0 0 42px rgba(255,95,189,.36); transform:perspective(520px) rotateX(2deg); } .arcade-machine:focus-visible { outline:3px solid var(--arcade-gold); outline-offset:6px; } .arcade-machine:hover { border-color:var(--arcade-pink); }
-.arcade-machine:before { content:'CAM\00a0\00a0ARCADE'; display:block; padding:8px 12px 12px; margin:-5px 10% 16px; border:3px solid var(--arcade-gold); border-radius:5px; color:var(--arcade-gold); background:#4c2169; font-size:clamp(.78rem,2vw,1rem); font-weight:900; letter-spacing:.18em; text-shadow:2px 2px 0 #7a286e; box-shadow:inset 0 0 0 3px #2b1650; }
+.arcade-machine:before { content:'CAMQUEST'; display:block; padding:8px 12px 12px; margin:-5px 10% 16px; border:3px solid var(--arcade-gold); border-radius:5px; color:var(--arcade-gold); background:#4c2169; font-size:clamp(.78rem,2vw,1rem); font-weight:900; letter-spacing:.18em; text-shadow:2px 2px 0 #7a286e; box-shadow:inset 0 0 0 3px #2b1650; }
 .arcade-screen { display:flex; flex-direction:column; align-items:center; gap:5px; min-height:310px; padding:42px 20px; border:6px solid #7f58c9; border-radius:8px; background:#100b27; box-shadow:inset 0 0 0 4px #21124d, inset 0 0 30px rgba(85,231,255,.35); color:var(--arcade-pink); text-shadow:4px 4px 0 #652f85, 0 0 18px var(--arcade-pink); }
-.arcade-screen strong { font-size:1.2rem; letter-spacing:.12em; animation: screen-flicker 2.8s steps(2,end) infinite; }
+.arcade-screen strong { font-size:1.2rem; letter-spacing:.12em; }
 .screen-stars { align-self:stretch; display:flex; justify-content:space-between; color:var(--arcade-gold); font-size:.7rem; margin-bottom:auto; }
-.screen-prompt { margin-top:auto; color:var(--arcade-cyan); font-size:.62rem; letter-spacing:.12em; animation: prompt-blink 1s steps(2,end) infinite; }
+.screen-prompt { margin-top:auto; color:var(--arcade-cyan); font-size:.62rem; letter-spacing:.12em; }
 .arcade-controls { display:flex; align-items:center; gap:22px; padding:11px 8px 0; }
-.arcade-controls i { display:block; width:18px; height:18px; border-radius:50%; background:var(--arcade-pink); box-shadow:3px 3px 0 #7a286e; animation: button-pop 1.4s steps(2,end) infinite; }
+.arcade-controls i { display:block; width:18px; height:18px; border-radius:50%; background:var(--arcade-pink); box-shadow:3px 3px 0 #7a286e; }
 .arcade-controls i:nth-child(2) { background:var(--arcade-gold); animation-delay:.25s; }
 .arcade-controls b { width:42px; height:6px; margin-left:auto; background:#8a6ad0; border-radius:4px; }
 @keyframes cabinet-bounce { 50% { transform:perspective(360px) rotateX(2deg) translateY(-5px); } }
