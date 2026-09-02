@@ -91,7 +91,7 @@ h1 { text-shadow:4px 4px 0 #4f286f, 0 0 22px rgba(255,95,189,.45); }
 .arcade-screen:hover { border-color:var(--arcade-pink); box-shadow:inset 0 0 0 4px #21124d,inset 0 0 34px rgba(85,231,255,.42),0 0 24px rgba(255,95,189,.25); }
 .screen-subtitle { color:var(--arcade-gold); font-size:clamp(.6rem,1.5vw,.9rem); letter-spacing:.18em; }
 .arcade-controls { justify-content:space-between; }
-.arcade-joystick { position:relative; width:54px; height:68px; border:0; background:transparent; cursor:pointer; }
+.arcade-joystick { position:relative; width:54px; height:68px; border:0; background:transparent; }
 .arcade-joystick:before { content:''; position:absolute; left:25px; top:22px; width:8px; height:38px; background:#a998e8; box-shadow:3px 3px 0 #493783; transform:rotate(8deg); transform-origin:bottom; }
 .arcade-joystick span { position:absolute; left:10px; top:5px; width:34px; height:25px; border-radius:50%; background:var(--arcade-pink); border:3px solid #ffb0e0; box-shadow:4px 4px 0 #7a286e; }
 .arcade-joystick:active span,.arcade-buttons button:active,.coin-slot:active { transform:translateY(4px); box-shadow:2px 2px 0 #7a286e; }
