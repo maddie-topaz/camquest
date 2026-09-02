@@ -1,47 +1,19 @@
-export default function Page() {
-  return (
-    <main
-      style={{
-        colorScheme: 'light dark',
-        position: 'relative',
-        display: 'flex',
-        minHeight: '100vh',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'light-dark(#fff, #000)',
-        color: 'light-dark(#000, #fff)',
-      }}
-    >
-      <svg
-        aria-hidden="true"
-        style={{ width: 80, height: 80 }}
-        width={80}
-        height={80}
-        fill="none"
-        viewBox="0 0 20 20"
-        xmlns="http://www.w3.org/2000/svg"
-        stroke="currentColor"
-        strokeWidth="0.5"
-      >
-        <path
-          d="M14.2 14.2H17V6.9375C17 4.76288 15.2371 3 13.0625 3H5.8V5.8M14.2 14.2V7.79063L7.79062 14.2H14.2ZM14.2 14.2V17H6.9375C4.76288 17 3 15.2371 3 13.0625V5.8H5.8M5.8 5.8V12.2313L12.2313 5.8H5.8Z"
-          strokeLinejoin="round"
-        />
-      </svg>
-      <p
-        style={{
-          position: 'absolute',
-          left: '50%',
-          top: 'calc(50% + 56px)',
-          transform: 'translateX(-50%)',
-          whiteSpace: 'nowrap',
-          fontSize: '14px',
-          fontWeight: 500,
-          color: 'light-dark(#71717a, #a1a1aa)',
-        }}
-      >
-        Your v0 generation will show here.
-      </p>
-    </main>
-  )
-}
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
+import { Link, MemoryRouter, Route, Routes, useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, ArrowRight, BookOpen, Check, Clock3, Lock, RotateCcw, Sparkles } from 'lucide-react'
+import { adventures, getAdventure, getProgress, resetProgress, saveProgress, siteConfig, type Adventure, type ChallengeStep } from '@/lib/adventures'
+
+function Shell({ children }: { children: React.ReactNode }) { return <div className="min-h-screen bg-[#0d0b1b] text-[#f7f0ff]"><div className="stars" /><header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-6"><a href="/" className="font-serif text-sm tracking-[.2em] text-[#f5c6dd] uppercase">{siteConfig.name}</a><Link className="rounded-full border border-white/10 px-4 py-2 text-xs text-[#bcb5d3] transition hover:border-[#df7db3]/60 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#df7db3]" to="/archive">Archive</Link></header>{children}<footer className="relative z-10 mx-auto flex max-w-6xl justify-between px-5 py-8 text-xs text-[#77718f]"><span>Made for {siteConfig.companion}, with intent.</span><span>✦ v. 01</span></footer></div> }
+function Portal() { const progress = getProgress(); return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><section className="portal-hero"><div className="sigil" aria-hidden="true">✦</div><p className="eyebrow">{siteConfig.eyebrow}</p><h1>{siteConfig.name}</h1><p className="hero-copy">{siteConfig.intro}</p><a href="#adventures" className="portal-button">Explore the atlas <ArrowRight data-icon="inline-end" /></a></section><section id="adventures" className="mt-16"><div className="section-heading"><div><p className="eyebrow">The atlas</p><h2>Choose your next chapter</h2></div><span className="text-sm text-[#847d9d]">{adventures.length} entries</span></div><div className="quest-grid">{adventures.map((adventure) => <QuestCard key={adventure.id} adventure={adventure} progress={progress[adventure.slug]} />)}</div></section></main></Shell> }
+function QuestCard({ adventure, progress }: { adventure: Adventure; progress?: { step: number; completed: boolean } }) { const locked = adventure.status !== 'available' && adventure.status !== 'completed'; return <article className={`quest-card ${locked ? 'is-locked' : ''}`}><div className="card-top"><span className="quest-symbol">{locked ? <Lock aria-hidden="true" /> : adventure.symbol}</span><span className="status-pill">{progress?.completed || adventure.status === 'completed' ? 'Completed' : locked ? 'Coming soon' : 'Available'}</span></div><p className="card-kicker">{adventure.tags.join('  ·  ')}</p><h3>{adventure.title}</h3><p>{adventure.description}</p><div className="card-meta"><span><Clock3 /> {adventure.duration}</span><span>{adventure.steps.length || 'Soon'} steps</span></div>{locked ? <span className="card-link muted">Still being written</span> : <Link className="card-link" to={`/quest/${adventure.slug}`}>{progress && !progress.completed ? 'Continue quest' : progress?.completed ? 'Replay quest' : 'Open chapter'} <ArrowRight /></Link>}</article> }
+function Archive() { const progress = getProgress(); return <Shell><main className="relative z-10 mx-auto max-w-4xl px-5 pb-16"><div className="page-title"><p className="eyebrow">The archive</p><h1>Stories already carried</h1><p>Every completed chapter stays here, like a pressed flower in the margins.</p></div><div className="archive-list">{adventures.map((a) => <div className="archive-row" key={a.id}><span className="archive-symbol">{a.symbol}</span><div><h2>{a.title}</h2><p>{progress[a.slug]?.completed ? 'Completed and safely tucked away.' : a.status === 'coming-soon' ? 'The ink is still drying.' : 'Waiting to be discovered.'}</p></div>{progress[a.slug]?.completed && <Check className="text-[#f0b8d2]" />}</div>)}</div><button className="reset-button" onClick={() => { resetProgress(); window.location.reload() }}><RotateCcw /> Reset all progress</button></main></Shell> }
+function Intro({ adventure }: { adventure: Adventure }) { const navigate = useNavigate(); return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><Link to="/" className="back-link"><ArrowLeft /> Back to portal</Link><div className="intro-panel"><span className="big-symbol">{adventure.symbol}</span><p className="eyebrow">A new chapter</p><h1>{adventure.title}</h1><p className="intro-subtitle">{adventure.subtitle}</p><div className="intro-meta"><span><Clock3 /> {adventure.duration}</span>{adventure.tags.map((tag) => <span key={tag}>{tag}</span>)}</div><p className="story-text">{adventure.introduction}</p><button className="portal-button" onClick={() => navigate(`/quest/${adventure.slug}/play`)}>Begin quest <ArrowRight /></button></div></main></Shell> }
+function Challenge({ adventure }: { adventure: Adventure }) { const navigate = useNavigate(); const saved = getProgress()[adventure.slug]; const [stepIndex, setStepIndex] = useState(saved?.step || 0); const [answer, setAnswer] = useState(''); const [revealed, setRevealed] = useState(false); const step = adventure.steps[stepIndex]; useEffect(() => saveProgress(adventure.slug, stepIndex), [adventure.slug, stepIndex]); const next = () => { if (stepIndex >= adventure.steps.length - 1) { saveProgress(adventure.slug, adventure.steps.length, true); navigate(`/quest/${adventure.slug}/complete`) } else { setStepIndex((i: number) => i + 1); setAnswer(''); setRevealed(false) } }; return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="progress-line"><span>Chapter {stepIndex + 1} of {adventure.steps.length}</span><div><i style={{ width: `${((stepIndex + 1) / adventure.steps.length) * 100}%` }} /></div></div><div className="challenge-panel"><p className="eyebrow">{step.type} challenge</p><h1>{step.title}</h1><p className="challenge-prompt">{step.prompt}</p><ChallengeBody step={step} answer={answer} setAnswer={setAnswer} revealed={revealed} setRevealed={setRevealed} /><button className="portal-button mt-8" disabled={step.type === 'riddle' && answer.trim().toLowerCase() !== step.answer} onClick={next}>{stepIndex === adventure.steps.length - 1 ? 'Complete quest' : 'Continue'} <ArrowRight /></button></div></main></Shell> }
+function ChallengeBody({ step, answer, setAnswer, revealed, setRevealed }: { step: ChallengeStep; answer: string; setAnswer: (v: string) => void; revealed: boolean; setRevealed: (v: boolean) => void }) { if (step.type === 'choice') return <div className="option-grid">{step.options.map((o) => <button key={o} className={`choice ${answer === o ? 'selected' : ''}`} onClick={() => setAnswer(o)}>{o}<span>{answer === o ? 'Selected' : 'Choose'}</span></button>)}</div>; if (step.type === 'mystery') return <div className="option-grid">{step.cards.map((c) => <button key={c.label} className="mystery-card" onClick={() => { setAnswer(c.label); setRevealed(true) }}><span className="mystery-mark">?</span><strong>{revealed && answer === c.label ? c.reveal : c.label}</strong></button>)}</div>; if (step.type === 'riddle') return <div className="riddle-box"><p>{step.clue}</p><label htmlFor="answer">Your answer</label><input id="answer" value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder="Type what you think..." /></div>; if (step.type === 'reveal') return <div className="reveal-box"><Sparkles /><p>{step.message}</p></div>; return <div className="confirm-box"><BookOpen /><p>{step.type === 'activity' ? step.detail : step.prompt}</p>{step.type === 'confirm' && <button className="text-button" onClick={() => setRevealed(true)}>{step.button}</button>}</div> }
+function Completion({ adventure }: { adventure: Adventure }) { return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="completion-panel"><div className="completion-star">✦</div><p className="eyebrow">Chapter complete</p><h1>That&apos;s one for the lore.</h1><p className="challenge-prompt">{adventure.completionMessage}</p><div className="final-note">{adventure.reward}</div><div className="flex flex-wrap justify-center gap-3"><Link className="portal-button" to="/">Return to portal</Link><Link className="secondary-button" to="/archive">View archive</Link></div></div></main></Shell> }
+function App() { return <MemoryRouter><Routes><Route path="/" element={<Portal />} /><Route path="/archive" element={<Archive />} /><Route path="/quest/:slug" element={<QuestIntroRoute />} /><Route path="/quest/:slug/play" element={<ChallengeRoute />} /><Route path="/quest/:slug/complete" element={<CompletionRoute />} /></Routes></MemoryRouter> }
+function RouteAdventure({ children }: { children: (a: Adventure) => React.ReactNode }) { const { slug } = useParams(); const adventure = useMemo(() => getAdventure(slug || ''), [slug]); if (!adventure || adventure.status === 'coming-soon') return <Portal />; return <>{children(adventure)}</> }
+const QuestIntroRoute = () => <RouteAdventure>{(a) => <Intro adventure={a} />}</RouteAdventure>; const ChallengeRoute = () => <RouteAdventure>{(a) => <Challenge adventure={a} />}</RouteAdventure>; const CompletionRoute = () => <RouteAdventure>{(a) => <Completion adventure={a} />}</RouteAdventure>
+export default App
