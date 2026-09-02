@@ -107,7 +107,7 @@ h1 { text-shadow:4px 4px 0 #4f286f, 0 0 22px rgba(255,95,189,.45); }
   .player-label { color:#aaa0db; font-size:.6rem; font-weight:900; letter-spacing:.15em; }
   .coin-slot { display:none; }
   .player-label { color:#aaa0db; font-size:.6rem; font-weight:900; letter-spacing:.15em; }
-.arcade-buttons { display:grid; grid-template-columns:repeat(2, 42px); gap:6px 8px; align-items:center; }
+.arcade-buttons { display:grid; grid-template-columns:repeat(2, 42px); gap:12px 15px; align-items:center; }
 .player-two .arcade-buttons { direction:rtl; }
 .player-two .arcade-buttons button { direction:ltr; }
 .player-controls { position:relative; }
