@@ -68,8 +68,8 @@ export const adventures: Adventure[] = [
         prompt: 'The map has split into two unknown regions. Choose where we go next.',
         concealUntilComplete: true,
         cards: [
-          { label: 'Glass Garden', reveal: 'Choice locked', outcome: 'Go for a drink at Terrarium', icon: 'Sunset' },
-          { label: 'Neon Jungle', reveal: 'Choice locked', outcome: 'Go for a drink at Hula Bula Bar', icon: 'Zap' },
+          { label: 'Glass Garden', reveal: 'Choice locked', outcome: 'Go for a drink at Terrarium', icon: 'Martini' },
+          { label: 'Neon Jungle', reveal: 'Choice locked', outcome: 'Go for a drink at Hula Bula Bar', icon: 'Palmtree' },
         ],
       },
     ],
