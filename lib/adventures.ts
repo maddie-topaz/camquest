@@ -1,30 +1,87 @@
 export type AdventureStatus = 'available' | 'completed' | 'locked' | 'coming-soon'
+export type MysteryCard = { label: string; reveal: string; outcome?: string }
 export type ChallengeStep =
   | { type: 'choice'; id: string; title: string; prompt: string; options: string[] }
-  | { type: 'mystery'; id: string; title: string; prompt: string; cards: { label: string; reveal: string }[] }
+  | { type: 'mystery'; id: string; title: string; prompt: string; cards: MysteryCard[]; concealUntilComplete?: boolean }
   | { type: 'riddle'; id: string; title: string; prompt: string; clue: string; answer: string }
   | { type: 'activity'; id: string; title: string; prompt: string; detail: string }
   | { type: 'reveal'; id: string; title: string; prompt: string; message: string }
   | { type: 'confirm'; id: string; title: string; prompt: string; button: string }
 
 export type Adventure = { id: string; slug: string; title: string; subtitle: string; description: string; symbol: string; status: AdventureStatus; duration: string; tags: string[]; introduction?: string; steps: ChallengeStep[]; completionMessage: string; reward?: string }
+export type AdventureProgress = { step: number; completed: boolean; answers?: Record<string, string> }
 
 export const siteConfig = { name: 'Welcome, Cam', eyebrow: 'A private atlas for two', intro: 'A little portal for the dares, detours, and tiny legends we make together.', companion: 'Cam' }
+const progressStorageKey = 'camquest-progress-v2'
+const legacyProgressStorageKey = 'shared-lore-progress'
 
 export const adventures: Adventure[] = [
-  { id: 'moonlit', slug: 'moonlit-detour', title: 'The Moonlit Detour', subtitle: 'A pocket-sized quest for an ordinary evening', description: 'Follow the thread of small choices until it leads somewhere neither of you expected.', symbol: '✦', status: 'available', duration: '10–15 min', tags: ['Quick quest', 'For tonight'], introduction: 'Cam, the map is warm to the touch. It seems to know you are here. There are four small gates between this moment and a secret waiting at the end.', steps: [
-    { type: 'choice', id: 'choose', title: 'The first fork', prompt: 'The path splits under a violet moon. Which feeling should guide the quest?', options: ['Curiosity', 'Courage', 'Mischief'] },
-    { type: 'mystery', id: 'cards', title: 'Two sealed envelopes', prompt: 'One holds a tiny adventure. One holds a tiny reward. Choose by instinct.', cards: [{ label: 'The left-hand star', reveal: 'A walk somewhere neither of you has visited together.' }, { label: 'The right-hand star', reveal: 'Your companion owes you a dessert of your choosing.' }] },
-    { type: 'riddle', id: 'riddle', title: 'A clue in the margins', prompt: 'Solve the little riddle to reveal the final gate.', clue: 'I have a face but no eyes, hands but no arms. I keep what you give me, but never hold it.', answer: 'clock' },
-    { type: 'reveal', id: 'reveal', title: 'The map unfolds', prompt: 'You made it this far. Here is what the stars were pointing toward:', message: 'Tonight: phones away, shoes on, and a spontaneous walk until you find a light you want to follow.' },
-  ], completionMessage: 'Quest complete. The best adventures are the ones that become stories before they are finished.', reward: 'A golden little detour' },
-  { id: 'summer', slug: 'summer-constellation', title: 'Summer Constellation', subtitle: 'A longer orbit is forming', description: 'A warm-weather constellation of clues, snacks, and one destination worth keeping secret.', symbol: '◒', status: 'coming-soon', duration: '30–45 min', tags: ['Coming soon', 'Field notes'], steps: [], completionMessage: '' },
+  {
+    id: 'saturday-player-two',
+    slug: 'saturday-player-two',
+    title: 'Saturday: Player Two',
+    subtitle: 'Four choices. One day built by you.',
+    description: 'Choose between four pairs of mystery cards and secretly shape every stop on Saturday\'s co-op adventure.',
+    symbol: '⚡',
+    status: 'available',
+    duration: '2–3 min',
+    tags: ['Saturday quest', '4 hidden choices'],
+    introduction: 'Cam, Saturday is waiting to be generated. Four rounds stand between you and the final route. Each card changes where the day will take us, but its true meaning stays hidden until every choice is locked in. Trust your player-two instincts.',
+    steps: [
+      {
+        type: 'mystery',
+        id: 'opening-move',
+        title: 'Choose the opening move',
+        prompt: 'Two save files. One decides how our Saturday begins. Pick the one calling to you.',
+        concealUntilComplete: true,
+        cards: [
+          { label: 'Sun Cartridge', reveal: 'Choice locked', outcome: 'A relaxed breakfast at a cosy café' },
+          { label: 'Moon Cartridge', reveal: 'Choice locked', outcome: 'Takeaway coffee and breakfast by the water' },
+        ],
+      },
+      {
+        type: 'mystery',
+        id: 'main-quest',
+        title: 'Select the main quest',
+        prompt: 'The map has split into two unknown regions. Choose where we load in.',
+        concealUntilComplete: true,
+        cards: [
+          { label: 'Wild Path', reveal: 'Choice locked', outcome: 'A garden or trail made for wandering' },
+          { label: 'Secret Door', reveal: 'Choice locked', outcome: 'An indoor spot with something new to discover' },
+        ],
+      },
+      {
+        type: 'mystery',
+        id: 'bonus-level',
+        title: 'Unlock the bonus level',
+        prompt: 'Every great campaign needs a side quest. Which token gets the slot?',
+        concealUntilComplete: true,
+        cards: [
+          { label: 'High Score', reveal: 'Choice locked', outcome: 'A playful stop for games and friendly competition' },
+          { label: 'Bonus Round', reveal: 'Choice locked', outcome: 'A creative stop with something worth exploring together' },
+        ],
+      },
+      {
+        type: 'mystery',
+        id: 'final-stage',
+        title: 'Pick the final stage',
+        prompt: 'The last card decides where the day lands. Choose the ending screen.',
+        concealUntilComplete: true,
+        cards: [
+          { label: 'Golden Hour', reveal: 'Choice locked', outcome: 'A sunset picnic to finish the adventure' },
+          { label: 'Neon Night', reveal: 'Choice locked', outcome: 'A cosy dinner somewhere glowing after dark' },
+        ],
+      },
+    ],
+    completionMessage: 'Route generated. Your choices have built our Saturday adventure:',
+    reward: 'SATURDAY ROUTE READY',
+  },
 ]
 
 export function getAdventure(slug: string) { return adventures.find((adventure) => adventure.slug === slug) }
-export function getProgress() { if (typeof window === 'undefined') return {}; try { return JSON.parse(localStorage.getItem('shared-lore-progress') || '{}') } catch { return {} } }
-export function saveProgress(slug: string, step: number, completed = false) { const progress = getProgress(); progress[slug] = { step, completed }; localStorage.setItem('shared-lore-progress', JSON.stringify(progress)) }
-export function resetProgress() { localStorage.removeItem('shared-lore-progress') }
+export function getProgress(): Record<string, AdventureProgress> { if (typeof window === 'undefined') return {}; try { return JSON.parse(localStorage.getItem(progressStorageKey) || '{}') } catch { return {} } }
+export function saveProgress(slug: string, step: number, completed = false, answers?: Record<string, string>) { const progress = getProgress(); const current = progress[slug]; progress[slug] = { step, completed, answers: answers ?? current?.answers }; localStorage.setItem(progressStorageKey, JSON.stringify(progress)) }
+export function resetProgress() { localStorage.removeItem(progressStorageKey); localStorage.removeItem(legacyProgressStorageKey) }
 
 // Add an adventure to this array. Give it a unique slug, then compose steps using the ChallengeStep union above. Generic screens render every step from its `type`.
 // See the Adventure type for every field; no component changes are needed for a new adventure.
