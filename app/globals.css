@@ -100,7 +100,7 @@ h1 { text-shadow:4px 4px 0 #4f286f, 0 0 22px rgba(255,95,189,.45); }
 .arcade-screen { text-decoration:none; cursor:pointer; }
 .arcade-screen:hover { border-color:var(--arcade-pink); box-shadow:inset 0 0 0 4px #21124d,inset 0 0 34px rgba(85,231,255,.42),0 0 24px rgba(255,95,189,.25); }
 .screen-subtitle { color:var(--arcade-gold); font-size:clamp(.6rem,1.5vw,.9rem); letter-spacing:.18em; }
-  .arcade-controls { position:relative; display:flex; justify-content:space-between; align-items:flex-end; gap:clamp(24px,8vw,96px); padding:24px clamp(18px,5vw,58px) 10px; }
+  .arcade-controls { position:relative; display:flex; justify-content:center; align-items:flex-end; gap:clamp(12px,3vw,28px); padding:24px clamp(18px,5vw,58px) 10px; }
   .player-controls { display:flex; flex-direction:column; gap:8px; align-items:flex-start; min-width:0; }
   .player-controls:first-child { margin-right:auto; }
   .player-two { align-items:flex-end; margin-left:auto; }
