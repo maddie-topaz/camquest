@@ -9,7 +9,7 @@ export type ChallengeStep =
 
 export type Adventure = { id: string; slug: string; title: string; subtitle: string; description: string; symbol: string; status: AdventureStatus; duration: string; tags: string[]; introduction?: string; steps: ChallengeStep[]; completionMessage: string; reward?: string }
 
-export const siteConfig = { name: 'Our Shared Lore', eyebrow: 'A private atlas for two', intro: 'A little portal for the dares, detours, and tiny legends we make together.', companion: 'Cam' }
+export const siteConfig = { name: 'Welcome, Cam', eyebrow: 'A private atlas for two', intro: 'A little portal for the dares, detours, and tiny legends we make together.', companion: 'Cam' }
 
 export const adventures: Adventure[] = [
   { id: 'moonlit', slug: 'moonlit-detour', title: 'The Moonlit Detour', subtitle: 'A pocket-sized quest for an ordinary evening', description: 'Follow the thread of small choices until it leads somewhere neither of you expected.', symbol: '✦', status: 'available', duration: '10–15 min', tags: ['Quick quest', 'For tonight'], introduction: 'Cam, the map is warm to the touch. It seems to know you are here. There are four small gates between this moment and a secret waiting at the end.', steps: [

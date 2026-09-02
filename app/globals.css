@@ -16,6 +16,8 @@ a { color:inherit; text-decoration:none; }
 .eyebrow { color:#d78bb4; font-size:.7rem; letter-spacing:.22em; text-transform:uppercase; font-weight:700; }
 h1,h2,h3 { font-family:Georgia, serif; font-weight:400; }
 h1 { font-size:clamp(2.7rem,7vw,5.8rem); line-height:.98; margin:12px 0 20px; letter-spacing:-.05em; }
+.welcome-title { animation: welcome-arrival 900ms cubic-bezier(.2,.8,.2,1) both; text-shadow:0 0 34px rgba(223,125,179,.28); }
+@keyframes welcome-arrival { from { opacity:0; transform:translateY(14px) scale(.97); letter-spacing:.02em; } to { opacity:1; transform:translateY(0) scale(1); letter-spacing:-.05em; } }
 h2 { font-size:clamp(1.8rem,4vw,2.7rem); margin:6px 0; }
 h3 { font-size:1.65rem; margin:12px 0 8px; }
 .hero-copy,.page-title>p:last-child { max-width:450px; color:#aaa3bf; line-height:1.7; }
