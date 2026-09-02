@@ -162,6 +162,9 @@ h1 { text-shadow:4px 4px 0 #4f286f, 0 0 22px rgba(255,95,189,.45); }
 /* Keep the CRT sprites in a stable arcade HUD layout. */
 .arcade-screen .screen-stars { position:absolute; top:18px; left:22px; right:auto; align-self:auto; margin:0; justify-content:flex-start; width:auto; }
 .arcade-screen .sprite-heart { position:absolute; top:18px; right:22px; z-index:4; margin:0; }
+.arcade-screen strong, .arcade-screen .screen-subtitle { margin:0; }
+.arcade-screen .screen-prompt { position:absolute; left:0; right:0; bottom:34px; margin:0; text-align:center; }
+@media (max-width:600px){.arcade-screen .screen-prompt{bottom:24px}}
 @media (max-width:600px){.arcade-screen .screen-stars{top:14px;left:14px}.arcade-screen .sprite-heart{top:14px;right:14px}}
 @media (prefers-reduced-motion:reduce){.arcade-screen .sprite-heart{animation:none!important;opacity:.8;transform:none;filter:none}}
 
