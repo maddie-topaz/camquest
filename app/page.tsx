@@ -9,8 +9,64 @@ function Shell({ children, minimal = false }: { children: React.ReactNode; minim
 function useStoredProgress() { const [progress, setProgress] = useState<Record<string, AdventureProgress>>({}); useEffect(() => setProgress(getProgress()), []); return progress }
 function Portal() { return <Shell minimal><main className="arcade-home"><section className="portal-hero"><div className="arcade-machine" aria-label="Camquest arcade machine"><Link className="arcade-screen" to="/quest-log" aria-label="Start Camquest and open the quest log"><span className="screen-scanlines" aria-hidden="true" /><span className="pixel-sprite sprite-heart" aria-hidden="true">♥</span><span className="screen-stars">✦  ·  ✦  ·  ✦</span><strong>CAM⚡QUEST</strong><span className="screen-subtitle">READY UP. ADVENTURE CALLS.</span><span className="screen-prompt">[ PRESS START ]</span></Link><div className="arcade-controls" aria-label="Two-player arcade controls"><div className="player-controls" aria-label="Player one buttons"><div className="arcade-buttons"><button type="button" aria-label="Player one pink button"><span /></button><button type="button" aria-label="Player one gold button"><span /></button></div></div><div className="player-controls player-two" aria-label="Player two buttons"><div className="arcade-buttons"><button type="button" aria-label="Player two cyan button"><span /></button><button type="button" aria-label="Player two violet button"><span /></button></div></div></div></div></section></main></Shell> }
 function QuestLog() { const progress = useStoredProgress(); return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Quest log</h1></div><div className="quest-grid">{adventures.map((adventure) => <QuestCard key={adventure.id} adventure={adventure} progress={progress[adventure.slug]} />)}</div></main></Shell> }
-function QuestCard({ adventure, progress }: { adventure: Adventure; progress?: AdventureProgress }) { const locked = adventure.status !== 'available' && adventure.status !== 'completed'; return <article className={`quest-card ${locked ? 'is-locked' : ''}`}><div className="card-top"><span className="quest-symbol">{locked ? <Lock aria-hidden="true" /> : adventure.symbol}</span><span className="status-pill">{progress?.completed || adventure.status === 'completed' ? 'Completed' : locked ? 'Coming soon' : 'Available'}</span></div><h3>{adventure.title}</h3><p>{adventure.description}</p>{locked ? <span className="card-link muted">Still being written</span> : <Link className="card-link" to={`/quest/${adventure.slug}`}>{progress && !progress.completed ? 'Continue quest' : progress?.completed ? 'Replay quest' : 'Open chapter'} <ArrowRight /></Link>}</article> }
-function Archive() { const progress = useStoredProgress(); return <Shell><main className="relative z-10 mx-auto max-w-4xl px-5 pb-16"><div className="page-title"><p className="eyebrow">The archive</p><h1>Stories already carried</h1><p>Every completed chapter stays here, like a pressed flower in the margins.</p></div><div className="archive-list">{adventures.map((a) => <div className="archive-row" key={a.id}><span className="archive-symbol">{a.symbol}</span><div><h2>{a.title}</h2><p>{progress[a.slug]?.completed ? 'Completed and safely tucked away.' : a.status === 'coming-soon' ? 'The ink is still drying.' : 'Waiting to be discovered.'}</p></div>{progress[a.slug]?.completed && <Check className="text-[#f0b8d2]" />}</div>)}</div><button className="reset-button" onClick={() => { resetProgress(); window.location.reload() }}><RotateCcw /> Reset all progress</button></main></Shell> }
+function QuestCard({ adventure, progress }: { adventure: Adventure; progress?: AdventureProgress }) {
+  const locked = adventure.status !== 'available' && adventure.status !== 'completed'
+  const completed = Boolean(progress?.completed) || adventure.status === 'completed'
+  return (
+    <article className={`quest-card ${locked ? 'is-locked' : ''}`}>
+      <div className="card-top">
+        <span className="quest-symbol">{locked ? <Lock aria-hidden="true" /> : adventure.symbol}</span>
+        <span className="status-pill">{completed ? 'Completed' : locked ? 'Coming soon' : 'Available'}</span>
+      </div>
+      <h3>{adventure.title}</h3>
+      <p>{adventure.description}</p>
+      {locked ? (
+        <span className="card-link muted">Still being written</span>
+      ) : completed ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <Link className="card-link" to={`/quest/${adventure.slug}/complete`}>View result <ArrowRight /></Link>
+          <Link className="card-link muted" to={`/quest/${adventure.slug}`}>Replay quest</Link>
+        </div>
+      ) : (
+        <Link className="card-link" to={`/quest/${adventure.slug}`}>{progress ? 'Continue quest' : 'Open chapter'} <ArrowRight /></Link>
+      )}
+    </article>
+  )
+}
+function Archive() {
+  const progress = useStoredProgress()
+  return (
+    <Shell>
+      <main className="relative z-10 mx-auto max-w-4xl px-5 pb-16">
+        <div className="page-title">
+          <p className="eyebrow">The archive</p>
+          <h1>Stories already carried</h1>
+          <p>Every completed chapter stays here, like a pressed flower in the margins.</p>
+        </div>
+        <div className="archive-list">
+          {adventures.map((a) => {
+            const completed = Boolean(progress[a.slug]?.completed)
+            return (
+              <div className="archive-row" key={a.id}>
+                <span className="archive-symbol">{a.symbol}</span>
+                <div>
+                  <h2>{a.title}</h2>
+                  <p>{completed ? 'Completed and safely tucked away.' : a.status === 'coming-soon' ? 'The ink is still drying.' : 'Waiting to be discovered.'}</p>
+                </div>
+                {completed && (
+                  <Link className="card-link" to={`/quest/${a.slug}/complete`}>
+                    View result <Check className="text-[#f0b8d2]" />
+                  </Link>
+                )}
+              </div>
+            )
+          })}
+        </div>
+        <button className="reset-button" onClick={() => { resetProgress(); window.location.reload() }}><RotateCcw /> Reset all progress</button>
+      </main>
+    </Shell>
+  )
+}
 function Intro({ adventure }: { adventure: Adventure }) { const navigate = useNavigate(); return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><Link to="/" className="back-link"><ArrowLeft /> Back to portal</Link><div className="intro-panel"><span className="big-symbol">{adventure.symbol}</span><p className="eyebrow">A new chapter</p><h1>{adventure.title}</h1><p className="intro-subtitle">{adventure.subtitle}</p><div className="intro-meta"><span><Clock3 /> {adventure.duration}</span>{adventure.tags.map((tag) => <span key={tag}>{tag}</span>)}</div><p className="story-text">{adventure.introduction}</p><button className="portal-button" onClick={() => navigate(`/quest/${adventure.slug}/play`)}>Begin quest <ArrowRight /></button></div></main></Shell> }
 function Challenge({ adventure }: { adventure: Adventure }) {
   const navigate = useNavigate()
