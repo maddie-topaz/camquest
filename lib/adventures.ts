@@ -17,16 +17,16 @@ const legacyProgressStorageKey = 'shared-lore-progress'
 
 export const adventures: Adventure[] = [
   {
-    id: 'saturday-player-two',
-    slug: 'saturday-player-two',
-    title: 'Saturday: Player Two',
-    subtitle: 'Four choices. One day built by you.',
-    description: 'Choose between four pairs of mystery cards and secretly shape every stop on Saturday\'s co-op adventure.',
+    id: 'cams-gambit',
+    slug: 'cams-gambit',
+    title: 'Cam\'s Gambit',
+    subtitle: 'Choose carefully.',
+    description: 'Something has been loaded into the system. Trust your Player Two instincts.',
     symbol: '⚡',
     status: 'available',
     duration: '2–3 min',
     tags: ['Saturday quest', '4 hidden choices'],
-    introduction: 'Cam, Saturday is waiting to be generated. Four rounds stand between you and the final route. Each card changes where the day will take us, but its true meaning stays hidden until every choice is locked in. Trust your player-two instincts.',
+    introduction: 'Cam, Saturday is waiting to be generated. Four rounds stand between you and the final route. Each card changes where the day will take us. Trust your player two instincts.',
     steps: [
       {
         type: 'mystery',
@@ -81,6 +81,7 @@ export const adventures: Adventure[] = [
 export function getAdventure(slug: string) { return adventures.find((adventure) => adventure.slug === slug) }
 export function getProgress(): Record<string, AdventureProgress> { if (typeof window === 'undefined') return {}; try { return JSON.parse(localStorage.getItem(progressStorageKey) || '{}') } catch { return {} } }
 export function saveProgress(slug: string, step: number, completed = false, answers?: Record<string, string>) { const progress = getProgress(); const current = progress[slug]; progress[slug] = { step, completed, answers: answers ?? current?.answers }; localStorage.setItem(progressStorageKey, JSON.stringify(progress)) }
+export function resetAdventureProgress(slug: string) { const progress = getProgress(); delete progress[slug]; localStorage.setItem(progressStorageKey, JSON.stringify(progress)) }
 export function resetProgress() { localStorage.removeItem(progressStorageKey); localStorage.removeItem(legacyProgressStorageKey) }
 
 // Add an adventure to this array. Give it a unique slug, then compose steps using the ChallengeStep union above. Generic screens render every step from its `type`.

@@ -8,12 +8,15 @@
     "start": "next start"
   },
   "dependencies": {
+    "@aws-sdk/rds-signer": "^3.1124.0",
     "@base-ui/react": "^1.5.0",
     "@vercel/analytics": "1.6.1",
+    "@vercel/functions": "^3.9.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.16.0",
     "next": "16.3.3",
+    "pg": "^8.23.0",
     "react": "^19",
     "react-dom": "^19",
     "react-router-dom": "^7.18.3",
@@ -34,6 +37,7 @@
     "prettier": "^3.9.6",
     "tailwindcss": "^4.3.3",
     "typescript": "5.7.3",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "@types/pg": "^8.15.5"
   }
 }
