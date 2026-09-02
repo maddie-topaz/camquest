@@ -102,7 +102,9 @@ function Challenge({ adventure }: { adventure: Adventure }) {
   const next = () => {
     const nextAnswers = answer ? { ...answers, [step.id]: answer } : answers
     if (stepIndex >= adventure.steps.length - 1) {
-      saveProgress(adventure.slug, adventure.steps.length, true, nextAnswers)
+      // The finished answers now live in the database (see the POST below);
+      // no need to keep a duplicate copy in localStorage. Just mark it done.
+      saveProgress(adventure.slug, adventure.steps.length, true, {})
       void fetch('/api/quests/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -142,25 +144,29 @@ function ChallengeBody({ step, answer, setAnswer, selectAnswer, revealed, setRev
 }
 function Completion({ adventure }: { adventure: Adventure }) {
   const navigate = useNavigate()
-  const progress = useStoredProgress()[adventure.slug]
-  const [dbAnswers, setDbAnswers] = useState<Record<string, string> | null>(null)
+  // The database is the only source of truth for a finished quest's
+  // choices now. `undefined` means "still fetching" (shows the loading
+  // spinner); `null` means the fetch finished but found nothing.
+  const [answers, setAnswers] = useState<Record<string, string> | null | undefined>(undefined)
 
-  // Pull the stored result back out of the database so the choices still show
-  // even if this browser's local progress was cleared.
   useEffect(() => {
     let cancelled = false
+    setAnswers(undefined)
     fetch(`/api/quests/${adventure.slug}/completion`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (!cancelled && data?.completion?.answers) setDbAnswers(data.completion.answers)
+        if (!cancelled) setAnswers(data?.completion?.answers ?? null)
       })
-      .catch((error) => console.error('Failed to load stored completion', error))
+      .catch((error) => {
+        console.error('Failed to load stored completion', error)
+        if (!cancelled) setAnswers(null)
+      })
     return () => {
       cancelled = true
     }
   }, [adventure.slug])
 
-  const answers = dbAnswers ?? progress?.answers
+  const loading = answers === undefined
 
   const outcomes = useMemo(() => adventure.steps.flatMap((step) => {
     if (step.type !== 'mystery') return []
@@ -173,7 +179,7 @@ function Completion({ adventure }: { adventure: Adventure }) {
     navigate(`/quest/${adventure.slug}/play`)
   }
 
-  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="completion-panel"><div className="completion-star">✦</div><p className="eyebrow">Quest complete</p><h1>Saturday unlocked.</h1><p className="challenge-prompt">{adventure.completionMessage}</p>{outcomes.length > 0 ? <div className="outcome-list">{outcomes.map((result, index) => <div className="outcome-stop" key={result.choice}><span>Stop {String(index + 1).padStart(2, '0')} · {result.choice}</span><strong>{result.outcome}</strong></div>)}</div> : <div className="final-note">{adventure.reward}</div>}{outcomes.length > 0 && adventure.reward && <div className="route-status">{adventure.reward}</div>}<div className="flex flex-wrap justify-center gap-3"><Link className="portal-button" to="/">Return to portal</Link><Link className="secondary-button" to="/archive">View archive</Link><button type="button" className="secondary-button" onClick={redo}><RotateCcw /> Redo this quest</button></div></div></main></Shell>
+  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="completion-panel"><div className="completion-star">✦</div><p className="eyebrow">Quest complete</p><h1>Saturday unlocked.</h1><p className="challenge-prompt">{adventure.completionMessage}</p>{loading ? <div className="loading-block" role="status" aria-live="polite"><div className="loading-spinner"><span /><span /><span /><span /></div><p className="loading-label">Loading your Saturday…</p></div> : outcomes.length > 0 ? <div className="outcome-list">{outcomes.map((result, index) => <div className="outcome-stop" key={result.choice}><span>Stop {String(index + 1).padStart(2, '0')} · {result.choice}</span><strong>{result.outcome}</strong></div>)}</div> : <div className="final-note">{adventure.reward}</div>}{!loading && outcomes.length > 0 && adventure.reward && <div className="route-status">{adventure.reward}</div>}<div className="flex flex-wrap justify-center gap-3"><Link className="portal-button" to="/">Return to portal</Link><Link className="secondary-button" to="/archive">View archive</Link><button type="button" className="secondary-button" onClick={redo}><RotateCcw /> Redo this quest</button></div></div></main></Shell>
 }
 function BrowserUrlSync() {
   const location = useLocation()

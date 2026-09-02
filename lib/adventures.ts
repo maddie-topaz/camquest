@@ -21,12 +21,12 @@ export const adventures: Adventure[] = [
     slug: 'cams-gambit',
     title: 'Cam\'s Gambit',
     subtitle: 'Choose carefully.',
-    description: 'Something has been loaded into the system. Trust your Player Two instincts.',
+    description: 'Something has been loaded into the system.',
     symbol: '⚡',
     status: 'available',
     duration: '2–3 min',
     tags: ['Saturday quest', '4 hidden choices'],
-    introduction: 'Cam, Saturday is waiting to be generated. Four rounds stand between you and the final route. Each card changes where the day will take us. Trust your player two instincts.',
+    introduction: 'Cam, Saturday is waiting for you. Only four questions stand between you and your final fate. Trust your player two instincts.',
     steps: [
       {
         type: 'mystery',
