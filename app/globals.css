@@ -107,7 +107,7 @@ h1 { text-shadow:4px 4px 0 #4f286f, 0 0 22px rgba(255,95,189,.45); }
   .player-label { color:#aaa0db; font-size:.6rem; font-weight:900; letter-spacing:.15em; }
   .coin-slot { display:none; }
   .player-label { color:#aaa0db; font-size:.6rem; font-weight:900; letter-spacing:.15em; }
-.arcade-buttons { display:grid; grid-template-columns:repeat(2, 42px); gap:12px 15px; align-items:center; }
+.arcade-buttons { display:grid; grid-template-columns:repeat(2, 42px); gap:6px 8px; align-items:center; }
 .player-two .arcade-buttons { direction:rtl; }
 .player-two .arcade-buttons button { direction:ltr; }
 .player-controls { position:relative; }
@@ -146,18 +146,4 @@ h1 { text-shadow:4px 4px 0 #4f286f, 0 0 22px rgba(255,95,189,.45); }
 .arcade-home .arcade-controls b { width:72px; height:10px; }
 @media (max-width:600px){ .arcade-home { padding-inline:10px; } .arcade-home .arcade-machine { padding:22px 20px 20px; border-width:4px; border-radius:24px 24px 10px 10px; } .arcade-home .arcade-screen { min-height:390px; padding:42px 18px; } .arcade-home .arcade-controls { gap:22px; } }
 @media (prefers-reduced-motion:reduce){.arcade-home .arcade-machine{animation:none!important}}
-/* dimensional two-player control deck */
-.arcade-home .arcade-controls { align-items:stretch; gap:clamp(18px,3vw,34px); padding:clamp(20px,3vw,30px) clamp(12px,3vw,28px) 8px; background:linear-gradient(180deg,#4b2874 0%,#2a174e 100%); border-top:4px solid #6d4aa8; box-shadow:inset 0 5px 0 rgba(255,255,255,.08),inset 0 -10px 0 rgba(10,5,25,.22); }
-.arcade-home .player-controls { flex:1 1 0; min-width:0; max-width:250px; padding:12px 14px 14px; border:3px solid #6f51a7; border-radius:10px; background:linear-gradient(145deg,#23133e,#140b29); box-shadow:inset 0 3px 0 rgba(255,255,255,.08),6px 6px 0 #160c2d; }
-.arcade-home .player-controls:first-child,.arcade-home .player-two { margin:0; align-items:center; }
-.arcade-home .player-label { display:block; width:100%; padding-bottom:10px; color:var(--arcade-cyan); text-align:center; font-size:.72rem; letter-spacing:.22em; text-shadow:0 2px 0 #24134c; }
-.arcade-home .arcade-buttons { width:100%; display:grid; grid-template-columns:repeat(2,minmax(38px,1fr)); gap:clamp(8px,1.5vw,14px); padding:0 4px; }
-.arcade-home .arcade-buttons button { width:clamp(42px,5.2vw,58px); justify-self:center; border-width:4px; box-shadow:0 6px 0 #7a286e,0 0 0 3px rgba(10,5,25,.45); }
-.arcade-home .arcade-buttons button:nth-child(2) { transform:translateY(-7px); }
-.arcade-home .arcade-buttons button:nth-child(3) { transform:translateY(7px); }
-.arcade-home .arcade-buttons button:nth-child(4) { transform:translateY(0); }
-.arcade-home .player-two .arcade-buttons button:nth-child(2) { transform:translateY(7px); }
-.arcade-home .player-two .arcade-buttons button:nth-child(3) { transform:translateY(-7px); }
-.arcade-home .arcade-buttons button:active,.arcade-home .arcade-buttons button:nth-child(2):active,.arcade-home .player-two .arcade-buttons button:nth-child(2):active,.arcade-home .player-two .arcade-buttons button:nth-child(3):active { transform:translateY(3px); }
-@media (max-width:600px){.arcade-home .arcade-controls{gap:10px;padding-inline:6px}.arcade-home .player-controls{padding-inline:8px}.arcade-home .arcade-buttons{gap:6px 4px}.arcade-home .arcade-buttons button{width:40px}}
 
