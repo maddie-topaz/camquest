@@ -146,4 +146,19 @@ h1 { text-shadow:4px 4px 0 #4f286f, 0 0 22px rgba(255,95,189,.45); }
 .arcade-home .arcade-controls b { width:72px; height:10px; }
 @media (max-width:600px){ .arcade-home { padding-inline:10px; } .arcade-home .arcade-machine { padding:22px 20px 20px; border-width:4px; border-radius:24px 24px 10px 10px; } .arcade-home .arcade-screen { min-height:390px; padding:42px 18px; } .arcade-home .arcade-controls { gap:22px; } }
 @media (prefers-reduced-motion:reduce){.arcade-home .arcade-machine{animation:none!important}}
+/* cinematic attract-mode CRT boot: one short perspective arrival, then gentle idle */
+.arcade-screen { perspective:800px; transform-style:preserve-3d; }
+.arcade-screen .screen-stars { animation:starfield-drift 8s linear 1.6s infinite; }
+.arcade-screen strong { transform-origin:center; filter:blur(7px) brightness(.35); animation:crt-depth-title 1100ms cubic-bezier(.16,.86,.26,1.08) 1.55s both, neon-idle 5s ease-in-out 3.1s infinite; }
+.arcade-screen .screen-subtitle { filter:blur(5px); animation:crt-depth-subtitle 620ms cubic-bezier(.2,.8,.2,1) 2.35s both; }
+.arcade-screen .screen-prompt { animation:crt-depth-prompt 420ms ease-out 2.85s both, prompt-blink 3.2s steps(2,end) 3.35s infinite; }
+@keyframes crt-depth-title { 0% { opacity:0; transform:translateZ(-420px) scale(.1); filter:blur(9px) brightness(.3); text-shadow:none; } 68% { opacity:1; transform:translateZ(35px) scale(1.08); filter:blur(1px) brightness(1.35); text-shadow:-4px 0 var(--arcade-cyan),4px 0 var(--arcade-pink),0 0 26px var(--arcade-pink); } 82% { transform:translateZ(0) scale(.98); text-shadow:-2px 0 var(--arcade-cyan),2px 0 var(--arcade-pink),0 0 20px var(--arcade-pink); } 100% { opacity:1; transform:translateZ(0) scale(1); filter:blur(0) brightness(1); } }
+@keyframes crt-depth-subtitle { 0% { opacity:0; transform:translateZ(-180px) scale(.35); filter:blur(6px); } 70% { opacity:1; transform:translateZ(18px) scale(1.04); filter:blur(0); } 100% { opacity:1; transform:translateZ(0) scale(1); } }
+@keyframes crt-depth-prompt { from { opacity:0; transform:translateZ(-80px) scale(.65); } to { opacity:1; transform:translateZ(0) scale(1); } }
+@keyframes starfield-drift { 0% { transform:scale(.8); opacity:.35; } 45% { transform:scale(1.06); opacity:.9; } 100% { transform:scale(1.18); opacity:.45; } }
+@keyframes neon-idle { 50% { text-shadow:0 0 12px var(--arcade-pink),0 0 28px rgba(85,231,255,.35); } }
+.arcade-screen.is-launching { animation:screen-launch 720ms cubic-bezier(.2,.8,.2,1) forwards; transform-origin:center; }
+@keyframes screen-launch { to { transform:scale(8); opacity:0; } }
+@media (prefers-reduced-motion:reduce){.arcade-screen strong,.arcade-screen .screen-subtitle,.arcade-screen .screen-prompt,.arcade-screen .screen-stars,.arcade-screen.is-launching{animation:none!important;filter:none!important}.arcade-screen.is-launching{opacity:.2;transition:opacity .2s ease}}
+
 
