@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Link, MemoryRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, BookOpen, Check, Clock3, DoorOpen, Gift, Lock, Martini, Moon, Palmtree, RotateCcw, Sparkles, Sun, TreePine, Trophy, type LucideIcon } from 'lucide-react'
-import { adventures, getAdventure, getProgress, resetAdventureProgress, resetProgress, saveProgress, siteConfig, type Adventure, type AdventureProgress, type ChallengeStep } from '@/lib/adventures'
+import { Archive as ArchiveIcon, ArrowLeft, ArrowRight, BookOpen, Check, Clock3, DoorOpen, Gamepad2, Gift, Lock, Martini, Moon, Palmtree, RotateCcw, Sparkles, Sun, TreePine, Trophy, type LucideIcon } from 'lucide-react'
+import { adventures, getAdventure, getProgress, resetAdventureProgress, resetProgress, saveProgress, type Adventure, type AdventureProgress, type ChallengeStep } from '@/lib/adventures'
 
 const choiceIcons: Record<string, LucideIcon> = { Sun, Moon, TreePine, DoorOpen, Trophy, Gift, Martini, Palmtree }
 
-function Shell({ children, minimal = false }: { children: React.ReactNode; minimal?: boolean }) { return <div className="min-h-screen bg-[#0d0b1b] text-[#f7f0ff]"><div className="stars" />{!minimal && <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-6" aria-label="Site header" />}{children}{!minimal && <footer className="relative z-10 mx-auto flex max-w-6xl justify-between px-5 py-8 text-xs text-[#77718f]"><span>Made for {siteConfig.companion}, with intent.</span><span>✦ v. 01</span></footer>}</div> }
+function Shell({ children, minimal = false }: { children: React.ReactNode; minimal?: boolean }) { return <div className="min-h-screen bg-[#0d0b1b] text-[#f7f0ff]"><div className="stars" />{!minimal && <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-6" aria-label="Site header" />}{children}</div> }
 function useStoredProgress() { const [progress, setProgress] = useState<Record<string, AdventureProgress>>({}); useEffect(() => setProgress(getProgress()), []); return progress }
 function useCompletedSlugs() {
   // Local progress only knows what this device has done. The database is
@@ -28,8 +28,13 @@ function useCompletedSlugs() {
   }, [])
   return completedSlugs
 }
-function Portal() { return <Shell minimal><main className="arcade-home"><section className="portal-hero"><div className="arcade-machine" aria-label="Camquest arcade machine"><Link className="arcade-screen" to="/quest-log" aria-label="Start Camquest and open the quest log"><span className="screen-scanlines" aria-hidden="true" /><span className="pixel-sprite sprite-heart" aria-hidden="true">♥</span><span className="screen-stars">✦  ·  ✦  ·  ✦</span><strong>CAM⚡QUEST</strong><span className="screen-subtitle">READY UP. ADVENTURE CALLS.</span><span className="screen-prompt">[ PRESS START ]</span></Link><div className="arcade-controls" aria-label="Two-player arcade controls"><div className="player-controls" aria-label="Player one buttons"><div className="arcade-buttons"><button type="button" aria-label="Player one pink button"><span /></button><button type="button" aria-label="Player one gold button"><span /></button></div></div><div className="player-controls player-two" aria-label="Player two buttons"><div className="arcade-buttons"><button type="button" aria-label="Player two cyan button"><span /></button><button type="button" aria-label="Player two violet button"><span /></button></div></div></div></div></section></main></Shell> }
-function QuestLog() { const progress = useStoredProgress(); const completedSlugs = useCompletedSlugs(); return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Quest log</h1></div><div className="quest-grid">{adventures.map((adventure) => <QuestCard key={adventure.id} adventure={adventure} progress={progress[adventure.slug]} serverCompleted={completedSlugs.has(adventure.slug)} />)}</div></main></Shell> }
+function Portal() { return <Shell minimal><main className="arcade-home"><section className="portal-hero"><div className="arcade-machine" aria-label="Camquest arcade machine"><Link className="arcade-screen" to="/lobby" aria-label="Start Camquest and open the lobby"><span className="screen-scanlines" aria-hidden="true" /><span className="pixel-sprite sprite-heart" aria-hidden="true">♥</span><span className="screen-stars">✦  ·  ✦  ·  ✦</span><strong>CAM⚡QUEST</strong><span className="screen-subtitle">READY UP. ADVENTURE CALLS.</span><span className="screen-prompt">[ PRESS START ]</span></Link><div className="arcade-controls" aria-label="Two-player arcade controls"><div className="player-controls" aria-label="Player one buttons"><div className="arcade-buttons"><button type="button" aria-label="Player one pink button"><span /></button><button type="button" aria-label="Player one gold button"><span /></button></div></div><div className="player-controls player-two" aria-label="Player two buttons"><div className="arcade-buttons"><button type="button" aria-label="Player two cyan button"><span /></button><button type="button" aria-label="Player two violet button"><span /></button></div></div></div></div></section></main></Shell> }
+const lobbyDestinations = [
+  { to: '/quest-log', icon: Gamepad2, title: 'Quest log', description: "Jump into Cam's Gambit and any quest still loading.", linkLabel: 'Enter quest log' },
+  { to: '/archive', icon: ArchiveIcon, title: 'Archive', description: "Revisit every chapter we've already completed together.", linkLabel: 'Open archive' },
+]
+function Lobby() { return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Game lobby</h1><p>Pick a cabinet.</p></div><div className="quest-grid">{lobbyDestinations.map((dest) => { const Icon = dest.icon; return <Link key={dest.to} className="quest-card" to={dest.to}><div className="card-top"><span className="quest-symbol"><Icon aria-hidden="true" /></span></div><h3>{dest.title}</h3><p>{dest.description}</p><span className="card-link">{dest.linkLabel} <ArrowRight /></span></Link> })}</div></main></Shell> }
+function QuestLog() { const progress = useStoredProgress(); const completedSlugs = useCompletedSlugs(); return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Quest log</h1></div><div className="quest-grid">{adventures.map((adventure) => <QuestCard key={adventure.id} adventure={adventure} progress={progress[adventure.slug]} serverCompleted={completedSlugs.has(adventure.slug)} />)}</div></main></Shell> }
 function QuestCard({ adventure, progress, serverCompleted }: { adventure: Adventure; progress?: AdventureProgress; serverCompleted?: boolean }) {
   const locked = adventure.status !== 'available' && adventure.status !== 'completed'
   const completed = Boolean(progress?.completed) || serverCompleted || adventure.status === 'completed'
@@ -60,6 +65,7 @@ function Archive() {
   return (
     <Shell>
       <main className="relative z-10 mx-auto max-w-4xl px-5 pb-16">
+        <Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link>
         <div className="page-title">
           <p className="eyebrow">The archive</p>
           <h1>Stories already carried</h1>
@@ -89,7 +95,7 @@ function Archive() {
     </Shell>
   )
 }
-function Intro({ adventure }: { adventure: Adventure }) { const navigate = useNavigate(); return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><Link to="/" className="back-link"><ArrowLeft /> Back to portal</Link><div className="intro-panel"><span className="big-symbol">{adventure.symbol}</span><p className="eyebrow">A new chapter</p><h1>{adventure.title}</h1><p className="intro-subtitle">{adventure.subtitle}</p><div className="intro-meta"><span><Clock3 /> {adventure.duration}</span>{adventure.tags.map((tag) => <span key={tag}>{tag}</span>)}</div><p className="story-text">{adventure.introduction}</p><button className="portal-button" onClick={() => navigate(`/quest/${adventure.slug}/play`)}>Begin quest <ArrowRight /></button></div></main></Shell> }
+function Intro({ adventure }: { adventure: Adventure }) { const navigate = useNavigate(); return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link><div className="intro-panel"><span className="big-symbol">{adventure.symbol}</span><p className="eyebrow">A new chapter</p><h1>{adventure.title}</h1><p className="intro-subtitle">{adventure.subtitle}</p><div className="intro-meta"><span><Clock3 /> {adventure.duration}</span>{adventure.tags.map((tag) => <span key={tag}>{tag}</span>)}</div><p className="story-text">{adventure.introduction}</p><button className="portal-button" onClick={() => navigate(`/quest/${adventure.slug}/play`)}>Begin quest <ArrowRight /></button></div></main></Shell> }
 function Challenge({ adventure }: { adventure: Adventure }) {
   const navigate = useNavigate()
   const [stepIndex, setStepIndex] = useState(0)
@@ -201,7 +207,7 @@ function Completion({ adventure }: { adventure: Adventure }) {
     navigate(`/quest/${adventure.slug}/play`)
   }
 
-  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="completion-panel"><div className="completion-star">✦</div><p className="eyebrow">Quest complete</p><h1>Saturday unlocked.</h1><p className="challenge-prompt">{adventure.completionMessage}</p>{loading ? <div className="loading-block" role="status" aria-live="polite"><div className="loading-spinner"><span /><span /><span /><span /></div><p className="loading-label">Loading your Saturday…</p></div> : outcomes.length > 0 ? <div className="outcome-list">{outcomes.map((result) => { const Icon = result.icon; return <div className="outcome-stop" key={result.choice}><span className="outcome-icon">{Icon ? <Icon aria-hidden="true" /> : <Sparkles aria-hidden="true" />}</span><div><span className="outcome-label">{result.choice}</span><strong>{result.outcome}</strong></div></div> })}</div> : <div className="final-note">{adventure.reward}</div>}<div className="flex flex-wrap justify-center gap-3"><Link className="portal-button" to="/">Return to portal</Link><Link className="secondary-button" to="/archive">View archive</Link><button type="button" className="secondary-button" onClick={redo}><RotateCcw /> Redo this quest</button></div></div></main></Shell>
+  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="completion-panel"><div className="completion-star">✦</div><p className="eyebrow">Quest complete</p><h1>Saturday unlocked.</h1><p className="challenge-prompt">{adventure.completionMessage}</p>{loading ? <div className="loading-block" role="status" aria-live="polite"><div className="loading-spinner"><span /><span /><span /><span /></div><p className="loading-label">Loading your Saturday…</p></div> : outcomes.length > 0 ? <div className="outcome-list">{outcomes.map((result) => { const Icon = result.icon; return <div className="outcome-stop" key={result.choice}><span className="outcome-icon">{Icon ? <Icon aria-hidden="true" /> : <Sparkles aria-hidden="true" />}</span><div><span className="outcome-label">{result.choice}</span><strong>{result.outcome}</strong></div></div> })}</div> : <div className="final-note">{adventure.reward}</div>}<div className="flex flex-wrap justify-center gap-3"><Link className="portal-button" to="/lobby">Return to lobby</Link><Link className="secondary-button" to="/archive">View archive</Link><button type="button" className="secondary-button" onClick={redo}><RotateCcw /> Redo this quest</button></div></div></main></Shell>
 }
 function BrowserUrlSync() {
   const location = useLocation()
@@ -222,7 +228,7 @@ function BrowserUrlSync() {
   return null
 }
 
-function AppRoutes() { return <Routes><Route path="/" element={<Portal />} /><Route path="/quest-log" element={<QuestLog />} /><Route path="/quests" element={<Navigate to="/quest-log" replace />} /><Route path="/archive" element={<Archive />} /><Route path="/quest/:slug" element={<QuestIntroRoute />} /><Route path="/quest/:slug/play" element={<ChallengeRoute />} /><Route path="/quest/:slug/complete" element={<CompletionRoute />} /></Routes> }
+function AppRoutes() { return <Routes><Route path="/" element={<Portal />} /><Route path="/lobby" element={<Lobby />} /><Route path="/quest-log" element={<QuestLog />} /><Route path="/quests" element={<Navigate to="/quest-log" replace />} /><Route path="/archive" element={<Archive />} /><Route path="/quest/:slug" element={<QuestIntroRoute />} /><Route path="/quest/:slug/play" element={<ChallengeRoute />} /><Route path="/quest/:slug/complete" element={<CompletionRoute />} /></Routes> }
 
 function App({ initialPath = '/' }: { initialPath?: string }) {
   // Keep one router mounted for the lifetime of the app so the CRT boot
