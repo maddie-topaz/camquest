@@ -33,7 +33,7 @@ const lobbyDestinations = [
   { to: '/quest-log', icon: Gamepad2, title: 'Quest log', description: "Jump into Cam's Gambit and any quest still loading.", linkLabel: 'Enter quest log' },
   { to: '/archive', icon: ArchiveIcon, title: 'Archive', description: "Revisit every chapter we've already completed together.", linkLabel: 'Open archive' },
 ]
-function Lobby() { return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Game lobby</h1><p>Pick a cabinet.</p></div><div className="quest-grid">{lobbyDestinations.map((dest) => { const Icon = dest.icon; return <Link key={dest.to} className="quest-card" to={dest.to}><div className="card-top"><span className="quest-symbol"><Icon aria-hidden="true" /></span></div><h3>{dest.title}</h3><p>{dest.description}</p><span className="card-link">{dest.linkLabel} <ArrowRight /></span></Link> })}</div></main></Shell> }
+function Lobby() { return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Game lobby</h1></div><div className="quest-grid">{lobbyDestinations.map((dest) => { const Icon = dest.icon; return <Link key={dest.to} className="quest-card" to={dest.to}><div className="card-top"><span className="quest-symbol"><Icon aria-hidden="true" /></span></div><h3>{dest.title}</h3><p>{dest.description}</p><span className="card-link">{dest.linkLabel} <ArrowRight /></span></Link> })}</div></main></Shell> }
 function QuestLog() { const progress = useStoredProgress(); const completedSlugs = useCompletedSlugs(); return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Quest log</h1></div><div className="quest-grid">{adventures.map((adventure) => <QuestCard key={adventure.id} adventure={adventure} progress={progress[adventure.slug]} serverCompleted={completedSlugs.has(adventure.slug)} />)}</div></main></Shell> }
 function QuestCard({ adventure, progress, serverCompleted }: { adventure: Adventure; progress?: AdventureProgress; serverCompleted?: boolean }) {
   const locked = adventure.status !== 'available' && adventure.status !== 'completed'
@@ -65,8 +65,7 @@ function Archive() {
         <Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link>
         <div className="page-title">
           <p className="eyebrow">The archive</p>
-          <h1>Stories already carried</h1>
-          <p>Every completed chapter stays here, like a pressed flower in the margins.</p>
+          <h1>Completed quests</h1>
         </div>
         <div className="archive-list">
           {adventures.map((a) => {

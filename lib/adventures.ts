@@ -11,7 +11,7 @@ export type ChallengeStep =
 export type Adventure = { id: string; slug: string; title: string; subtitle: string; description: string; symbol: string; status: AdventureStatus; duration: string; tags: string[]; introduction?: string; steps: ChallengeStep[]; completionMessage: string; reward?: string }
 export type AdventureProgress = { step: number; completed: boolean; answers?: Record<string, string> }
 
-export const siteConfig = { name: 'Welcome, Cam', eyebrow: 'A private atlas for two', intro: 'A little portal for the dares, detours, and tiny legends we make together.', companion: 'Cam' }
+export const siteConfig = { name: 'Welcome, to Cam⚡Quest', eyebrow: 'Ready Player 2', intro: 'Adventure awaits.', companion: 'Cam' }
 const progressStorageKey = 'camquest-progress-v2'
 
 export const adventures: Adventure[] = [
