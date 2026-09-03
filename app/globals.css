@@ -324,6 +324,12 @@ h1 { text-shadow:4px 4px 0 #4f286f, 0 0 22px rgba(255,95,189,.45); }
 .passcode-gate .eyebrow { margin-bottom:18px; }
 .passcode-error { color:#ff9bc4; font-size:.78rem; margin-top:8px; }
 .outcome-reveal strong { display:block; margin:6px 0; font-size:1.05rem; color:#f8e9b0; }
+.run-summary-heading { color:var(--arcade-gold); font-size:.65rem; letter-spacing:.16em; text-transform:uppercase; font-weight:900; margin:24px auto 10px; max-width:460px; text-align:left; }
+.run-summary { max-width:460px; margin:0 auto; padding:6px 20px; border:2px solid #4d3987; border-radius:5px; background:rgba(9,7,20,.48); box-shadow:3px 3px 0 #21133d; text-align:left; }
+.run-summary-row { display:flex; justify-content:space-between; gap:12px; padding:9px 0; font-size:.72rem; letter-spacing:.05em; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,.08); }
+.run-summary-row:last-child { border-bottom:none; }
+.run-summary-row span { color:#968da6; }
+.run-summary-row strong { color:#f8e9b0; text-align:right; }
 .outcome-reveal p { margin:0; }
 .passcode-value { font-family:'Courier New', monospace; font-weight:900; letter-spacing:.08em; color:var(--arcade-gold); font-size:1rem; }
 

@@ -1,14 +1,14 @@
 export type AdventureStatus = 'available' | 'completed' | 'locked' | 'coming-soon'
-export type MysteryCard = { label: string; outcome?: string; icon?: string }
+export type MysteryCard = { label: string; outcome?: string; icon?: string; summaryValue?: string; tags?: string[] }
 export type ChallengeStep =
   | { type: 'choice'; id: string; title: string; prompt: string; options: string[]; passcode?: string }
-  | { type: 'mystery'; id: string; title: string; prompt: string; cards: MysteryCard[]; concealUntilComplete?: boolean; passcode?: string }
+  | { type: 'mystery'; id: string; title: string; prompt: string; cards: MysteryCard[]; concealUntilComplete?: boolean; passcode?: string; summaryLabel?: string }
   | { type: 'riddle'; id: string; title: string; prompt: string; clue: string; answer: string; passcode?: string }
   | { type: 'activity'; id: string; title: string; prompt: string; detail: string; passcode?: string }
   | { type: 'reveal'; id: string; title: string; prompt: string; message: string; passcode?: string }
   | { type: 'confirm'; id: string; title: string; prompt: string; button: string; passcode?: string }
 
-export type Adventure = { id: string; slug: string; title: string; subtitle?: string; description: string; symbol: string; status: AdventureStatus; introduction?: string; ctaLabel?: string; startPasscode?: string; steps: ChallengeStep[]; completionTitle?: string; completionMessage: string; reward?: string }
+export type Adventure = { id: string; slug: string; title: string; subtitle?: string; description: string; symbol: string; status: AdventureStatus; introduction?: string; ctaLabel?: string; startPasscode?: string; steps: ChallengeStep[]; completionTitle?: string; completionMessage: string; reward?: string; companionName?: string; funStats?: { label: string; value: string }[] }
 export type AdventureProgress = { step: number; completed: boolean; answers?: Record<string, string>; unlockedSteps?: string[] }
 
 const progressStorageKey = 'camquest-progress-v2'
@@ -35,13 +35,14 @@ export const adventures: Adventure[] = [
         // like. They're listed on the undocumented /reset debug page for
         // quick reference on the day.
         passcode: 'INSERTCOIN',
+        summaryLabel: 'Cartridge',
         prompt: 'The mysterious challenger has left two cartridges glowing in the dark.' +
             '\n\nOnly one can begin the game.' +
             '\n\nChoose wisely.',
         concealUntilComplete: true,
         cards: [
-          { label: 'Sun Cartridge', outcome: 'Head to Pot Black and settle it over the pool table', icon: 'Sun' },
-          { label: 'Moon Cartridge', outcome: 'Head to Planet Royale and battle it out in the arcade', icon: 'Moon' },
+          { label: 'Sun Cartridge', outcome: 'Head to Pot Black and settle it over the pool table', icon: 'Sun', summaryValue: 'Sun' },
+          { label: 'Moon Cartridge', outcome: 'Head to Planet Royale and battle it out in the arcade', icon: 'Moon', summaryValue: 'Moon' },
         ],
       },
       {
@@ -49,6 +50,7 @@ export const adventures: Adventure[] = [
         id: 'load-map',
         title: 'Choose your guide',
         passcode: 'GUIDESTAR',
+        summaryLabel: 'Guide',
         prompt: 'The match ends. Somewhere on the map, a new signal appears.' +
             '\n\nTwo strange creatures appear before you. Both know the way forward, but only one can be followed.' +
             '\n\nChoose your guide.',
@@ -63,13 +65,14 @@ export const adventures: Adventure[] = [
         id: 'fate-engine',
         title: 'Activate the Fate Engine',
         passcode: 'WILDCARD',
+        summaryLabel: 'Fate',
         prompt: 'You follow your guide to your destination and step inside.' +
             '\n\nA strange machine hums to life. Two symbols glow across its surface: one bound together, the other ruled by chance.' +
             '\n\nChoose your fate.',
         concealUntilComplete: true,
         cards: [
-          { label: 'Twin Fate', outcome: 'Choose a cocktail for each other', icon: 'Link' },
-          { label: 'Wild Fate', outcome: 'Roll the dice and let chance choose two cocktails', icon: 'Dice5' },
+          { label: 'Twin Fate', outcome: 'Choose a cocktail for each other', icon: 'Link', summaryValue: 'Twin' },
+          { label: 'Wild Fate', outcome: 'Roll the dice and let chance choose two cocktails', icon: 'Dice5', summaryValue: 'Wild', tags: ['dice-based'] },
         ],
       },
       {
@@ -86,6 +89,7 @@ export const adventures: Adventure[] = [
         id: 'final-stage',
         title: 'Face the final stage',
         passcode: 'LASTCALL',
+        summaryLabel: 'Final stage',
         prompt: 'The feast is over.' +
             '\n\nAt the edge of the map, two final portals pulse into existence.' +
             '\n\nOne glows like a garden beneath glass. The other crackles beneath neon palms.' +
@@ -101,6 +105,12 @@ export const adventures: Adventure[] = [
     completionTitle: 'Gambit complete.',
     completionMessage: 'The final choice locks into place. The screen goes dark. Then, one message appears:',
     reward: 'YOUR FATE HAS BEEN WRITTEN.',
+    companionName: 'Cam',
+    funStats: [
+      { label: 'Cocktails acquired', value: '2+' },
+      { label: 'Player 1 betrayals', value: '???' },
+      { label: 'Korean BBQ consumed', value: 'Critical' },
+    ],
   },
 ]
 
