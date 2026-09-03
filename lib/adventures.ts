@@ -1,5 +1,5 @@
 export type AdventureStatus = 'available' | 'completed' | 'locked' | 'coming-soon'
-export type MysteryCard = { label: string; outcome?: string; icon?: string }
+export type MysteryCard = { label: string; outcome?: string; icon?: string; reveal?: string }
 export type ChallengeStep =
   | { type: 'choice'; id: string; title: string; prompt: string; options: string[] }
   | { type: 'mystery'; id: string; title: string; prompt: string; cards: MysteryCard[]; concealUntilComplete?: boolean }
@@ -8,7 +8,7 @@ export type ChallengeStep =
   | { type: 'reveal'; id: string; title: string; prompt: string; message: string }
   | { type: 'confirm'; id: string; title: string; prompt: string; button: string }
 
-export type Adventure = { id: string; slug: string; title: string; subtitle: string; description: string; symbol: string; status: AdventureStatus; introduction?: string; steps: ChallengeStep[]; completionMessage: string; reward?: string }
+export type Adventure = { id: string; slug: string; title: string; subtitle?: string; description: string; symbol: string; status: AdventureStatus; introduction?: string; ctaLabel?: string; steps: ChallengeStep[]; completionTitle?: string; completionMessage: string; reward?: string }
 export type AdventureProgress = { step: number; completed: boolean; answers?: Record<string, string> }
 
 export const siteConfig = { name: 'Welcome, to Cam⚡Quest', eyebrow: 'Ready Player 2', intro: 'Adventure awaits.', companion: 'Cam' }
@@ -19,59 +19,62 @@ export const adventures: Adventure[] = [
     id: 'cams-gambit',
     slug: 'cams-gambit',
     title: 'Cam\'s Gambit',
-    subtitle: 'Choose carefully.',
     description: 'Something has been loaded into the system.',
     symbol: '⚡',
     status: 'available',
-    introduction: 'Cam, Saturday is waiting for you. Only four questions stand between you and your final fate. Trust your player two instincts.',
+    introduction: 'Cam, a game of chance and choice has been set in motion.' +
+        '\n\nThe moves will be yours. The consequences belong to fate.' +
+        '\n\nTrust your Player Two instincts.',
+    ctaLabel: 'Press start to begin',
     steps: [
       {
         type: 'mystery',
         id: 'opening-move',
-        title: 'Choose the opening move',
-        prompt: 'Two save files. One decides how our Saturday begins. Pick the one calling to you.',
+        title: 'Opening move',
+        prompt: 'The mysterious challenger has left two cartridges glowing in the dark. One bears the sun. The other, the moon.\n\nOnly one can begin the game.\n\nMake your opening move.',
         concealUntilComplete: true,
         cards: [
-          { label: 'Sun Cartridge', outcome: 'A relaxed breakfast at a cosy café', icon: 'Sun' },
-          { label: 'Moon Cartridge', outcome: 'Takeaway coffee and breakfast by the water', icon: 'Moon' },
+          { label: 'Sun Cartridge', reveal: 'The Sun Cartridge flickers to life.', outcome: 'A relaxed breakfast at a cosy café', icon: 'Sun' },
+          { label: 'Moon Cartridge', reveal: 'The Moon Cartridge locks into place.', outcome: 'Takeaway coffee and breakfast by the water', icon: 'Moon' },
         ],
       },
       {
         type: 'mystery',
         id: 'main-quest',
-        title: 'Select the main quest',
-        prompt: 'The map has split into two unknown regions. Choose where we load in.',
+        title: 'Choose your path',
+        prompt: 'The cartridge loads. The screen flashes, and a new world begins to form.\n\nAhead, the route divides. One path runs wild beneath the open sky. The other disappears behind a secret door.\n\nWhich path is calling you?',
         concealUntilComplete: true,
         cards: [
-          { label: 'Wild Path', outcome: 'A garden or trail made for wandering', icon: 'TreePine' },
-          { label: 'Secret Door', outcome: 'An indoor spot with something new to discover', icon: 'DoorOpen' },
+          { label: 'Wild Path', reveal: 'The wild route has claimed you.', outcome: 'A garden or trail made for wandering', icon: 'TreePine' },
+          { label: 'Secret Door', reveal: 'The hidden passage opens.', outcome: 'An indoor spot with something new to discover', icon: 'DoorOpen' },
         ],
       },
       {
         type: 'mystery',
         id: 'bonus-level',
         title: 'Unlock the bonus level',
-        prompt: 'Every great campaign needs a side quest. Which token gets the slot?',
+        prompt: 'You press onward—but a strange signal cuts through the static.\n\nA hidden level has appeared. The challenger has left two tokens behind, but only one can unlock what waits inside.\n\nChoose your token.',
         concealUntilComplete: true,
         cards: [
-          { label: 'High Score', outcome: 'A playful stop for games and friendly competition', icon: 'Trophy' },
-          { label: 'Bonus Round', outcome: 'A creative stop with something worth exploring together', icon: 'Gift' },
+          { label: 'High Score', reveal: 'Challenge mode activated.', outcome: 'A playful stop for games and friendly competition', icon: 'Trophy' },
+          { label: 'Bonus Round', reveal: 'A rare encounter has appeared.', outcome: 'A creative stop with something worth exploring together', icon: 'Gift' },
         ],
       },
       {
         type: 'mystery',
         id: 'final-stage',
-        title: 'Pick the final stage',
-        prompt: 'The map has split into two unknown regions. Choose where we go next.',
+        title: 'Face the final stage',
+        prompt: 'The static clears. At the edge of the map, two portals pulse into existence.\n\nOne glows like a garden beneath glass. The other crackles beneath neon palms.\n\nThe challenger has made their final move.\n\nNow make yours.',
         concealUntilComplete: true,
         cards: [
-          { label: 'Glass Garden', outcome: 'Go for a drink at Terrarium', icon: 'Martini' },
-          { label: 'Neon Jungle', outcome: 'Go for a drink at Hula Bula Bar', icon: 'Palmtree' },
+          { label: 'Glass Garden', reveal: 'The Glass Garden awaits.', outcome: 'Go for a drink at Terrarium', icon: 'Martini' },
+          { label: 'Neon Jungle', reveal: 'The Neon Jungle calls.', outcome: 'Go for a drink at Hula Bula Bar', icon: 'Palmtree' },
         ],
       },
     ],
-    completionMessage: 'Quest complete. Here is what your choices unlocked:',
-    reward: 'ALL CHOICES LOCKED IN',
+    completionTitle: 'Gambit complete.',
+    completionMessage: 'The final choice locks into place. The screen goes dark. Then, one message appears:',
+    reward: 'YOUR FATE HAS BEEN WRITTEN.',
   },
 ]
 

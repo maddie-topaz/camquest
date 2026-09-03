@@ -140,7 +140,18 @@ function ResetDebug() {
     </Shell>
   )
 }
-function Intro({ adventure }: { adventure: Adventure }) { const navigate = useNavigate(); return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link><div className="intro-panel"><span className="big-symbol">{adventure.symbol}</span><p className="eyebrow">A new chapter</p><h1>{adventure.title}</h1><p className="intro-subtitle">{adventure.subtitle}</p><p className="story-text">{adventure.introduction}</p><button className="portal-button" onClick={() => navigate(`/quest/${adventure.slug}/play`)}>Begin quest <ArrowRight /></button></div></main></Shell> }
+function Intro({ adventure }: { adventure: Adventure }) {
+  const navigate = useNavigate()
+  const paragraphs = (adventure.introduction || '').split('\n\n')
+  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link><div className="intro-panel transmission-panel">
+    <span className="big-symbol transmission-line" style={{ animationDelay: '.1s' }}>{adventure.symbol}</span>
+    <p className="eyebrow transmission-line" style={{ animationDelay: '.25s' }}>A mysterious challenger has appeared...</p>
+    <h1 className="transmission-line" style={{ animationDelay: '.4s' }}>{adventure.title}</h1>
+    {adventure.subtitle && <p className="intro-subtitle transmission-line" style={{ animationDelay: '.55s' }}>{adventure.subtitle}</p>}
+    <div className="story-text transmission-line" style={{ animationDelay: '.7s' }}>{paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
+    <button className="portal-button transmission-line" style={{ animationDelay: '1s' }} onClick={() => navigate(`/quest/${adventure.slug}/play`)}>{adventure.ctaLabel || 'Begin quest'} <ArrowRight /></button>
+  </div></main></Shell>
+}
 function Challenge({ adventure }: { adventure: Adventure }) {
   const navigate = useNavigate()
   const [stepIndex, setStepIndex] = useState(0)
@@ -206,7 +217,7 @@ function Challenge({ adventure }: { adventure: Adventure }) {
 
   const needsSelection = step.type === 'choice' || step.type === 'mystery'
   const riddleIsIncorrect = step.type === 'riddle' && answer.trim().toLowerCase() !== step.answer
-  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="progress-line"><span>Round {stepIndex + 1} of {adventure.steps.length}</span><div><i style={{ width: `${((stepIndex + 1) / adventure.steps.length) * 100}%` }} /></div></div><button type="button" onClick={restart} className="text-button mt-2 inline-flex items-center gap-1 text-xs opacity-70 transition hover:opacity-100"><RotateCcw className="h-3 w-3" /> Start over</button><div className="challenge-panel"><p className="eyebrow">{step.type} challenge</p><h1>{step.title}</h1><p className="challenge-prompt">{step.prompt}</p><ChallengeBody step={step} answer={answer} setAnswer={setAnswer} selectAnswer={selectAnswer} revealed={revealed} setRevealed={setRevealed} /><button className="portal-button mt-8" disabled={(needsSelection && !answer) || riddleIsIncorrect} onClick={next}>{stepIndex === adventure.steps.length - 1 ? 'Reveal Saturday' : 'Lock choice'} <ArrowRight /></button></div></main></Shell>
+  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="progress-line"><span>Round {stepIndex + 1} of {adventure.steps.length}</span><div><i style={{ width: `${((stepIndex + 1) / adventure.steps.length) * 100}%` }} /></div></div><button type="button" onClick={restart} className="text-button mt-2 inline-flex items-center gap-1 text-xs opacity-70 transition hover:opacity-100"><RotateCcw className="h-3 w-3" /> Start over</button><div className="challenge-panel"><p className="eyebrow">{step.type} challenge</p><h1>{step.title}</h1><div className="challenge-prompt">{step.prompt.split('\n\n').map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div><ChallengeBody step={step} answer={answer} setAnswer={setAnswer} selectAnswer={selectAnswer} revealed={revealed} setRevealed={setRevealed} /><button className="portal-button mt-8" disabled={(needsSelection && !answer) || riddleIsIncorrect} onClick={next}>{stepIndex === adventure.steps.length - 1 ? 'Reveal Saturday' : 'Lock choice'} <ArrowRight /></button></div></main></Shell>
 }
 function ChallengeBody({ step, answer, setAnswer, selectAnswer, revealed, setRevealed }: { step: ChallengeStep; answer: string; setAnswer: (v: string) => void; selectAnswer: (v: string) => void; revealed: boolean; setRevealed: (v: boolean) => void }) {
   if (step.type === 'choice') return <div className="option-grid">{step.options.map((option) => <button key={option} className={`choice ${answer === option ? 'selected' : ''}`} aria-pressed={answer === option} onClick={() => selectAnswer(option)}>{option}<span>{answer === option ? 'Selected' : 'Choose'}</span></button>)}</div>
@@ -243,10 +254,10 @@ function Completion({ adventure }: { adventure: Adventure }) {
   const outcomes = useMemo(() => adventure.steps.flatMap((step) => {
     if (step.type !== 'mystery') return []
     const selected = step.cards.find((card) => card.label === answers?.[step.id])
-    return selected?.outcome ? [{ choice: selected.label, outcome: selected.outcome, icon: selected.icon && choiceIcons[selected.icon] }] : []
+    return selected?.outcome ? [{ choice: selected.label, outcome: selected.outcome, reveal: selected.reveal, icon: selected.icon && choiceIcons[selected.icon] }] : []
   }), [adventure.steps, answers])
 
-  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="completion-panel"><div className="completion-star">✦</div><p className="eyebrow">Quest complete</p><h1>Saturday unlocked.</h1><p className="challenge-prompt">{adventure.completionMessage}</p>{loading ? <div className="loading-block" role="status" aria-live="polite"><div className="loading-spinner"><span /><span /><span /><span /></div><p className="loading-label">Loading your Saturday…</p></div> : outcomes.length > 0 ? <div className="outcome-list">{outcomes.map((result) => { const Icon = result.icon; return <div className="outcome-stop" key={result.choice}><span className="outcome-icon">{Icon ? <Icon aria-hidden="true" /> : <Sparkles aria-hidden="true" />}</span><div><span className="outcome-label">{result.choice}</span><strong>{result.outcome}</strong></div></div> })}</div> : <div className="final-note">{adventure.reward}</div>}<div className="flex flex-wrap justify-center gap-3"><Link className="portal-button" to="/lobby">Return to lobby</Link><Link className="secondary-button" to="/archive">View archive</Link></div></div></main></Shell>
+  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="completion-panel"><div className="completion-star">✦</div><p className="eyebrow">Quest complete</p><h1>{adventure.completionTitle || 'Quest complete.'}</h1><p className="challenge-prompt">{adventure.completionMessage}</p>{loading ? <div className="loading-block" role="status" aria-live="polite"><div className="loading-spinner"><span /><span /><span /><span /></div><p className="loading-label">Loading your Saturday…</p></div> : outcomes.length > 0 ? <><div className="outcome-list">{outcomes.map((result) => { const Icon = result.icon; return <div className="outcome-stop" key={result.choice}><span className="outcome-icon">{Icon ? <Icon aria-hidden="true" /> : <Sparkles aria-hidden="true" />}</span><div><span className="outcome-label">{result.choice}</span>{result.reveal && <span className="outcome-reveal">{result.reveal}</span>}<strong>{result.outcome}</strong></div></div> })}</div>{adventure.reward && <div className="final-note">{adventure.reward}</div>}</> : <div className="final-note">{adventure.reward}</div>}<div className="flex flex-wrap justify-center gap-3"><Link className="portal-button" to="/lobby">Return to lobby</Link><Link className="secondary-button" to="/archive">View archive</Link></div></div></main></Shell>
 }
 function BrowserUrlSync() {
   const location = useLocation()
