@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Link, MemoryRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { Archive as ArchiveIcon, ArrowLeft, ArrowRight, BookOpen, Check, Dice5, DoorOpen, Gamepad2, Link as LinkIcon, Lock, Martini, Moon, Palmtree, RotateCcw, Sparkles, Sun, TreePine, type LucideIcon } from 'lucide-react'
+import { Archive as ArchiveIcon, ArrowLeft, ArrowRight, BookOpen, Check, CircleDot, Dice5, Gamepad2, Joystick, Link as LinkIcon, Lock, Martini, Moon, Origami, Palmtree, RotateCcw, Sparkles, Sun, type LucideIcon } from 'lucide-react'
 import { adventures, getAdventure, getProgress, resetAdventureProgress, saveProgress, type Adventure, type AdventureProgress, type ChallengeStep } from '@/lib/adventures'
 
-const choiceIcons: Record<string, LucideIcon> = { Sun, Moon, TreePine, DoorOpen, Link: LinkIcon, Dice5, Martini, Palmtree }
+const choiceIcons: Record<string, LucideIcon> = { Sun, Moon, CircleDot, Joystick, Origami, Sparkles, Link: LinkIcon, Dice5, Martini, Palmtree }
 
 function Shell({ children, minimal = false }: { children: React.ReactNode; minimal?: boolean }) { return <div className="min-h-screen bg-[#0d0b1b] text-[#f7f0ff]"><div className="stars" />{!minimal && <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-6" aria-label="Site header" />}{children}</div> }
 function useStoredProgress() { const [progress, setProgress] = useState<Record<string, AdventureProgress>>({}); useEffect(() => setProgress(getProgress()), []); return progress }
@@ -136,20 +136,94 @@ function ResetDebug() {
             </div>
           ))}
         </div>
+        {adventures.map((a) => {
+          const passcodeEntries = [
+            ...(a.startPasscode ? [{ id: 'start', roundNumber: 'Start', title: 'Begin quest', passcode: a.startPasscode }] : []),
+            ...a.steps.map((s, index) => ({ id: s.id, roundNumber: String(index + 1), title: s.title, passcode: s.passcode })).filter((s) => s.passcode),
+          ]
+          if (!passcodeEntries.length) return null
+          return (
+            <div key={a.id} className="page-title">
+              <p className="eyebrow">{a.title}</p>
+              <h2>Round passcodes</h2>
+              <div className="archive-list">
+                {passcodeEntries.map((s) => (
+                  <div className="archive-row" key={s.id}>
+                    <span className="archive-symbol">{s.roundNumber}</span>
+                    <div>
+                      <h2>{s.title}</h2>
+                      <p className="passcode-value">{s.passcode}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })}
       </main>
     </Shell>
   )
 }
+const startUnlockId = '__start__'
 function Intro({ adventure }: { adventure: Adventure }) {
   const navigate = useNavigate()
   const paragraphs = (adventure.introduction || '').split('\n\n')
+  const [startUnlocked, setStartUnlocked] = useState(!adventure.startPasscode)
+  const [startPasscodeInput, setStartPasscodeInput] = useState('')
+  const [startPasscodeError, setStartPasscodeError] = useState(false)
+
+  useEffect(() => {
+    if (!adventure.startPasscode) return
+    const unlockedSteps = getProgress()[adventure.slug]?.unlockedSteps || []
+    setStartUnlocked(unlockedSteps.includes(startUnlockId))
+  }, [adventure.slug, adventure.startPasscode])
+
+  const unlockStart = () => {
+    const target = adventure.startPasscode?.trim().toUpperCase()
+    if (target && startPasscodeInput.trim().toUpperCase() === target) {
+      const current = getProgress()[adventure.slug]
+      const nextUnlocked = [...(current?.unlockedSteps || []), startUnlockId]
+      saveProgress(adventure.slug, current?.step ?? 0, current?.completed ?? false, current?.answers, nextUnlocked)
+      setStartUnlocked(true)
+      setStartPasscodeError(false)
+    } else {
+      setStartPasscodeError(true)
+    }
+  }
+
   return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link><div className="intro-panel transmission-panel">
     <span className="big-symbol transmission-line" style={{ animationDelay: '.1s' }}>{adventure.symbol}</span>
     <p className="eyebrow transmission-line" style={{ animationDelay: '.25s' }}>A mysterious challenger has appeared...</p>
     <h1 className="transmission-line" style={{ animationDelay: '.4s' }}>{adventure.title}</h1>
     {adventure.subtitle && <p className="intro-subtitle transmission-line" style={{ animationDelay: '.55s' }}>{adventure.subtitle}</p>}
     <div className="story-text transmission-line" style={{ animationDelay: '.7s' }}>{paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
-    <button className="portal-button transmission-line" style={{ animationDelay: '1s' }} onClick={() => navigate(`/quest/${adventure.slug}/play`)}>{adventure.ctaLabel || 'Begin quest'} <ArrowRight /></button>
+    {startUnlocked ? (
+      <button className="portal-button transmission-line" style={{ animationDelay: '1s' }} onClick={() => navigate(`/quest/${adventure.slug}/play`)}>{adventure.ctaLabel || 'Begin quest'} <ArrowRight /></button>
+    ) : (
+      <div className="riddle-box passcode-gate transmission-line" style={{ animationDelay: '1s' }}>
+        <p className="eyebrow">Checkpoint synchronization required</p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            unlockStart()
+          }}
+        >
+          <input
+            id="start-passcode"
+            aria-label="Passcode"
+            value={startPasscodeInput}
+            onChange={(e) => {
+              setStartPasscodeInput(e.target.value)
+              setStartPasscodeError(false)
+            }}
+            placeholder="Enter code"
+            autoComplete="off"
+          />
+          {startPasscodeError && <p className="passcode-error">That code doesn't match. Try again.</p>}
+          <button type="submit" className="portal-button mt-4">Sync <ArrowRight /></button>
+        </form>
+      </div>
+    )}
   </div></main></Shell>
 }
 function Challenge({ adventure }: { adventure: Adventure }) {
@@ -159,6 +233,9 @@ function Challenge({ adventure }: { adventure: Adventure }) {
   const [answer, setAnswer] = useState('')
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [revealed, setRevealed] = useState(false)
+  const [unlockedSteps, setUnlockedSteps] = useState<string[]>([])
+  const [passcodeInput, setPasscodeInput] = useState('')
+  const [passcodeError, setPasscodeError] = useState(false)
   const step = adventure.steps[stepIndex]
 
   useEffect(() => {
@@ -170,17 +247,28 @@ function Challenge({ adventure }: { adventure: Adventure }) {
     setAnswers(initialAnswers)
     setAnswer(restoredAnswer)
     setRevealed(Boolean(restoredAnswer))
+    setUnlockedSteps(saved?.completed ? [] : saved?.unlockedSteps || [])
     setHydrated(true)
   }, [adventure.slug, adventure.steps])
 
   useEffect(() => {
-    if (hydrated) saveProgress(adventure.slug, stepIndex, false, answers)
-  }, [adventure.slug, answers, hydrated, stepIndex])
+    if (hydrated) saveProgress(adventure.slug, stepIndex, false, answers, unlockedSteps)
+  }, [adventure.slug, answers, hydrated, stepIndex, unlockedSteps])
 
   const selectAnswer = (value: string) => {
     setAnswer(value)
-    setRevealed(true)
     setAnswers((current) => ({ ...current, [step.id]: value }))
+  }
+
+  const unlockStep = () => {
+    const target = step.passcode?.trim().toUpperCase()
+    if (target && passcodeInput.trim().toUpperCase() === target) {
+      setUnlockedSteps((current) => (current.includes(step.id) ? current : [...current, step.id]))
+      setPasscodeInput('')
+      setPasscodeError(false)
+    } else {
+      setPasscodeError(true)
+    }
   }
 
   const next = () => {
@@ -200,24 +288,85 @@ function Challenge({ adventure }: { adventure: Adventure }) {
 
     const nextIndex = stepIndex + 1
     const restoredAnswer = nextAnswers[adventure.steps[nextIndex].id] || ''
-    saveProgress(adventure.slug, nextIndex, false, nextAnswers)
+    saveProgress(adventure.slug, nextIndex, false, nextAnswers, unlockedSteps)
     setAnswers(nextAnswers)
     setStepIndex(nextIndex)
     setAnswer(restoredAnswer)
     setRevealed(Boolean(restoredAnswer))
+    setPasscodeInput('')
+    setPasscodeError(false)
   }
 
-  const restart = () => {
-    resetAdventureProgress(adventure.slug)
-    setAnswers({})
-    setAnswer('')
-    setRevealed(false)
-    setStepIndex(0)
-  }
-
+  const isLocked = Boolean(step.passcode) && !unlockedSteps.includes(step.id)
+  const hasOutcomeReveal = step.type === 'mystery'
+  const selectedCard = step.type === 'mystery' ? step.cards.find((card) => card.label === answer) : undefined
+  const showingOutcome = hasOutcomeReveal && revealed && Boolean(selectedCard)
+  const isLastStep = stepIndex === adventure.steps.length - 1
   const needsSelection = step.type === 'choice' || step.type === 'mystery'
   const riddleIsIncorrect = step.type === 'riddle' && answer.trim().toLowerCase() !== step.answer
-  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="progress-line"><span>Round {stepIndex + 1} of {adventure.steps.length}</span><div><i style={{ width: `${((stepIndex + 1) / adventure.steps.length) * 100}%` }} /></div></div><button type="button" onClick={restart} className="text-button mt-2 inline-flex items-center gap-1 text-xs opacity-70 transition hover:opacity-100"><RotateCcw className="h-3 w-3" /> Start over</button><div className="challenge-panel"><p className="eyebrow">{step.type} challenge</p><h1>{step.title}</h1><div className="challenge-prompt">{step.prompt.split('\n\n').map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div><ChallengeBody step={step} answer={answer} setAnswer={setAnswer} selectAnswer={selectAnswer} revealed={revealed} setRevealed={setRevealed} /><button className="portal-button mt-8" disabled={(needsSelection && !answer) || riddleIsIncorrect} onClick={next}>{stepIndex === adventure.steps.length - 1 ? 'Reveal Saturday' : 'Lock choice'} <ArrowRight /></button></div></main></Shell>
+
+  const primaryAction = () => {
+    if (hasOutcomeReveal && !revealed) {
+      setRevealed(true)
+      return
+    }
+    next()
+  }
+  const primaryLabel = hasOutcomeReveal && !revealed ? 'Lock choice' : isLastStep ? 'Finish quest' : 'Continue'
+  const primaryDisabled = showingOutcome ? false : (needsSelection && !answer) || riddleIsIncorrect
+  const OutcomeIcon = selectedCard && ((selectedCard.icon && choiceIcons[selectedCard.icon]) || Sparkles)
+
+  return (
+    <Shell>
+      <main className="relative z-10 mx-auto max-w-3xl px-5 pb-20">
+        <div className="progress-line">
+          <span>Round {stepIndex + 1} of {adventure.steps.length}</span>
+          <div><i style={{ width: `${((stepIndex + 1) / adventure.steps.length) * 100}%` }} /></div>
+        </div>
+        <div className="challenge-panel">
+          <p className="eyebrow">{step.type} challenge</p>
+          <h1>{step.title}</h1>
+          <div className="challenge-prompt">{step.prompt.split('\n\n').map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
+          {isLocked ? (
+            <div className="riddle-box passcode-gate">
+              <p className="eyebrow">Checkpoint synchronization required</p>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  unlockStep()
+                }}
+              >
+                <input
+                  id="passcode"
+                  aria-label="Passcode"
+                  value={passcodeInput}
+                  onChange={(e) => {
+                    setPasscodeInput(e.target.value)
+                    setPasscodeError(false)
+                  }}
+                  placeholder="Enter code"
+                  autoComplete="off"
+                />
+                {passcodeError && <p className="passcode-error">That code doesn't match. Try again.</p>}
+                <button type="submit" className="portal-button mt-4">Sync <ArrowRight /></button>
+              </form>
+            </div>
+          ) : showingOutcome && selectedCard ? (
+            <div className="reveal-box outcome-reveal">
+              <span className="mystery-mark">{OutcomeIcon && <OutcomeIcon aria-hidden="true" />}</span>
+              <strong>{selectedCard.label}</strong>
+              <p>{selectedCard.outcome}</p>
+            </div>
+          ) : (
+            <ChallengeBody step={step} answer={answer} setAnswer={setAnswer} selectAnswer={selectAnswer} revealed={revealed} setRevealed={setRevealed} />
+          )}
+          {!isLocked && (
+            <button className="portal-button mt-8" disabled={primaryDisabled} onClick={primaryAction}>{primaryLabel} <ArrowRight /></button>
+          )}
+        </div>
+      </main>
+    </Shell>
+  )
 }
 function ChallengeBody({ step, answer, setAnswer, selectAnswer, revealed, setRevealed }: { step: ChallengeStep; answer: string; setAnswer: (v: string) => void; selectAnswer: (v: string) => void; revealed: boolean; setRevealed: (v: boolean) => void }) {
   if (step.type === 'choice') return <div className="option-grid">{step.options.map((option) => <button key={option} className={`choice ${answer === option ? 'selected' : ''}`} aria-pressed={answer === option} onClick={() => selectAnswer(option)}>{option}<span>{answer === option ? 'Selected' : 'Choose'}</span></button>)}</div>

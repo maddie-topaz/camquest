@@ -321,3 +321,9 @@ h1 { text-shadow:4px 4px 0 #4f286f, 0 0 22px rgba(255,95,189,.45); }
 @keyframes transmission-power-on { 0% { opacity:0; } 15% { opacity:.3; } 22% { opacity:.05; } 35% { opacity:1; } 100% { opacity:1; } }
 @keyframes transmission-line-in { to { opacity:1; transform:translateY(0); } }
 
+.passcode-gate .eyebrow { margin-bottom:18px; }
+.passcode-error { color:#ff9bc4; font-size:.78rem; margin-top:8px; }
+.outcome-reveal strong { display:block; margin:6px 0; font-size:1.05rem; color:#f8e9b0; }
+.outcome-reveal p { margin:0; }
+.passcode-value { font-family:'Courier New', monospace; font-weight:900; letter-spacing:.08em; color:var(--arcade-gold); font-size:1rem; }
+

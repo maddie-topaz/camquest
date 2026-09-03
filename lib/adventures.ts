@@ -1,17 +1,16 @@
 export type AdventureStatus = 'available' | 'completed' | 'locked' | 'coming-soon'
 export type MysteryCard = { label: string; outcome?: string; icon?: string }
 export type ChallengeStep =
-  | { type: 'choice'; id: string; title: string; prompt: string; options: string[] }
-  | { type: 'mystery'; id: string; title: string; prompt: string; cards: MysteryCard[]; concealUntilComplete?: boolean }
-  | { type: 'riddle'; id: string; title: string; prompt: string; clue: string; answer: string }
-  | { type: 'activity'; id: string; title: string; prompt: string; detail: string }
-  | { type: 'reveal'; id: string; title: string; prompt: string; message: string }
-  | { type: 'confirm'; id: string; title: string; prompt: string; button: string }
+  | { type: 'choice'; id: string; title: string; prompt: string; options: string[]; passcode?: string }
+  | { type: 'mystery'; id: string; title: string; prompt: string; cards: MysteryCard[]; concealUntilComplete?: boolean; passcode?: string }
+  | { type: 'riddle'; id: string; title: string; prompt: string; clue: string; answer: string; passcode?: string }
+  | { type: 'activity'; id: string; title: string; prompt: string; detail: string; passcode?: string }
+  | { type: 'reveal'; id: string; title: string; prompt: string; message: string; passcode?: string }
+  | { type: 'confirm'; id: string; title: string; prompt: string; button: string; passcode?: string }
 
-export type Adventure = { id: string; slug: string; title: string; subtitle?: string; description: string; symbol: string; status: AdventureStatus; introduction?: string; ctaLabel?: string; steps: ChallengeStep[]; completionTitle?: string; completionMessage: string; reward?: string }
-export type AdventureProgress = { step: number; completed: boolean; answers?: Record<string, string> }
+export type Adventure = { id: string; slug: string; title: string; subtitle?: string; description: string; symbol: string; status: AdventureStatus; introduction?: string; ctaLabel?: string; startPasscode?: string; steps: ChallengeStep[]; completionTitle?: string; completionMessage: string; reward?: string }
+export type AdventureProgress = { step: number; completed: boolean; answers?: Record<string, string>; unlockedSteps?: string[] }
 
-export const siteConfig = { name: 'Welcome, to Cam⚡Quest', eyebrow: 'Ready Player 2', intro: 'Adventure awaits.', companion: 'Cam' }
 const progressStorageKey = 'camquest-progress-v2'
 
 export const adventures: Adventure[] = [
@@ -26,49 +25,47 @@ export const adventures: Adventure[] = [
         '\n\nThe moves will be yours. The consequences belong to fate.' +
         '\n\nTrust your Player Two instincts.',
     ctaLabel: 'Press start to begin',
+    startPasscode: 'GAMEON',
     steps: [
       {
         type: 'mystery',
         id: 'load-cartridge',
         title: 'Load cartridge',
-        prompt: 'The mysterious challenger has left two cartridges glowing in the dark. One bears the sun. The other, the moon.' +
+        // Round passcodes are placeholders — change them to whatever you
+        // like. They're listed on the undocumented /reset debug page for
+        // quick reference on the day.
+        passcode: 'INSERTCOIN',
+        prompt: 'The mysterious challenger has left two cartridges glowing in the dark.' +
             '\n\nOnly one can begin the game.' +
             '\n\nChoose wisely.',
         concealUntilComplete: true,
         cards: [
-          { label: 'Sun Cartridge', outcome: 'A relaxed breakfast at a cosy café', icon: 'Sun' },
-          { label: 'Moon Cartridge', outcome: 'Takeaway coffee and breakfast by the water', icon: 'Moon' },
+          { label: 'Sun Cartridge', outcome: 'Head to Pot Black and settle it over the pool table', icon: 'Sun' },
+          { label: 'Moon Cartridge', outcome: 'Head to Planet Royale and battle it out in the arcade', icon: 'Moon' },
         ],
       },
       {
         type: 'mystery',
         id: 'load-map',
-        title: 'Choose your path',
-        prompt: 'The cartridge loads and a map flickers onto the screen.' +
-            '\n\nTwo strange creatures appear before you.' +
-            '\n\nOnly one will lead you onward.' +
+        title: 'Choose your guide',
+        passcode: 'GUIDESTAR',
+        prompt: 'The match ends. Somewhere on the map, a new signal appears.' +
+            '\n\nTwo strange creatures appear before you. Both know the way forward, but only one can be followed.' +
             '\n\nChoose your guide.',
         concealUntilComplete: true,
         cards: [
-          {
-            label: 'Kitsune',
-            outcome: 'Follow the fox to Goody Two’s',
-            icon: 'Origami',
-          },
-          {
-            label: 'Unicorn',
-            outcome: 'Follow the unicorn to Foxtrot Unicorn',
-            icon: 'Sparkles',
-          },
+          { label: 'Kitsune', outcome: 'Follow the fox to Goody Two’s', icon: 'Origami' },
+          { label: 'Unicorn', outcome: 'Follow the unicorn to Foxtrot Unicorn', icon: 'Sparkles' },
         ],
       },
       {
         type: 'mystery',
         id: 'fate-engine',
         title: 'Activate the Fate Engine',
+        passcode: 'WILDCARD',
         prompt: 'You follow your guide to your destination and step inside.' +
-              '\n\nInside a strange machine hums to life. Two symbols glow across its surface: one bound together, the other ruled by chance.' +
-              '\n\nChoose your fate.',
+            '\n\nA strange machine hums to life. Two symbols glow across its surface: one bound together, the other ruled by chance.' +
+            '\n\nChoose your fate.',
         concealUntilComplete: true,
         cards: [
           { label: 'Twin Fate', outcome: 'Choose a cocktail for each other', icon: 'Link' },
@@ -76,14 +73,28 @@ export const adventures: Adventure[] = [
         ],
       },
       {
+        type: 'reveal',
+        id: 'dinner',
+        title: 'New objective',
+        passcode: 'BBQTIME',
+        prompt: 'The Fate Engine falls silent.' +
+            '\n\nA single destination begins to pulse on the map.',
+        message: 'Proceed to K Town Korean BBQ.',
+      },
+      {
         type: 'mystery',
         id: 'final-stage',
         title: 'Face the final stage',
-        prompt: 'The static clears. At the edge of the map, two portals pulse into existence.\n\nOne glows like a garden beneath glass. The other crackles beneath neon palms.\n\nThe challenger has made their final move.\n\nNow make yours.',
+        passcode: 'LASTCALL',
+        prompt: 'The feast is over.' +
+            '\n\nAt the edge of the map, two final portals pulse into existence.' +
+            '\n\nOne glows like a garden beneath glass. The other crackles beneath neon palms.' +
+            '\n\nThe challenger has made their final move.' +
+            '\n\nNow make yours.',
         concealUntilComplete: true,
         cards: [
-          { label: 'Glass Garden', outcome: 'Go for a drink at Terrarium', icon: 'Martini' },
-          { label: 'Neon Jungle', outcome: 'Go for a drink at Hula Bula Bar', icon: 'Palmtree' },
+          { label: 'Glass Garden', outcome: 'Go for a final drink at Terrarium', icon: 'Martini' },
+          { label: 'Neon Jungle', outcome: 'Go for a final drink at Hula Bula Bar', icon: 'Palmtree' },
         ],
       },
     ],
@@ -95,7 +106,7 @@ export const adventures: Adventure[] = [
 
 export function getAdventure(slug: string) { return adventures.find((adventure) => adventure.slug === slug) }
 export function getProgress(): Record<string, AdventureProgress> { if (typeof window === 'undefined') return {}; try { return JSON.parse(localStorage.getItem(progressStorageKey) || '{}') } catch { return {} } }
-export function saveProgress(slug: string, step: number, completed = false, answers?: Record<string, string>) { const progress = getProgress(); const current = progress[slug]; progress[slug] = { step, completed, answers: answers ?? current?.answers }; localStorage.setItem(progressStorageKey, JSON.stringify(progress)) }
+export function saveProgress(slug: string, step: number, completed = false, answers?: Record<string, string>, unlockedSteps?: string[]) { const progress = getProgress(); const current = progress[slug]; progress[slug] = { step, completed, answers: answers ?? current?.answers, unlockedSteps: unlockedSteps ?? current?.unlockedSteps }; localStorage.setItem(progressStorageKey, JSON.stringify(progress)) }
 export function resetAdventureProgress(slug: string) { const progress = getProgress(); delete progress[slug]; localStorage.setItem(progressStorageKey, JSON.stringify(progress)) }
 
 // Add an adventure to this array. Give it a unique slug, then compose steps using the ChallengeStep union above. Generic screens render every step from its `type`.
