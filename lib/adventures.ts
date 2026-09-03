@@ -8,7 +8,7 @@ export type ChallengeStep =
   | { type: 'reveal'; id: string; title: string; prompt: string; message: string }
   | { type: 'confirm'; id: string; title: string; prompt: string; button: string }
 
-export type Adventure = { id: string; slug: string; title: string; subtitle: string; description: string; symbol: string; status: AdventureStatus; duration: string; tags: string[]; introduction?: string; steps: ChallengeStep[]; completionMessage: string; reward?: string }
+export type Adventure = { id: string; slug: string; title: string; subtitle: string; description: string; symbol: string; status: AdventureStatus; introduction?: string; steps: ChallengeStep[]; completionMessage: string; reward?: string }
 export type AdventureProgress = { step: number; completed: boolean; answers?: Record<string, string> }
 
 export const siteConfig = { name: 'Welcome, to Cam⚡Quest', eyebrow: 'Ready Player 2', intro: 'Adventure awaits.', companion: 'Cam' }
@@ -23,8 +23,6 @@ export const adventures: Adventure[] = [
     description: 'Something has been loaded into the system.',
     symbol: '⚡',
     status: 'available',
-    duration: '2–3 min',
-    tags: ['Saturday quest', '4 hidden choices'],
     introduction: 'Cam, Saturday is waiting for you. Only four questions stand between you and your final fate. Trust your player two instincts.',
     steps: [
       {
@@ -87,4 +85,4 @@ export function resetAdventureProgress(slug: string) { const progress = getProgr
 // Example: { type: 'confirm', id: 'door', title: 'Open the door', prompt: 'Ready?', button: 'Open it' }
 // Future authoring guide: keep copy and answers here, use an asset path in your own visual treatment, and set status to 'coming-soon' until ready.
 
-export const authoringGuide = 'Create a new object in adventures with a unique id and slug, title, description, status, duration, tags, steps, and completionMessage. Each step must include a type and the fields for that type. Add it to the adventures array; the portal, intro, progress, persistence, and completion screens update automatically.'
+export const authoringGuide = 'Create a new object in adventures with a unique id and slug, title, description, status, steps, and completionMessage. Each step must include a type and the fields for that type. Add it to the adventures array; the portal, intro, progress, persistence, and completion screens update automatically.'

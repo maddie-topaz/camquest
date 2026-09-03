@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Link, MemoryRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { Archive as ArchiveIcon, ArrowLeft, ArrowRight, BookOpen, Check, Clock3, DoorOpen, Gamepad2, Gift, Lock, Martini, Moon, Palmtree, RotateCcw, Sparkles, Sun, TreePine, Trophy, type LucideIcon } from 'lucide-react'
+import { Archive as ArchiveIcon, ArrowLeft, ArrowRight, BookOpen, Check, DoorOpen, Gamepad2, Gift, Lock, Martini, Moon, Palmtree, RotateCcw, Sparkles, Sun, TreePine, Trophy, type LucideIcon } from 'lucide-react'
 import { adventures, getAdventure, getProgress, resetAdventureProgress, saveProgress, type Adventure, type AdventureProgress, type ChallengeStep } from '@/lib/adventures'
 
 const choiceIcons: Record<string, LucideIcon> = { Sun, Moon, TreePine, DoorOpen, Trophy, Gift, Martini, Palmtree }
@@ -140,7 +140,7 @@ function ResetDebug() {
     </Shell>
   )
 }
-function Intro({ adventure }: { adventure: Adventure }) { const navigate = useNavigate(); return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link><div className="intro-panel"><span className="big-symbol">{adventure.symbol}</span><p className="eyebrow">A new chapter</p><h1>{adventure.title}</h1><p className="intro-subtitle">{adventure.subtitle}</p><div className="intro-meta"><span><Clock3 /> {adventure.duration}</span>{adventure.tags.map((tag) => <span key={tag}>{tag}</span>)}</div><p className="story-text">{adventure.introduction}</p><button className="portal-button" onClick={() => navigate(`/quest/${adventure.slug}/play`)}>Begin quest <ArrowRight /></button></div></main></Shell> }
+function Intro({ adventure }: { adventure: Adventure }) { const navigate = useNavigate(); return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link><div className="intro-panel"><span className="big-symbol">{adventure.symbol}</span><p className="eyebrow">A new chapter</p><h1>{adventure.title}</h1><p className="intro-subtitle">{adventure.subtitle}</p><p className="story-text">{adventure.introduction}</p><button className="portal-button" onClick={() => navigate(`/quest/${adventure.slug}/play`)}>Begin quest <ArrowRight /></button></div></main></Shell> }
 function Challenge({ adventure }: { adventure: Adventure }) {
   const navigate = useNavigate()
   const [stepIndex, setStepIndex] = useState(0)
