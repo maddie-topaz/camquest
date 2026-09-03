@@ -415,7 +415,7 @@ function Completion({ adventure }: { adventure: Adventure }) {
 
   const diceBasedCount = useMemo(() => outcomes.filter((result) => result.tags?.includes('dice-based')).length, [outcomes])
 
-  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="completion-panel"><div className="completion-star">✦</div><p className="eyebrow">Quest complete</p><h1>{adventure.completionTitle || 'Quest complete.'}</h1><p className="challenge-prompt">{adventure.completionMessage}</p>{loading ? <div className="loading-block" role="status" aria-live="polite"><div className="loading-spinner"><span /><span /><span /><span /></div><p className="loading-label">Loading your Saturday…</p></div> : outcomes.length > 0 ? <>
+  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="completion-panel"><div className="completion-star">✦</div><p className="eyebrow">Quest complete</p><h1>{adventure.completionTitle || 'Quest complete'}</h1><p className="challenge-prompt">{adventure.completionMessage}</p>{adventure.reward && <div className="final-note glitch-text">{adventure.reward}</div>}{loading ? <div className="loading-block" role="status" aria-live="polite"><div className="loading-spinner"><span /><span /><span /><span /></div><p className="loading-label">Loading your Saturday…</p></div> : outcomes.length > 0 && <>
     <div className="outcome-list">{outcomes.map((result) => { const Icon = result.icon; return <div className="outcome-stop" key={result.choice}><span className="outcome-icon">{Icon ? <Icon aria-hidden="true" /> : <Sparkles aria-hidden="true" />}</span><div><span className="outcome-label">{result.choice}</span><strong>{result.outcome}</strong></div></div> })}</div>
     <p className="run-summary-heading">Run summary</p>
     <div className="run-summary">
@@ -430,8 +430,7 @@ function Completion({ adventure }: { adventure: Adventure }) {
       <div className="run-summary-row"><span>Dice-based decisions</span><strong>{diceBasedCount}</strong></div>
       {adventure.funStats?.map((stat) => <div className="run-summary-row" key={stat.label}><span>{stat.label}</span><strong>{stat.value}</strong></div>)}
     </div>
-    {adventure.reward && <div className="final-note">{adventure.reward}</div>}
-  </> : <div className="final-note">{adventure.reward}</div>}<div className="flex flex-wrap justify-center gap-3"><Link className="portal-button" to="/lobby">Return to lobby</Link><Link className="secondary-button" to="/archive">View archive</Link></div></div></main></Shell>
+  </>}<div className="flex flex-wrap justify-center gap-3"><Link className="portal-button" to="/lobby">Return to lobby</Link><Link className="secondary-button" to="/archive">View archive</Link></div></div></main></Shell>
 }
 function BrowserUrlSync() {
   const location = useLocation()

@@ -102,7 +102,7 @@ export const adventures: Adventure[] = [
         ],
       },
     ],
-    completionTitle: 'Gambit complete.',
+    completionTitle: 'Gambit complete',
     completionMessage: 'The final choice locks into place. The screen goes dark. Then, one message appears:',
     reward: 'YOUR FATE HAS BEEN WRITTEN.',
     companionName: 'Cam',
