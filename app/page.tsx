@@ -51,7 +51,7 @@ function QuestCard({ adventure, progress, serverCompleted }: { adventure: Advent
       ) : completed ? (
         <Link className="card-link" to={`/quest/${adventure.slug}/complete`}>View result <ArrowRight /></Link>
       ) : (
-        <Link className="card-link" to={`/quest/${adventure.slug}`}>{progress ? 'Continue quest' : 'Open chapter'} <ArrowRight /></Link>
+        <Link className="card-link" to={`/quest/${adventure.slug}`}>{progress ? 'Continue quest' : 'Start quest'} <ArrowRight /></Link>
       )}
     </article>
   )
