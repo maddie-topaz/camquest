@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, MemoryRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Archive as ArchiveIcon, ArrowLeft, ArrowRight, BookOpen, Check, Clock3, DoorOpen, Gamepad2, Gift, Lock, Martini, Moon, Palmtree, RotateCcw, Sparkles, Sun, TreePine, Trophy, type LucideIcon } from 'lucide-react'
-import { adventures, getAdventure, getProgress, resetAdventureProgress, resetProgress, saveProgress, type Adventure, type AdventureProgress, type ChallengeStep } from '@/lib/adventures'
+import { adventures, getAdventure, getProgress, resetAdventureProgress, saveProgress, type Adventure, type AdventureProgress, type ChallengeStep } from '@/lib/adventures'
 
 const choiceIcons: Record<string, LucideIcon> = { Sun, Moon, TreePine, DoorOpen, Trophy, Gift, Martini, Palmtree }
 
@@ -90,7 +90,56 @@ function Archive() {
             )
           })}
         </div>
-        <button className="reset-button" onClick={() => { resetProgress(); window.location.reload() }}><RotateCcw /> Reset all progress</button>
+      </main>
+    </Shell>
+  )
+}
+function ResetDebug() {
+  // Undocumented debug route: not linked from anywhere in the UI. Resets
+  // are per-quest only, on purpose — no "wipe everything" button here.
+  const [pendingSlug, setPendingSlug] = useState<string | null>(null)
+  const [resultBySlug, setResultBySlug] = useState<Record<string, 'ok' | 'error'>>({})
+
+  const resetQuest = async (slug: string) => {
+    setPendingSlug(slug)
+    setResultBySlug((current) => { const next = { ...current }; delete next[slug]; return next })
+    resetAdventureProgress(slug)
+    try {
+      const res = await fetch(`/api/quests/${slug}/completion`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Request failed')
+      setResultBySlug((current) => ({ ...current, [slug]: 'ok' }))
+    } catch (error) {
+      console.error('Failed to reset quest', error)
+      setResultBySlug((current) => ({ ...current, [slug]: 'error' }))
+    } finally {
+      setPendingSlug(null)
+    }
+  }
+
+  return (
+    <Shell>
+      <main className="relative z-10 mx-auto max-w-4xl px-5 pb-16">
+        <div className="page-title">
+          <p className="eyebrow">Debug</p>
+          <h1>Reset a quest</h1>
+          <p>Clears this device's local progress and every stored completion for one quest. Each quest resets on its own — there's no reset-everything button here.</p>
+        </div>
+        <div className="archive-list">
+          {adventures.map((a) => (
+            <div className="archive-row" key={a.id}>
+              <span className="archive-symbol">{a.symbol}</span>
+              <div>
+                <h2>{a.title}</h2>
+                <p>
+                  {pendingSlug === a.slug ? 'Resetting…' : resultBySlug[a.slug] === 'ok' ? 'Reset. Fresh start.' : resultBySlug[a.slug] === 'error' ? 'Something went wrong clearing the database.' : a.slug}
+                </p>
+              </div>
+              <button className="reset-button" disabled={pendingSlug === a.slug} onClick={() => resetQuest(a.slug)}>
+                <RotateCcw /> Reset this quest
+              </button>
+            </div>
+          ))}
+        </div>
       </main>
     </Shell>
   )
@@ -171,7 +220,6 @@ function ChallengeBody({ step, answer, setAnswer, selectAnswer, revealed, setRev
   return <div className="confirm-box"><BookOpen /><p>{step.type === 'activity' ? step.detail : step.prompt}</p>{step.type === 'confirm' && <button className="text-button" onClick={() => setRevealed(true)}>{step.button}</button>}</div>
 }
 function Completion({ adventure }: { adventure: Adventure }) {
-  const navigate = useNavigate()
   // The database is the only source of truth for a finished quest's
   // choices now. `undefined` means "still fetching" (shows the loading
   // spinner); `null` means the fetch finished but found nothing.
@@ -202,12 +250,7 @@ function Completion({ adventure }: { adventure: Adventure }) {
     return selected?.outcome ? [{ choice: selected.label, outcome: selected.outcome, icon: selected.icon && choiceIcons[selected.icon] }] : []
   }), [adventure.steps, answers])
 
-  const redo = () => {
-    resetAdventureProgress(adventure.slug)
-    navigate(`/quest/${adventure.slug}/play`)
-  }
-
-  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="completion-panel"><div className="completion-star">✦</div><p className="eyebrow">Quest complete</p><h1>Saturday unlocked.</h1><p className="challenge-prompt">{adventure.completionMessage}</p>{loading ? <div className="loading-block" role="status" aria-live="polite"><div className="loading-spinner"><span /><span /><span /><span /></div><p className="loading-label">Loading your Saturday…</p></div> : outcomes.length > 0 ? <div className="outcome-list">{outcomes.map((result) => { const Icon = result.icon; return <div className="outcome-stop" key={result.choice}><span className="outcome-icon">{Icon ? <Icon aria-hidden="true" /> : <Sparkles aria-hidden="true" />}</span><div><span className="outcome-label">{result.choice}</span><strong>{result.outcome}</strong></div></div> })}</div> : <div className="final-note">{adventure.reward}</div>}<div className="flex flex-wrap justify-center gap-3"><Link className="portal-button" to="/lobby">Return to lobby</Link><Link className="secondary-button" to="/archive">View archive</Link><button type="button" className="secondary-button" onClick={redo}><RotateCcw /> Redo this quest</button></div></div></main></Shell>
+  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="completion-panel"><div className="completion-star">✦</div><p className="eyebrow">Quest complete</p><h1>Saturday unlocked.</h1><p className="challenge-prompt">{adventure.completionMessage}</p>{loading ? <div className="loading-block" role="status" aria-live="polite"><div className="loading-spinner"><span /><span /><span /><span /></div><p className="loading-label">Loading your Saturday…</p></div> : outcomes.length > 0 ? <div className="outcome-list">{outcomes.map((result) => { const Icon = result.icon; return <div className="outcome-stop" key={result.choice}><span className="outcome-icon">{Icon ? <Icon aria-hidden="true" /> : <Sparkles aria-hidden="true" />}</span><div><span className="outcome-label">{result.choice}</span><strong>{result.outcome}</strong></div></div> })}</div> : <div className="final-note">{adventure.reward}</div>}<div className="flex flex-wrap justify-center gap-3"><Link className="portal-button" to="/lobby">Return to lobby</Link><Link className="secondary-button" to="/archive">View archive</Link></div></div></main></Shell>
 }
 function BrowserUrlSync() {
   const location = useLocation()
@@ -228,7 +271,7 @@ function BrowserUrlSync() {
   return null
 }
 
-function AppRoutes() { return <Routes><Route path="/" element={<Portal />} /><Route path="/lobby" element={<Lobby />} /><Route path="/quest-log" element={<QuestLog />} /><Route path="/quests" element={<Navigate to="/quest-log" replace />} /><Route path="/archive" element={<Archive />} /><Route path="/quest/:slug" element={<QuestIntroRoute />} /><Route path="/quest/:slug/play" element={<ChallengeRoute />} /><Route path="/quest/:slug/complete" element={<CompletionRoute />} /></Routes> }
+function AppRoutes() { return <Routes><Route path="/" element={<Portal />} /><Route path="/lobby" element={<Lobby />} /><Route path="/quest-log" element={<QuestLog />} /><Route path="/quests" element={<Navigate to="/quest-log" replace />} /><Route path="/archive" element={<Archive />} /><Route path="/reset" element={<ResetDebug />} /><Route path="/quest/:slug" element={<QuestIntroRoute />} /><Route path="/quest/:slug/play" element={<ChallengeRoute />} /><Route path="/quest/:slug/complete" element={<CompletionRoute />} /></Routes> }
 
 function App({ initialPath = '/' }: { initialPath?: string }) {
   // Keep one router mounted for the lifetime of the app so the CRT boot

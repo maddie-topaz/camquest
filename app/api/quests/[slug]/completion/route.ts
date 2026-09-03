@@ -22,3 +22,15 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'Failed to load completion' }, { status: 500 })
   }
 }
+
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+
+  try {
+    await query('DELETE FROM quest_completions WHERE slug = $1', [slug])
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error('Failed to reset quest completion', error)
+    return NextResponse.json({ error: 'Failed to reset completion' }, { status: 500 })
+  }
+}

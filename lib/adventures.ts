@@ -13,7 +13,6 @@ export type AdventureProgress = { step: number; completed: boolean; answers?: Re
 
 export const siteConfig = { name: 'Welcome, Cam', eyebrow: 'A private atlas for two', intro: 'A little portal for the dares, detours, and tiny legends we make together.', companion: 'Cam' }
 const progressStorageKey = 'camquest-progress-v2'
-const legacyProgressStorageKey = 'shared-lore-progress'
 
 export const adventures: Adventure[] = [
   {
@@ -82,7 +81,6 @@ export function getAdventure(slug: string) { return adventures.find((adventure) 
 export function getProgress(): Record<string, AdventureProgress> { if (typeof window === 'undefined') return {}; try { return JSON.parse(localStorage.getItem(progressStorageKey) || '{}') } catch { return {} } }
 export function saveProgress(slug: string, step: number, completed = false, answers?: Record<string, string>) { const progress = getProgress(); const current = progress[slug]; progress[slug] = { step, completed, answers: answers ?? current?.answers }; localStorage.setItem(progressStorageKey, JSON.stringify(progress)) }
 export function resetAdventureProgress(slug: string) { const progress = getProgress(); delete progress[slug]; localStorage.setItem(progressStorageKey, JSON.stringify(progress)) }
-export function resetProgress() { localStorage.removeItem(progressStorageKey); localStorage.removeItem(legacyProgressStorageKey) }
 
 // Add an adventure to this array. Give it a unique slug, then compose steps using the ChallengeStep union above. Generic screens render every step from its `type`.
 // See the Adventure type for every field; no component changes are needed for a new adventure.
