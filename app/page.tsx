@@ -77,15 +77,17 @@ function Archive() {
             return (
               <div className="archive-row" key={a.id}>
                 <span className="archive-symbol">{a.symbol}</span>
-                <div>
+                <div className="archive-row-body">
                   <h2>{a.title}</h2>
-                  <p>{completed ? (completedDate ? `Completed ${completedDate}` : 'Completed') : a.status === 'coming-soon' ? 'The ink is still drying.' : 'Waiting to be discovered.'}</p>
+                  <div className="archive-row-meta">
+                    <p>{completed ? (completedDate ? `Completed ${completedDate}` : 'Completed') : a.status === 'coming-soon' ? 'The ink is still drying.' : 'Waiting to be discovered.'}</p>
+                    {completed && (
+                      <Link className="card-link" to={`/quest/${a.slug}/complete`}>
+                        View result <Check className="text-[#f0b8d2]" />
+                      </Link>
+                    )}
+                  </div>
                 </div>
-                {completed && (
-                  <Link className="card-link" to={`/quest/${a.slug}/complete`}>
-                    View result <Check className="text-[#f0b8d2]" />
-                  </Link>
-                )}
               </div>
             )
           })}
