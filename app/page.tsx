@@ -430,7 +430,7 @@ function Completion({ adventure }: { adventure: Adventure }) {
       <div className="run-summary-row"><span>Dice-based decisions</span><strong>{diceBasedCount}</strong></div>
       {adventure.funStats?.map((stat) => <div className="run-summary-row" key={stat.label}><span>{stat.label}</span><strong>{stat.value}</strong></div>)}
     </div>
-  </>}<div className="flex flex-wrap justify-center gap-3"><Link className="portal-button" to="/lobby">Return to lobby</Link><Link className="secondary-button" to="/archive">View archive</Link></div></div></main></Shell>
+  </>}<div className="flex flex-wrap justify-center gap-3 mt-8"><Link className="portal-button" to="/lobby">Return to lobby</Link><Link className="secondary-button" to="/archive">View archive</Link></div></div></main></Shell>
 }
 function BrowserUrlSync() {
   const location = useLocation()
