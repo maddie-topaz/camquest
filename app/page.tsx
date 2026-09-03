@@ -14,19 +14,22 @@ function useCompletedSlugs() {
   // shared across devices, so a quest either of us finished elsewhere still
   // needs to show as completed here.
   const [completedSlugs, setCompletedSlugs] = useState<Set<string>>(new Set())
+  const [completedAt, setCompletedAt] = useState<Record<string, string>>({})
   useEffect(() => {
     let cancelled = false
     fetch('/api/quests/completions')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (!cancelled && Array.isArray(data?.slugs)) setCompletedSlugs(new Set(data.slugs))
+        if (cancelled) return
+        if (Array.isArray(data?.slugs)) setCompletedSlugs(new Set(data.slugs))
+        if (data?.completedAt) setCompletedAt(data.completedAt)
       })
       .catch((error) => console.error('Failed to load quest completions', error))
     return () => {
       cancelled = true
     }
   }, [])
-  return completedSlugs
+  return { completedSlugs, completedAt }
 }
 function Portal() { return <Shell minimal><main className="arcade-home"><section className="portal-hero"><div className="arcade-machine" aria-label="Camquest arcade machine"><Link className="arcade-screen" to="/lobby" aria-label="Start Camquest and open the lobby"><span className="screen-scanlines" aria-hidden="true" /><span className="pixel-sprite sprite-heart" aria-hidden="true">♥</span><span className="screen-stars">✦  ·  ✦  ·  ✦</span><strong>CAM⚡QUEST</strong><span className="screen-subtitle">READY UP. ADVENTURE CALLS.</span><span className="screen-prompt">[ PRESS START ]</span></Link><div className="arcade-controls" aria-label="Two-player arcade controls"><div className="player-controls" aria-label="Player one buttons"><div className="arcade-buttons"><button type="button" aria-label="Player one pink button"><span /></button><button type="button" aria-label="Player one gold button"><span /></button></div></div><div className="player-controls player-two" aria-label="Player two buttons"><div className="arcade-buttons"><button type="button" aria-label="Player two cyan button"><span /></button><button type="button" aria-label="Player two violet button"><span /></button></div></div></div></div></section></main></Shell> }
 const lobbyDestinations = [
@@ -34,7 +37,7 @@ const lobbyDestinations = [
   { to: '/archive', icon: ArchiveIcon, title: 'Archive', description: "See completed quests.", linkLabel: 'Open archive' },
 ]
 function Lobby() { return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Game lobby</h1></div><div className="quest-grid">{lobbyDestinations.map((dest) => { const Icon = dest.icon; return <Link key={dest.to} className="quest-card" to={dest.to}><div className="card-top"><span className="quest-symbol"><Icon aria-hidden="true" /></span></div><h3>{dest.title}</h3><p>{dest.description}</p><span className="card-link">{dest.linkLabel} <ArrowRight /></span></Link> })}</div></main></Shell> }
-function QuestLog() { const progress = useStoredProgress(); const completedSlugs = useCompletedSlugs(); return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Quest log</h1></div><div className="quest-grid">{adventures.map((adventure) => <QuestCard key={adventure.id} adventure={adventure} progress={progress[adventure.slug]} serverCompleted={completedSlugs.has(adventure.slug)} />)}</div></main></Shell> }
+function QuestLog() { const progress = useStoredProgress(); const { completedSlugs } = useCompletedSlugs(); return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Quest log</h1></div><div className="quest-grid">{adventures.map((adventure) => <QuestCard key={adventure.id} adventure={adventure} progress={progress[adventure.slug]} serverCompleted={completedSlugs.has(adventure.slug)} />)}</div></main></Shell> }
 function QuestCard({ adventure, progress, serverCompleted }: { adventure: Adventure; progress?: AdventureProgress; serverCompleted?: boolean }) {
   const locked = adventure.status !== 'available' && adventure.status !== 'completed'
   const completed = Boolean(progress?.completed) || serverCompleted || adventure.status === 'completed'
@@ -58,7 +61,7 @@ function QuestCard({ adventure, progress, serverCompleted }: { adventure: Advent
 }
 function Archive() {
   const progress = useStoredProgress()
-  const completedSlugs = useCompletedSlugs()
+  const { completedSlugs, completedAt } = useCompletedSlugs()
   return (
     <Shell>
       <main className="relative z-10 mx-auto max-w-4xl px-5 pb-16">
@@ -70,12 +73,13 @@ function Archive() {
         <div className="archive-list">
           {adventures.map((a) => {
             const completed = Boolean(progress[a.slug]?.completed) || completedSlugs.has(a.slug)
+            const completedDate = completedAt[a.slug] && new Date(completedAt[a.slug]).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
             return (
               <div className="archive-row" key={a.id}>
                 <span className="archive-symbol">{a.symbol}</span>
                 <div>
                   <h2>{a.title}</h2>
-                  <p>{completed ? 'Completed and safely tucked away.' : a.status === 'coming-soon' ? 'The ink is still drying.' : 'Waiting to be discovered.'}</p>
+                  <p>{completed ? (completedDate ? `Completed ${completedDate}` : 'Completed') : a.status === 'coming-soon' ? 'The ink is still drying.' : 'Waiting to be discovered.'}</p>
                 </div>
                 {completed && (
                   <Link className="card-link" to={`/quest/${a.slug}/complete`}>
