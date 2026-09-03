@@ -1,5 +1,5 @@
 export type AdventureStatus = 'available' | 'completed' | 'locked' | 'coming-soon'
-export type MysteryCard = { label: string; outcome?: string; icon?: string; reveal?: string }
+export type MysteryCard = { label: string; outcome?: string; icon?: string }
 export type ChallengeStep =
   | { type: 'choice'; id: string; title: string; prompt: string; options: string[] }
   | { type: 'mystery'; id: string; title: string; prompt: string; cards: MysteryCard[]; concealUntilComplete?: boolean }
@@ -19,7 +19,7 @@ export const adventures: Adventure[] = [
     id: 'cams-gambit',
     slug: 'cams-gambit',
     title: 'Cam\'s Gambit',
-    description: 'Something has been loaded into the system.',
+    description: 'A game of chance and choice has been set in motion.',
     symbol: '⚡',
     status: 'available',
     introduction: 'Cam, a game of chance and choice has been set in motion.' +
@@ -29,35 +29,50 @@ export const adventures: Adventure[] = [
     steps: [
       {
         type: 'mystery',
-        id: 'opening-move',
-        title: 'Opening move',
-        prompt: 'The mysterious challenger has left two cartridges glowing in the dark. One bears the sun. The other, the moon.\n\nOnly one can begin the game.\n\nMake your opening move.',
+        id: 'load-cartridge',
+        title: 'Load cartridge',
+        prompt: 'The mysterious challenger has left two cartridges glowing in the dark. One bears the sun. The other, the moon.' +
+            '\n\nOnly one can begin the game.' +
+            '\n\nChoose wisely.',
         concealUntilComplete: true,
         cards: [
-          { label: 'Sun Cartridge', reveal: 'The Sun Cartridge flickers to life.', outcome: 'A relaxed breakfast at a cosy café', icon: 'Sun' },
-          { label: 'Moon Cartridge', reveal: 'The Moon Cartridge locks into place.', outcome: 'Takeaway coffee and breakfast by the water', icon: 'Moon' },
+          { label: 'Sun Cartridge', outcome: 'A relaxed breakfast at a cosy café', icon: 'Sun' },
+          { label: 'Moon Cartridge', outcome: 'Takeaway coffee and breakfast by the water', icon: 'Moon' },
         ],
       },
       {
         type: 'mystery',
-        id: 'main-quest',
+        id: 'load-map',
         title: 'Choose your path',
-        prompt: 'The cartridge loads. The screen flashes, and a new world begins to form.\n\nAhead, the route divides. One path runs wild beneath the open sky. The other disappears behind a secret door.\n\nWhich path is calling you?',
+        prompt: 'The cartridge loads and a map flickers onto the screen.' +
+            '\n\nTwo strange creatures appear before you.' +
+            '\n\nOnly one will lead you onward.' +
+            '\n\nChoose your guide.',
         concealUntilComplete: true,
         cards: [
-          { label: 'Wild Path', reveal: 'The wild route has claimed you.', outcome: 'A garden or trail made for wandering', icon: 'TreePine' },
-          { label: 'Secret Door', reveal: 'The hidden passage opens.', outcome: 'An indoor spot with something new to discover', icon: 'DoorOpen' },
+          {
+            label: 'Kitsune',
+            outcome: 'Follow the fox to Goody Two’s',
+            icon: 'Origami',
+          },
+          {
+            label: 'Unicorn',
+            outcome: 'Follow the unicorn to Foxtrot Unicorn',
+            icon: 'Sparkles',
+          },
         ],
       },
       {
         type: 'mystery',
-        id: 'bonus-level',
-        title: 'Unlock the bonus level',
-        prompt: 'You press onward—but a strange signal cuts through the static.\n\nA hidden level has appeared. The challenger has left two tokens behind, but only one can unlock what waits inside.\n\nChoose your token.',
+        id: 'fate-engine',
+        title: 'Activate the Fate Engine',
+        prompt: 'You follow your guide to your destination and step inside.' +
+              '\n\nInside a strange machine hums to life. Two symbols glow across its surface: one bound together, the other ruled by chance.' +
+              '\n\nChoose your fate.',
         concealUntilComplete: true,
         cards: [
-          { label: 'High Score', reveal: 'Challenge mode activated.', outcome: 'A playful stop for games and friendly competition', icon: 'Trophy' },
-          { label: 'Bonus Round', reveal: 'A rare encounter has appeared.', outcome: 'A creative stop with something worth exploring together', icon: 'Gift' },
+          { label: 'Twin Fate', outcome: 'Choose a cocktail for each other', icon: 'Link' },
+          { label: 'Wild Fate', outcome: 'Roll the dice and let chance choose two cocktails', icon: 'Dice5' },
         ],
       },
       {
@@ -67,8 +82,8 @@ export const adventures: Adventure[] = [
         prompt: 'The static clears. At the edge of the map, two portals pulse into existence.\n\nOne glows like a garden beneath glass. The other crackles beneath neon palms.\n\nThe challenger has made their final move.\n\nNow make yours.',
         concealUntilComplete: true,
         cards: [
-          { label: 'Glass Garden', reveal: 'The Glass Garden awaits.', outcome: 'Go for a drink at Terrarium', icon: 'Martini' },
-          { label: 'Neon Jungle', reveal: 'The Neon Jungle calls.', outcome: 'Go for a drink at Hula Bula Bar', icon: 'Palmtree' },
+          { label: 'Glass Garden', outcome: 'Go for a drink at Terrarium', icon: 'Martini' },
+          { label: 'Neon Jungle', outcome: 'Go for a drink at Hula Bula Bar', icon: 'Palmtree' },
         ],
       },
     ],

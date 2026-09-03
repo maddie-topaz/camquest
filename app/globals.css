@@ -305,7 +305,6 @@ h1 { text-shadow:4px 4px 0 #4f286f, 0 0 22px rgba(255,95,189,.45); }
 .outcome-icon { display:grid; place-items:center; flex:0 0 auto; width:34px; height:34px; border-radius:4px; color:var(--arcade-gold); background:rgba(255,209,102,.12); border:2px solid #6247a5; }
 .outcome-icon svg { width:18px; height:18px; }
 .outcome-label { display:block; margin-bottom:7px; color:var(--arcade-cyan); font-size:.62rem; font-weight:900; letter-spacing:.12em; text-transform:uppercase; }
-.outcome-reveal { display:block; margin-bottom:6px; color:#c9bfe0; font-size:.78rem; font-style:italic; }
 .outcome-stop strong { color:#f8e9b0; font-size:.88rem; line-height:1.5; }
 .loading-block { display:flex; flex-direction:column; align-items:center; gap:18px; margin:40px auto; }
 .loading-spinner { display:flex; gap:12px; }

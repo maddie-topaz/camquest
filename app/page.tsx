@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Link, MemoryRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { Archive as ArchiveIcon, ArrowLeft, ArrowRight, BookOpen, Check, DoorOpen, Gamepad2, Gift, Lock, Martini, Moon, Palmtree, RotateCcw, Sparkles, Sun, TreePine, Trophy, type LucideIcon } from 'lucide-react'
+import { Archive as ArchiveIcon, ArrowLeft, ArrowRight, BookOpen, Check, Dice5, DoorOpen, Gamepad2, Link as LinkIcon, Lock, Martini, Moon, Palmtree, RotateCcw, Sparkles, Sun, TreePine, type LucideIcon } from 'lucide-react'
 import { adventures, getAdventure, getProgress, resetAdventureProgress, saveProgress, type Adventure, type AdventureProgress, type ChallengeStep } from '@/lib/adventures'
 
-const choiceIcons: Record<string, LucideIcon> = { Sun, Moon, TreePine, DoorOpen, Trophy, Gift, Martini, Palmtree }
+const choiceIcons: Record<string, LucideIcon> = { Sun, Moon, TreePine, DoorOpen, Link: LinkIcon, Dice5, Martini, Palmtree }
 
 function Shell({ children, minimal = false }: { children: React.ReactNode; minimal?: boolean }) { return <div className="min-h-screen bg-[#0d0b1b] text-[#f7f0ff]"><div className="stars" />{!minimal && <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-6" aria-label="Site header" />}{children}</div> }
 function useStoredProgress() { const [progress, setProgress] = useState<Record<string, AdventureProgress>>({}); useEffect(() => setProgress(getProgress()), []); return progress }
@@ -254,10 +254,10 @@ function Completion({ adventure }: { adventure: Adventure }) {
   const outcomes = useMemo(() => adventure.steps.flatMap((step) => {
     if (step.type !== 'mystery') return []
     const selected = step.cards.find((card) => card.label === answers?.[step.id])
-    return selected?.outcome ? [{ choice: selected.label, outcome: selected.outcome, reveal: selected.reveal, icon: selected.icon && choiceIcons[selected.icon] }] : []
+    return selected?.outcome ? [{ choice: selected.label, outcome: selected.outcome, icon: selected.icon && choiceIcons[selected.icon] }] : []
   }), [adventure.steps, answers])
 
-  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="completion-panel"><div className="completion-star">✦</div><p className="eyebrow">Quest complete</p><h1>{adventure.completionTitle || 'Quest complete.'}</h1><p className="challenge-prompt">{adventure.completionMessage}</p>{loading ? <div className="loading-block" role="status" aria-live="polite"><div className="loading-spinner"><span /><span /><span /><span /></div><p className="loading-label">Loading your Saturday…</p></div> : outcomes.length > 0 ? <><div className="outcome-list">{outcomes.map((result) => { const Icon = result.icon; return <div className="outcome-stop" key={result.choice}><span className="outcome-icon">{Icon ? <Icon aria-hidden="true" /> : <Sparkles aria-hidden="true" />}</span><div><span className="outcome-label">{result.choice}</span>{result.reveal && <span className="outcome-reveal">{result.reveal}</span>}<strong>{result.outcome}</strong></div></div> })}</div>{adventure.reward && <div className="final-note">{adventure.reward}</div>}</> : <div className="final-note">{adventure.reward}</div>}<div className="flex flex-wrap justify-center gap-3"><Link className="portal-button" to="/lobby">Return to lobby</Link><Link className="secondary-button" to="/archive">View archive</Link></div></div></main></Shell>
+  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="completion-panel"><div className="completion-star">✦</div><p className="eyebrow">Quest complete</p><h1>{adventure.completionTitle || 'Quest complete.'}</h1><p className="challenge-prompt">{adventure.completionMessage}</p>{loading ? <div className="loading-block" role="status" aria-live="polite"><div className="loading-spinner"><span /><span /><span /><span /></div><p className="loading-label">Loading your Saturday…</p></div> : outcomes.length > 0 ? <><div className="outcome-list">{outcomes.map((result) => { const Icon = result.icon; return <div className="outcome-stop" key={result.choice}><span className="outcome-icon">{Icon ? <Icon aria-hidden="true" /> : <Sparkles aria-hidden="true" />}</span><div><span className="outcome-label">{result.choice}</span><strong>{result.outcome}</strong></div></div> })}</div>{adventure.reward && <div className="final-note">{adventure.reward}</div>}</> : <div className="final-note">{adventure.reward}</div>}<div className="flex flex-wrap justify-center gap-3"><Link className="portal-button" to="/lobby">Return to lobby</Link><Link className="secondary-button" to="/archive">View archive</Link></div></div></main></Shell>
 }
 function BrowserUrlSync() {
   const location = useLocation()
