@@ -49,10 +49,7 @@ function QuestCard({ adventure, progress, serverCompleted }: { adventure: Advent
       {locked ? (
         <span className="card-link muted">Still being written</span>
       ) : completed ? (
-        <div className="card-link-row flex flex-wrap items-center gap-3">
-          <Link className="card-link" to={`/quest/${adventure.slug}/complete`}>View result <ArrowRight /></Link>
-          <Link className="card-link muted" to={`/quest/${adventure.slug}`}>Replay quest</Link>
-        </div>
+        <Link className="card-link" to={`/quest/${adventure.slug}/complete`}>View result <ArrowRight /></Link>
       ) : (
         <Link className="card-link" to={`/quest/${adventure.slug}`}>{progress ? 'Continue quest' : 'Open chapter'} <ArrowRight /></Link>
       )}
