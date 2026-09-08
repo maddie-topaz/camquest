@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Link, MemoryRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { Archive as ArchiveIcon, ArrowLeft, ArrowRight, BookOpen, Check, CircleDot, Dice5, Gamepad2, Joystick, Link as LinkIcon, Lock, Martini, Moon, Origami, Palmtree, RotateCcw, Sparkles, Sun, type LucideIcon } from 'lucide-react'
+import { Archive as ArchiveIcon, ArrowLeft, ArrowRight, Backpack, BookOpen, Check, CircleDot, Dice5, Flame, Gamepad2, Joystick, KeyRound, Link as LinkIcon, Lock, Martini, Moon, Origami, Palmtree, RotateCcw, Sparkles, Sun, Trophy, UserRound, Zap, type LucideIcon } from 'lucide-react'
 import { adventures, getAdventure, getProgress, resetAdventureProgress, saveProgress, type Adventure, type AdventureProgress, type ChallengeStep } from '@/lib/adventures'
+import { loadInventory, type InventoryItem } from '@/lib/inventory-client'
 
 const choiceIcons: Record<string, LucideIcon> = { Sun, Moon, CircleDot, Joystick, Origami, Sparkles, Link: LinkIcon, Dice5, Martini, Palmtree }
+const inventoryIcons: Record<string, LucideIcon> = { KeyRound, CircleDot, Sparkles, Dice5, Flame, Martini }
 
 function Shell({ children, minimal = false }: { children: React.ReactNode; minimal?: boolean }) { return <div className="min-h-screen bg-[#0d0b1b] text-[#f7f0ff]"><div className="stars" />{!minimal && <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-6" aria-label="Site header" />}{children}</div> }
 function useStoredProgress() { const [progress, setProgress] = useState<Record<string, AdventureProgress>>({}); useEffect(() => setProgress(getProgress()), []); return progress }
@@ -15,6 +17,7 @@ function useCompletedSlugs() {
   // needs to show as completed here.
   const [completedSlugs, setCompletedSlugs] = useState<Set<string>>(new Set())
   const [completedAt, setCompletedAt] = useState<Record<string, string>>({})
+  const [answersBySlug, setAnswersBySlug] = useState<Record<string, Record<string, string>>>({})
   useEffect(() => {
     let cancelled = false
     fetch('/api/quests/completions')
@@ -23,18 +26,35 @@ function useCompletedSlugs() {
         if (cancelled) return
         if (Array.isArray(data?.slugs)) setCompletedSlugs(new Set(data.slugs))
         if (data?.completedAt) setCompletedAt(data.completedAt)
+        if (data?.answers) setAnswersBySlug(data.answers)
       })
       .catch((error) => console.error('Failed to load quest completions', error))
     return () => {
       cancelled = true
     }
   }, [])
-  return { completedSlugs, completedAt }
+  return { completedSlugs, completedAt, answersBySlug }
+}
+function useInventory() {
+  const [items, setItems] = useState<InventoryItem[] | null>(null)
+  const [error, setError] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    loadInventory()
+      .then((inventory) => { if (!cancelled) setItems(inventory) })
+      .catch((loadError) => {
+        console.error('Failed to load inventory', loadError)
+        if (!cancelled) setError(true)
+      })
+    return () => { cancelled = true }
+  }, [])
+  return { items, error }
 }
 function Portal() { return <Shell minimal><main className="arcade-home"><section className="portal-hero"><div className="arcade-machine" aria-label="Camquest arcade machine"><Link className="arcade-screen" to="/lobby" aria-label="Start Camquest and open the lobby"><span className="screen-scanlines" aria-hidden="true" /><span className="pixel-sprite sprite-heart" aria-hidden="true">♥</span><span className="screen-stars">✦  ·  ✦  ·  ✦</span><strong>CAM⚡QUEST</strong><span className="screen-subtitle">READY UP. ADVENTURE CALLS.</span><span className="screen-prompt">[ PRESS START ]</span></Link><div className="arcade-controls" aria-label="Two-player arcade controls"><div className="player-controls" aria-label="Player one buttons"><div className="arcade-buttons"><button type="button" aria-label="Player one pink button"><span /></button><button type="button" aria-label="Player one gold button"><span /></button></div></div><div className="player-controls player-two" aria-label="Player two buttons"><div className="arcade-buttons"><button type="button" aria-label="Player two cyan button"><span /></button><button type="button" aria-label="Player two violet button"><span /></button></div></div></div></div></section></main></Shell> }
 const lobbyDestinations = [
   { to: '/quest-log', icon: Gamepad2, title: 'Quest log', description: "See your current quests.", linkLabel: 'Enter quest log' },
   { to: '/archive', icon: ArchiveIcon, title: 'Archive', description: "See completed quests.", linkLabel: 'Open archive' },
+  { to: '/profile', icon: UserRound, title: 'Player profile', description: 'Check your stats and collected loot.', linkLabel: 'View player profile' },
 ]
 function Lobby() { return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Game lobby</h1></div><div className="quest-grid">{lobbyDestinations.map((dest) => { const Icon = dest.icon; return <Link key={dest.to} className="quest-card" to={dest.to}><div className="card-top"><span className="quest-symbol"><Icon aria-hidden="true" /></span></div><h3>{dest.title}</h3><p>{dest.description}</p><span className="card-link">{dest.linkLabel} <ArrowRight /></span></Link> })}</div></main></Shell> }
 function QuestLog() { const progress = useStoredProgress(); const { completedSlugs } = useCompletedSlugs(); return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Quest log</h1></div><div className="quest-grid">{adventures.map((adventure) => <QuestCard key={adventure.id} adventure={adventure} progress={progress[adventure.slug]} serverCompleted={completedSlugs.has(adventure.slug)} />)}</div></main></Shell> }
@@ -92,6 +112,133 @@ function Archive() {
             )
           })}
         </div>
+      </main>
+    </Shell>
+  )
+}
+function Profile() {
+  const progress = useStoredProgress()
+  const { completedSlugs, completedAt, answersBySlug } = useCompletedSlugs()
+  const { items: inventory, error: inventoryError } = useInventory()
+  const localCompleted = new Set(Object.entries(progress).filter(([, value]) => value.completed).map(([slug]) => slug))
+  const completed = new Set([...completedSlugs, ...localCompleted])
+  const totalQuests = adventures.length
+  const clearedQuests = adventures.filter((adventure) => completed.has(adventure.slug) || adventure.status === 'completed').length
+  const availableQuests = adventures.filter((adventure) => adventure.status !== 'coming-soon' && adventure.status !== 'locked').length
+  const combinedAnswers = Object.fromEntries(adventures.map((adventure) => [adventure.slug, answersBySlug[adventure.slug] || progress[adventure.slug]?.answers || {}]))
+  const decisionsMade = Object.values(combinedAnswers).reduce((total, answers) => total + Object.keys(answers).length, 0)
+  const checkpointsFound = Object.values(progress).reduce((total, value) => total + (value.unlockedSteps?.filter((step) => step !== startUnlockId).length || 0), 0)
+  const completionRate = availableQuests ? Math.round((clearedQuests / availableQuests) * 100) : 0
+  const xp = clearedQuests * 500 + decisionsMade * 75 + checkpointsFound * 25
+  const level = Math.max(1, Math.floor(xp / 500) + 1)
+  const currentLevelXp = xp % 500
+  const playerName = adventures.find((adventure) => adventure.companionName)?.companionName || 'Player Two'
+
+  const achievements = adventures.flatMap((adventure) => {
+    const answers = combinedAnswers[adventure.slug]
+    const questComplete = completed.has(adventure.slug) || adventure.status === 'completed'
+    const questItem = {
+      id: `${adventure.slug}-badge`,
+      name: `${adventure.title} badge`,
+      detail: questComplete ? 'Quest clear reward' : 'Complete the quest to unlock',
+      icon: Trophy,
+      unlocked: questComplete,
+    }
+    const choiceItems = adventure.steps.flatMap((step, index) => {
+      if (step.type !== 'mystery') return []
+      const selected = step.cards.find((card) => card.label === answers[step.id])
+      return [{
+        id: `${adventure.slug}-${step.id}`,
+        name: selected ? step.title : `Hidden achievement ${index + 1}`,
+        detail: selected?.label || 'Keep exploring to unlock',
+        icon: selected?.icon ? choiceIcons[selected.icon] || Sparkles : Lock,
+        unlocked: Boolean(selected),
+      }]
+    })
+    return [questItem, ...choiceItems]
+  })
+  const unlockedItems = inventory?.filter((item) => item.quantity > 0).length || 0
+  const unlockedAchievements = achievements.filter((item) => item.unlocked).length
+  const latestClear = Object.values(completedAt).filter(Boolean).sort().at(-1)
+
+  return (
+    <Shell>
+      <main className="profile-page relative z-10 mx-auto max-w-6xl px-5 pb-20">
+        <Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link>
+        <section className="profile-hero">
+          <div className="player-avatar" aria-hidden="true"><span>C</span><i /></div>
+          <div className="player-identity">
+            <p className="eyebrow">Player profile // Slot 02</p>
+            <h1>{playerName}</h1>
+            <p><span className="online-dot" /> Ready for adventure</p>
+          </div>
+          <div className="player-level">
+            <span>Level</span>
+            <strong>{String(level).padStart(2, '0')}</strong>
+            <small>{currentLevelXp} / 500 XP</small>
+            <div className="level-meter"><i style={{ width: `${(currentLevelXp / 500) * 100}%` }} /></div>
+          </div>
+        </section>
+
+        <section aria-labelledby="player-stats-title" className="profile-section">
+          <div className="profile-section-heading">
+            <div><p className="eyebrow">Run data</p><h2 id="player-stats-title">Player stats</h2></div>
+            {latestClear && <span>Last clear {new Date(latestClear).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
+          </div>
+          <div className="stats-grid">
+            <article className="stat-card"><Trophy aria-hidden="true" /><span>Quests cleared</span><strong>{clearedQuests}<small> / {totalQuests}</small></strong></article>
+            <article className="stat-card"><Zap aria-hidden="true" /><span>Decisions made</span><strong>{decisionsMade}</strong></article>
+            <article className="stat-card"><CircleDot aria-hidden="true" /><span>Checkpoints found</span><strong>{checkpointsFound}</strong></article>
+            <article className="stat-card"><Gamepad2 aria-hidden="true" /><span>Completion</span><strong>{completionRate}<small>%</small></strong></article>
+          </div>
+        </section>
+
+        <section aria-labelledby="inventory-title" className="profile-section inventory-section">
+          <div className="profile-section-heading">
+            <div><p className="eyebrow">Collected loot</p><h2 id="inventory-title">Inventory</h2></div>
+            <span>{inventory ? `${unlockedItems} / ${inventory.length} items found` : 'Syncing pack…'}</span>
+          </div>
+          {inventory && <div className="field-pack">
+            <div className="field-pack-bar"><span><Backpack aria-hidden="true" /> Field pack</span><small>{inventory.length} slots</small></div>
+            <div className="item-grid">
+              {inventory.map((item) => {
+                const Icon = inventoryIcons[item.icon] || Sparkles
+                const unlocked = item.quantity > 0
+                return <article
+                  className={`item-slot ${unlocked ? 'is-unlocked' : 'is-locked'}`}
+                  key={item.id}
+                  style={{ '--item-color': item.color, '--item-tilt': item.tilt } as React.CSSProperties}
+                >
+                  <div className="item-well">
+                    {unlocked ? <Icon aria-hidden="true" /> : <span aria-hidden="true">?</span>}
+                    {unlocked && <b>×{item.quantity}</b>}
+                  </div>
+                  <h3>{unlocked ? item.name : 'Unknown object'}</h3>
+                  <p>{unlocked ? item.description : item.unlockHint}</p>
+                </article>
+              })}
+            </div>
+          </div>}
+          {!inventory && !inventoryError && <div className="inventory-sync" role="status"><div className="loading-spinner"><span /><span /><span /><span /></div><p>Syncing field pack…</p></div>}
+          {inventoryError && <div className="inventory-sync is-error"><Backpack aria-hidden="true" /><p>Field pack connection lost.</p></div>}
+        </section>
+
+        <section aria-labelledby="achievements-title" className="profile-section achievements-section">
+          <div className="profile-section-heading">
+            <div><p className="eyebrow">Milestones</p><h2 id="achievements-title">Achievements</h2></div>
+            <span>{unlockedAchievements} / {achievements.length} unlocked</span>
+          </div>
+          <div className="inventory-grid achievements-grid">
+            {achievements.map((item) => {
+              const Icon = item.icon
+              return <article className={`inventory-slot achievement-card ${item.unlocked ? 'is-unlocked' : 'is-locked'}`} key={item.id}>
+                <div className="inventory-icon"><Icon aria-hidden="true" /></div>
+                <div><h3>{item.name}</h3><p>{item.detail}</p></div>
+                <span>{item.unlocked ? 'Unlocked' : 'Locked'}</span>
+              </article>
+            })}
+          </div>
+        </section>
       </main>
     </Shell>
   )
@@ -457,7 +604,7 @@ function BrowserUrlSync() {
   return null
 }
 
-function AppRoutes() { return <Routes><Route path="/" element={<Portal />} /><Route path="/lobby" element={<Lobby />} /><Route path="/quest-log" element={<QuestLog />} /><Route path="/quests" element={<Navigate to="/quest-log" replace />} /><Route path="/archive" element={<Archive />} /><Route path="/reset" element={<ResetDebug />} /><Route path="/quest/:slug" element={<QuestIntroRoute />} /><Route path="/quest/:slug/play" element={<ChallengeRoute />} /><Route path="/quest/:slug/complete" element={<CompletionRoute />} /></Routes> }
+function AppRoutes() { return <Routes><Route path="/" element={<Portal />} /><Route path="/lobby" element={<Lobby />} /><Route path="/quest-log" element={<QuestLog />} /><Route path="/quests" element={<Navigate to="/quest-log" replace />} /><Route path="/archive" element={<Archive />} /><Route path="/profile" element={<Profile />} /><Route path="/reset" element={<ResetDebug />} /><Route path="/quest/:slug" element={<QuestIntroRoute />} /><Route path="/quest/:slug/play" element={<ChallengeRoute />} /><Route path="/quest/:slug/complete" element={<CompletionRoute />} /></Routes> }
 
 function App({ initialPath = '/' }: { initialPath?: string }) {
   // Keep one router mounted for the lifetime of the app so the CRT boot

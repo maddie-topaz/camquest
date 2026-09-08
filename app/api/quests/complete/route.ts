@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { query } from '@/lib/db'
+import { withConnection } from '@/lib/db'
+import { grantQuestRewards } from '@/lib/inventory'
 
 // pg needs the Node runtime, not Edge.
 export const runtime = 'nodejs'
@@ -17,13 +18,24 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await query(
-      `INSERT INTO quest_completions (slug, answers)
-       VALUES ($1, $2)
-       RETURNING id, slug, answers, completed_at`,
-      [slug, JSON.stringify(answers)],
-    )
-    return NextResponse.json({ completion: result.rows[0] })
+    const completion = await withConnection(async (client) => {
+      await client.query('BEGIN')
+      try {
+        const result = await client.query(
+          `INSERT INTO quest_completions (slug, answers)
+           VALUES ($1, $2)
+           RETURNING id, slug, answers, completed_at`,
+          [slug, JSON.stringify(answers)],
+        )
+        await grantQuestRewards(client, slug)
+        await client.query('COMMIT')
+        return result.rows[0]
+      } catch (error) {
+        await client.query('ROLLBACK')
+        throw error
+      }
+    })
+    return NextResponse.json({ completion })
   } catch (error) {
     console.error('Failed to store quest completion', error)
     return NextResponse.json({ error: 'Failed to store completion' }, { status: 500 })
