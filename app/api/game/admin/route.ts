@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { achievementsById } from "@/lib/game/content/achievements";
-import { getItem } from "@/lib/game/content/items";
+import { getItem, starterLoadout } from "@/lib/game/content/items";
 import { getQuest } from "@/lib/game/content/quests";
 import { traitsById } from "@/lib/game/content/traits";
 import { devToolsEnabled } from "@/lib/game/dev/enabled";
@@ -260,14 +260,29 @@ const toEvents = (
     case "reset-system":
       if (!resettableSystems.includes(body.system))
         return `No such system: ${body.system}`;
-      return [
-        {
-          payload: {
-            type: "system.reset",
-            system: body.system,
-            reason: "admin",
-          },
+      const reset = {
+        payload: {
+          type: "system.reset" as const,
+          system: body.system,
+          reason: "admin",
         },
+      };
+      if (body.system !== "inventory") return [reset];
+
+      // Inventory reset is a fresh starting pack, not an empty bag. The
+      // grants deliberately follow the reset so the portal sees them as
+      // pending and can issue the normal `grants.accept` command.
+      return [
+        reset,
+        ...starterLoadout.map((entry) => ({
+          key: `starter-reset:${randomUUID()}:${entry.itemId}`,
+          payload: {
+            type: "item.granted" as const,
+            itemId: entry.itemId,
+            quantity: entry.quantity,
+            reason: "starter_loadout",
+          },
+        })),
       ];
 
     default:

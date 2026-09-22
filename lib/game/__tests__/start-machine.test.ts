@@ -33,6 +33,7 @@ const viewWith = (pendingGrants: PendingGrantView[]) =>
 const run = (
   pending: PendingGrantView[],
   accept: (keys: string[]) => Promise<unknown> = vi.fn(async () => {}),
+  revealReady = 0,
 ) => {
   const emitted: StartEmitted[] = [];
   const machine = startMachine.provide({
@@ -51,7 +52,7 @@ const run = (
         },
       ),
     },
-    delays: { revealReady: 0 },
+    delays: { revealReady },
   });
   const actor = createActor(machine, {
     input: { load: async () => viewWith(pending), accept, minBootMs: 0 },
@@ -118,6 +119,22 @@ describe("startMachine", () => {
       "inventory-accepted",
     ]);
     expect(emitted.at(-1)?.type).toBe("enter");
+  });
+
+  it("accepts while item cards are still revealing", async () => {
+    const { actor, accept } = run(
+      [grant("cowbell", "starter:cowbell")],
+      undefined,
+      10_000,
+    );
+    actor.send({ type: "START" });
+    await settle();
+    expect(actor.getSnapshot().matches("revealing")).toBe(true);
+
+    actor.send({ type: "ACCEPT" });
+    await settle();
+    expect(accept).toHaveBeenCalledWith(["starter:cowbell"]);
+    expect(actor.getSnapshot().matches("accepted")).toBe(true);
   });
 
   it("stays on the reveal if accepting fails, and can retry a failed boot", async () => {

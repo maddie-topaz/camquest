@@ -781,7 +781,7 @@ function ResetSection({ r }: { r: Runner }) {
     <Section
       id="reset"
       title="Reset"
-      blurb="Per-system resets append a system.reset event (auditable, replayable). Wipe deletes the whole log and bootstraps a fresh player: the one operation that isn't append-only."
+      blurb="Per-system resets append a system.reset event (auditable, replayable). Reset inventory restores the starting pack as pending grants; open the home screen and press Start Game to accept it. Wipe deletes the whole log and bootstraps a fresh player: the one operation that isn't append-only."
     >
       <div className="dev-grid">
         <div className="dev-row dev-wrap">

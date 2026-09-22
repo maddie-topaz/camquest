@@ -240,11 +240,11 @@ export function Portal() {
                 <button
                   ref={acceptButton}
                   className="accept-items-button"
-                  disabled={phase !== "ready"}
+                  disabled={phase === "accepting" || phase === "leaving"}
                   onClick={acceptItems}
                   data-sfx="inventory-accepted"
                 >
-                  {phase === "ready"
+                  {phase === "revealing" || phase === "ready"
                     ? "Accept items"
                     : phase === "accepting"
                       ? "Binding items..."

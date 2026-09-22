@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getQuest } from "../content/quests";
+import { starterLoadout } from "../content/items";
 import { jumpToStep, scenarios, scenariosById } from "../dev/scenarios";
 import { START_UNLOCK_ID } from "../machines/quest";
 import { questStatus } from "../rules";
@@ -57,6 +58,33 @@ describe("dev events", () => {
         expect(save.player.achievements).toEqual({});
       else expect(save.player.achievements["first-quest"]).toBeDefined();
     }
+  });
+
+  it("resetting inventory followed by starting grants makes the pack pending again", () => {
+    const save = saveFrom([
+      created("Cam"),
+      granted("golden-key", 1),
+      { type: "system.reset", system: "inventory", reason: "admin" },
+      ...starterLoadout.map((entry) =>
+        granted(
+          entry.itemId,
+          entry.quantity,
+          "starter_loadout",
+          `starter-reset:${entry.itemId}`,
+        ),
+      ),
+    ]);
+
+    expect(save.player.inventory).toEqual(
+      Object.fromEntries(
+        starterLoadout.map((entry) => [
+          entry.itemId,
+          { quantity: entry.quantity },
+        ]),
+      ),
+    );
+    expect(save.player.grants).toHaveLength(starterLoadout.length);
+    expect(save.player.grants.every((grant) => !grant.acceptedAt)).toBe(true);
   });
 });
 

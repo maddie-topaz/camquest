@@ -159,6 +159,9 @@ export const startMachine = setup({
     },
     revealing: {
       entry: { type: "cue", params: { cue: "inventory-open" } },
+      // The reveal is decorative. Do not make the player wait for every
+      // card's animation before the pack can be accepted.
+      on: { ACCEPT: "accepting" },
       after: {
         revealReady: {
           target: "ready",
