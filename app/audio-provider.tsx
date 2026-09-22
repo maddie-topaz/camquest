@@ -85,8 +85,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     };
   }, [actor]);
 
-  // Unlock on the first gesture. Some browsers need a second try, so keep
-  // listening until the context actually reports running.
+  // Unlock on the first gesture. Mobile Safari may dispatch touch events
+  // without Pointer Events, so listen to both families until the context
+  // actually reports running.
   useEffect(() => {
     if (unlocked) return;
     const attempt = () => {
@@ -94,10 +95,14 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         if (ok) actor.send({ type: "UNLOCKED" });
       });
     };
-    window.addEventListener("pointerdown", attempt);
+    window.addEventListener("pointerdown", attempt, { capture: true });
+    window.addEventListener("touchstart", attempt, { capture: true });
+    window.addEventListener("click", attempt, { capture: true });
     window.addEventListener("keydown", attempt);
     return () => {
-      window.removeEventListener("pointerdown", attempt);
+      window.removeEventListener("pointerdown", attempt, { capture: true });
+      window.removeEventListener("touchstart", attempt, { capture: true });
+      window.removeEventListener("click", attempt, { capture: true });
       window.removeEventListener("keydown", attempt);
     };
   }, [actor, player, unlocked]);

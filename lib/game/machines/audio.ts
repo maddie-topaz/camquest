@@ -1,8 +1,8 @@
 // The audio layer as a machine. Browsers refuse to play sound until the
-// page has had a user gesture, so cues that arrive before then are
-// dropped rather than queued (a burst of stale blips on first click would
-// be worse than silence). The player is injected: Howler in the app, a
-// recorder in tests.
+// page has had a user gesture. Keep only the latest cue while it unlocks:
+// a tap can emit its sound before AudioContext.resume() resolves, and that
+// cue should play once the browser has allowed audio. The player is
+// injected: Howler in the app, a recorder in tests.
 //
 //   locked  → (UNLOCK, from a user gesture) → ready
 //   ready   ⇄ muted            CUE plays only in ready
@@ -26,6 +26,7 @@ export type AudioContext = {
   player: AudioPlayer;
   volume: number;
   muted: boolean;
+  queuedCue: { cue: string; detail?: Record<string, unknown> } | null;
 };
 
 export type AudioEvent =
@@ -48,6 +49,16 @@ export const audioMachine = setup({
     play: ({ context, event }) => {
       if (event.type === "CUE") context.player.play(event.cue, event.detail);
     },
+    queueCue: assign(({ event }) =>
+      event.type === "CUE"
+        ? { queuedCue: { cue: event.cue, detail: event.detail } }
+        : {},
+    ),
+    playQueuedCue: ({ context }) => {
+      if (context.queuedCue)
+        context.player.play(context.queuedCue.cue, context.queuedCue.detail);
+    },
+    clearQueuedCue: assign({ queuedCue: null }),
     applyVolume: ({ context }) =>
       context.player.setVolume(context.muted ? 0 : context.volume),
     toggleMute: assign({ muted: ({ context }) => !context.muted }),
@@ -64,6 +75,7 @@ export const audioMachine = setup({
     player: input.player,
     volume: input.volume ?? 0.8,
     muted: input.muted ?? false,
+    queuedCue: null,
   }),
   initial: "locked",
   entry: "applyVolume",
@@ -74,9 +86,17 @@ export const audioMachine = setup({
     locked: {
       on: {
         UNLOCKED: [
-          { guard: "startsMuted", target: "muted" },
-          { target: "ready" },
+          {
+            guard: "startsMuted",
+            target: "muted",
+            actions: "clearQueuedCue",
+          },
+          {
+            target: "ready",
+            actions: ["playQueuedCue", "clearQueuedCue"],
+          },
         ],
+        CUE: { actions: "queueCue" },
         // Mute can be toggled before audio is unlocked; it just changes
         // where UNLOCKED lands.
         TOGGLE_MUTE: { actions: ["toggleMute", "applyVolume"] },

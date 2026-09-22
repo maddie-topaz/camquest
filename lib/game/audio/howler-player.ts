@@ -31,8 +31,12 @@ export const createHowlerPlayer = (): AudioPlayer => {
       Howler.volume(volume);
     },
     unlock: async () => {
+      // Calling volume makes Howler create its AudioContext before we try
+      // to resume it. On mobile, a missing context would otherwise be
+      // treated as unlocked and the first game sound would be lost.
+      Howler.volume(Howler.volume());
       const ctx = Howler.ctx as AudioContext | undefined;
-      if (!ctx) return true;
+      if (!ctx) return false;
       if (ctx.state === "suspended") {
         try {
           await ctx.resume();

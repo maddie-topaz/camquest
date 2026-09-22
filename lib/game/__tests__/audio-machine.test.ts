@@ -15,14 +15,15 @@ const recorder = () => {
 };
 
 describe("audioMachine", () => {
-  it("drops cues until the browser has been unlocked by a gesture", () => {
+  it("plays the latest cue once the browser has been unlocked by a gesture", () => {
     const { player, played } = recorder();
     const actor = createActor(audioMachine, { input: { player } }).start();
     actor.send({ type: "CUE", cue: "game-start" });
     expect(played).toEqual([]);
     actor.send({ type: "UNLOCKED" });
-    actor.send({ type: "CUE", cue: "game-start" });
     expect(played).toEqual(["game-start"]);
+    actor.send({ type: "CUE", cue: "game-start" });
+    expect(played).toEqual(["game-start", "game-start"]);
   });
 
   it("mute silences the player and stops cues; unmute restores volume", () => {
