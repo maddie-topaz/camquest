@@ -2,6 +2,7 @@
 
 import { PawPrint, Sparkles } from "lucide-react";
 import type { CompanionView } from "@/lib/game/view";
+import { accentStyle } from "./colors";
 import { companionIcons, inventoryIcons } from "./icons";
 
 // Generic — renders whatever's in `view.companions`. No Kitana-specific
@@ -10,10 +11,7 @@ import { companionIcons, inventoryIcons } from "./icons";
 export function CompanionCard({ companion }: { companion: CompanionView }) {
   const Icon = companionIcons[companion.icon] || PawPrint;
   return (
-    <article
-      className="companion-card"
-      style={{ "--item-color": companion.color } as React.CSSProperties}
-    >
+    <article className="companion-card" style={accentStyle(companion.color)}>
       <div className="companion-avatar" aria-hidden="true">
         <Icon aria-hidden="true" />
       </div>
@@ -42,7 +40,7 @@ export function CompanionCard({ companion }: { companion: CompanionView }) {
       {companion.stats.length > 0 && (
         <div className="companion-stats trait-list">
           {companion.stats.map((stat) => (
-            <div className="trait-row" key={stat.id}>
+            <div className="trait-row" key={stat.id} style={accentStyle(stat.color)}>
               <span>{stat.name}</span>
               <div
                 className="trait-meter"
@@ -66,7 +64,7 @@ export function CompanionCard({ companion }: { companion: CompanionView }) {
             {companion.equipped.map((equipped) => {
               const EquippedIcon = inventoryIcons[equipped.icon] || Sparkles;
               return (
-                <li key={equipped.itemId} style={{ "--item-color": equipped.color } as React.CSSProperties}>
+                <li key={equipped.itemId} style={accentStyle(equipped.color)}>
                   <EquippedIcon aria-hidden="true" />
                   {equipped.name}
                 </li>

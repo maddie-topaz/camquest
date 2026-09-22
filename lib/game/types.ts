@@ -70,7 +70,11 @@ export type SaveFile = {
     // Keyed by companion id, so more than one can be registered later.
     companions: Record<string, CompanionRecord>;
     xp: number;
+    // What Cam can do — see lib/game/content/traits.
     traits: Record<string, number>;
+    // How Cam tends to play — see lib/game/content/tendencies. Flavor
+    // only; nothing should hard-gate on these.
+    tendencies: Record<string, number>;
     inventory: Record<string, ItemStack>;
     achievements: Record<string, { unlockedAt: string }>;
     grants: GrantRecord[];
@@ -101,6 +105,7 @@ export const resettableSystems = [
   "inventory",
   "xp",
   "traits",
+  "tendencies",
   "achievements",
   "quests",
   "world",
@@ -155,6 +160,13 @@ export type GameEventPayload =
   | {
       type: "trait.changed";
       trait: string;
+      delta: number;
+      reason: string;
+      questSlug?: string;
+    }
+  | {
+      type: "tendency.changed";
+      tendency: string;
       delta: number;
       reason: string;
       questSlug?: string;
@@ -272,8 +284,12 @@ export type CommandResult =
 export type Requirements = {
   items?: string[];
   questsCompleted?: string[];
-  // Minimum trait values, e.g. { chaos: 5 }
+  // Minimum trait values, e.g. { focus: 5 }. Prefer branching content on
+  // a trait over gating a whole quest with this — see traits.ts.
   traits?: Record<string, number>;
+  // Minimum tendency values. Flavor gating only; avoid hard-blocking a
+  // quest on personality alone.
+  tendencies?: Record<string, number>;
   level?: number;
   achievements?: string[];
   // The quest only appears once something has unlocked it (a reward, an
@@ -288,6 +304,7 @@ export type Rewards = {
   unlocks?: string[];
   achievements?: string[];
   traits?: Record<string, number>;
+  tendencies?: Record<string, number>;
   locations?: string[];
   secrets?: string[];
   // Confirms/sets the player's registered name.

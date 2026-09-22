@@ -32,7 +32,8 @@ describe("dev events", () => {
       granted("cowbell", 2),
       completed("unknown-signal"),
       { type: "xp.gained" as const, amount: 300, reason: "t" },
-      { type: "trait.changed" as const, trait: "chaos", delta: 3, reason: "t" },
+      { type: "trait.changed" as const, trait: "nerve", delta: 3, reason: "t" },
+      { type: "tendency.changed" as const, tendency: "chaos", delta: 3, reason: "t" },
       {
         type: "achievement.unlocked" as const,
         achievementId: "first-quest",
@@ -51,8 +52,10 @@ describe("dev events", () => {
       } else expect(save.player.inventory.cowbell.quantity).toBe(2);
       if (system === "xp") expect(save.player.xp).toBe(0);
       else expect(save.player.xp).toBe(300);
-      if (system === "traits") expect(save.player.traits.chaos).toBe(5);
-      else expect(save.player.traits.chaos).toBe(8);
+      if (system === "traits") expect(save.player.traits.nerve).toBe(5);
+      else expect(save.player.traits.nerve).toBe(8);
+      if (system === "tendencies") expect(save.player.tendencies.chaos).toBe(5);
+      else expect(save.player.tendencies.chaos).toBe(8);
       if (system === "quests") expect(save.quests).toEqual({});
       else expect(save.quests["unknown-signal"].completions).toBe(1);
       if (system === "achievements")
@@ -119,12 +122,13 @@ describe("scenarios", () => {
     expect(questStatus(save, getQuest("cams-gambit")!)).toBe("in-progress");
   });
 
-  it("everything-unlocked completes every quest and maxes traits", () => {
+  it("everything-unlocked completes every quest and maxes traits and tendencies", () => {
     const save = play("everything-unlocked");
     expect(Object.values(save.quests).every((q) => q.completions > 0)).toBe(
       true,
     );
-    expect(save.player.traits.chaos).toBe(10);
+    expect(save.player.traits.nerve).toBe(10);
+    expect(save.player.tendencies.chaos).toBe(10);
     expect(save.player.achievements["first-quest"]).toBeDefined();
   });
 

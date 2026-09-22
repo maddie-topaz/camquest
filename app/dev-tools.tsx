@@ -9,6 +9,7 @@ import { companions } from "@/lib/game/content/companions";
 import { items } from "@/lib/game/content/items";
 import { quests } from "@/lib/game/content/quests";
 import { traits } from "@/lib/game/content/traits";
+import { tendencies } from "@/lib/game/content/tendencies";
 import { scenarios } from "@/lib/game/dev/scenarios";
 import type { Command, GameEvent } from "@/lib/game/types";
 import type { SaveView } from "@/lib/game/view";
@@ -142,7 +143,7 @@ function PlayerSection({ view, r }: { view: SaveView; r: Runner }) {
     <Section
       id="player"
       title="Player"
-      blurb="Profile, XP and traits. Traits are clamped to their defined range by the reducer."
+      blurb="Profile, XP, traits (what Cam can do) and tendencies (how he tends to play). Both are clamped to their defined range by the reducer."
     >
       <div className="dev-grid">
         <div className="dev-row">
@@ -230,6 +231,57 @@ function PlayerSection({ view, r }: { view: SaveView; r: Runner }) {
                   })
                 }
                 disabled={value === trait.initial}
+              />
+            </div>
+          );
+        })}
+        {tendencies.map((tendency) => {
+          const value =
+            view.save.player.tendencies[tendency.id] ?? tendency.initial;
+          return (
+            <div className="dev-row" key={tendency.id}>
+              <span title={tendency.description}>
+                {tendency.name} <strong>{value}</strong>{" "}
+                <small>/{tendency.max}</small>
+              </span>
+              <Btn
+                mode="force"
+                label={`${tendency.name} −1`}
+                busy={r.busy}
+                onClick={() =>
+                  r.force(`${tendency.name} −1`, {
+                    action: "tendency",
+                    tendency: tendency.id,
+                    delta: -1,
+                  })
+                }
+                disabled={value <= tendency.min}
+              />
+              <Btn
+                mode="force"
+                label={`${tendency.name} +1`}
+                busy={r.busy}
+                onClick={() =>
+                  r.force(`${tendency.name} +1`, {
+                    action: "tendency",
+                    tendency: tendency.id,
+                    delta: 1,
+                  })
+                }
+                disabled={value >= tendency.max}
+              />
+              <Btn
+                mode="force"
+                label={`${tendency.name} reset`}
+                busy={r.busy}
+                onClick={() =>
+                  r.force(`${tendency.name} reset`, {
+                    action: "set-tendency",
+                    tendency: tendency.id,
+                    value: tendency.initial,
+                  })
+                }
+                disabled={value === tendency.initial}
               />
             </div>
           );

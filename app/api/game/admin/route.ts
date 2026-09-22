@@ -4,6 +4,7 @@ import { achievementsById } from "@/lib/game/content/achievements";
 import { getItem, starterLoadout } from "@/lib/game/content/items";
 import { getQuest } from "@/lib/game/content/quests";
 import { traitsById } from "@/lib/game/content/traits";
+import { tendenciesById } from "@/lib/game/content/tendencies";
 import {
   jumpToStep,
   scenariosById,
@@ -30,6 +31,8 @@ export type AdminAction =
   | { action: "xp"; amount: number; reason?: string }
   | { action: "trait"; trait: string; delta: number; reason?: string }
   | { action: "set-trait"; trait: string; value: number }
+  | { action: "tendency"; tendency: string; delta: number; reason?: string }
+  | { action: "set-tendency"; tendency: string; value: number }
   | { action: "achievement"; achievementId: string; unlocked: boolean }
   // Inventory
   | { action: "grant"; itemId: string; quantity?: number; reason?: string }
@@ -101,6 +104,38 @@ const toEvents = (
               payload: {
                 type: "trait.changed",
                 trait: body.trait,
+                delta,
+                reason: "admin",
+              },
+            },
+          ];
+    }
+    case "tendency":
+      if (!tendenciesById[body.tendency])
+        return `No such tendency: ${body.tendency}`;
+      if (!Number.isInteger(body.delta)) return "delta must be an integer";
+      return [
+        {
+          payload: {
+            type: "tendency.changed",
+            tendency: body.tendency,
+            delta: body.delta,
+            reason: body.reason || "admin",
+          },
+        },
+      ];
+    case "set-tendency": {
+      if (!tendenciesById[body.tendency])
+        return `No such tendency: ${body.tendency}`;
+      if (!Number.isInteger(body.value)) return "value must be an integer";
+      const delta = body.value - (save.player.tendencies[body.tendency] ?? 0);
+      return delta === 0
+        ? []
+        : [
+            {
+              payload: {
+                type: "tendency.changed",
+                tendency: body.tendency,
                 delta,
                 reason: "admin",
               },

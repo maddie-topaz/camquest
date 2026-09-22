@@ -29,7 +29,9 @@ export const encounters: EncounterDefinition[] = [
     rewards: ({ score }) => ({
       xp: 50 + Math.round(score / 5),
       items: score >= 300 ? [{ itemId: "golden-key" }] : [],
-      traits: score >= 450 ? { mysteryTolerance: 1 } : undefined,
+      // A clean lock is a focus payoff, not a personality shift.
+      traits: score >= 450 ? { focus: 1 } : undefined,
+      tendencies: score >= 450 ? { mysteryTolerance: 1 } : undefined,
     }),
     rank: ({ score }) =>
       score >= 450

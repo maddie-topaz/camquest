@@ -175,6 +175,11 @@ export const missingRequirements = (
   );
   if (traits.length) missing.traits = Object.fromEntries(traits);
 
+  const tendencies = Object.entries(requirements.tendencies ?? {}).filter(
+    ([tendency, min]) => (save.player.tendencies[tendency] ?? 0) < min,
+  );
+  if (tendencies.length) missing.tendencies = Object.fromEntries(tendencies);
+
   if (requirements.level && playerLevel(save) < requirements.level)
     missing.level = requirements.level;
 

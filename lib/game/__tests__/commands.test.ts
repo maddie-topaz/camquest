@@ -32,13 +32,20 @@ describe("quest.complete", () => {
     if (!result.ok) return;
     const types = result.events.map((e) => e.payload.type);
     expect(types).toEqual(
-      expect.arrayContaining(["quest.completed", "xp.gained", "trait.changed"]),
+      expect.arrayContaining([
+        "quest.completed",
+        "xp.gained",
+        "trait.changed",
+        "tendency.changed",
+      ]),
     );
 
     const next = commit(save, result.events);
     expect(next.quests["cams-gambit"].completions).toBe(1);
     expect(next.player.xp).toBe(250);
-    expect(next.player.traits.chaos).toBe(6);
+    expect(next.player.traits.luck).toBe(6);
+    expect(next.player.tendencies.chaos).toBe(6);
+    expect(next.player.tendencies.curiosity).toBe(6);
   });
 
   it("unlocks quests and earns condition achievements through rewards", () => {

@@ -117,7 +117,8 @@ describe("prerequisites", () => {
       {
         items: ["vip-wristband"],
         questsCompleted: ["cams-gambit"],
-        traits: { chaos: 8 },
+        traits: { nerve: 8 },
+        tendencies: { chaos: 8 },
         level: 3,
         unlock: true,
       },
@@ -126,7 +127,8 @@ describe("prerequisites", () => {
     expect(missing).toEqual({
       items: ["vip-wristband"],
       questsCompleted: ["cams-gambit"],
-      traits: { chaos: 8 },
+      traits: { nerve: 8 },
+      tendencies: { chaos: 8 },
       level: 3,
       unlock: true,
     });
@@ -137,7 +139,8 @@ describe("prerequisites", () => {
       created(),
       granted("vip-wristband"),
       completed("cams-gambit"),
-      { type: "trait.changed", trait: "chaos", delta: 3, reason: "t" },
+      { type: "trait.changed", trait: "nerve", delta: 3, reason: "t" },
+      { type: "tendency.changed", tendency: "chaos", delta: 3, reason: "t" },
       { type: "xp.gained", amount: 400, reason: "t" },
       { type: "quest.unlocked", slug: "unknown-signal", reason: "t" },
     ]);
@@ -147,7 +150,8 @@ describe("prerequisites", () => {
         {
           items: ["vip-wristband"],
           questsCompleted: ["cams-gambit"],
-          traits: { chaos: 8 },
+          traits: { nerve: 8 },
+          tendencies: { chaos: 8 },
           level: 3,
           unlock: true,
         },

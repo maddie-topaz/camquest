@@ -4,6 +4,7 @@
 // replayable and the tests cheap.
 
 import { initialTraits, traitsById } from "./content/traits";
+import { initialTendencies, tendenciesById } from "./content/tendencies";
 import {
   SAVE_VERSION,
   type GameEvent,
@@ -25,6 +26,7 @@ export const emptySave = (
     companions: {},
     xp: 0,
     traits: initialTraits(),
+    tendencies: initialTendencies(),
     inventory: {},
     achievements: {},
     grants: [],
@@ -50,8 +52,12 @@ const emptyQuest = (): QuestSave => ({
 const addToSet = (list: string[], value: string) =>
   list.includes(value) ? list : [...list, value];
 
-const clampTrait = (trait: string, value: number) => {
-  const def = traitsById[trait];
+const clampWithin = (
+  defsById: Record<string, { min: number; max: number }>,
+  id: string,
+  value: number,
+) => {
+  const def = defsById[id];
   if (!def) return value;
   return Math.min(def.max, Math.max(def.min, value));
 };
@@ -73,16 +79,49 @@ const withQuantity = (
 // rather than retroactively locking a returning player out of the lobby.
 const ALL_SYSTEMS = ["quest-log", "archive", "inventory", "profile"];
 
-export const normaliseSave = (save: SaveFile): SaveFile => ({
-  ...save,
-  player: {
-    ...save.player,
-    encounters: save.player.encounters ?? {},
-    companions: save.player.companions ?? {},
-    equipment: save.player.equipment ?? {},
-  },
-  world: { ...save.world, unlockedSystems: save.world.unlockedSystems ?? ALL_SYSTEMS },
-});
+// The dials that lived in `player.traits` before traits/tendencies split.
+// A save with no `tendencies` field yet is, by definition, one of these —
+// its `traits` are really tendency values under the old ids.
+const LEGACY_TENDENCY_IDS = [
+  "chaos",
+  "curiosity",
+  "mysteryTolerance",
+  "earlyMorning",
+];
+
+export const normaliseSave = (save: SaveFile): SaveFile => {
+  const legacyTraits = save.player.traits as Record<string, number> | undefined;
+  const isPreSplit = !save.player.tendencies && Boolean(legacyTraits);
+  return {
+    ...save,
+    player: {
+      ...save.player,
+      encounters: save.player.encounters ?? {},
+      companions: save.player.companions ?? {},
+      equipment: save.player.equipment ?? {},
+      // Migrate once: carry the old dial values into tendencies under
+      // their same ids, then give traits (now a different ability set
+      // entirely) a fresh start rather than guessing a mapping.
+      tendencies:
+        save.player.tendencies ??
+        (isPreSplit
+          ? {
+              ...initialTendencies(),
+              ...Object.fromEntries(
+                LEGACY_TENDENCY_IDS.filter((id) => id in legacyTraits!).map(
+                  (id) => [id, legacyTraits![id]],
+                ),
+              ),
+            }
+          : initialTendencies()),
+      traits: isPreSplit ? initialTraits() : (save.player.traits ?? initialTraits()),
+    },
+    world: {
+      ...save.world,
+      unlockedSystems: save.world.unlockedSystems ?? ALL_SYSTEMS,
+    },
+  };
+};
 
 export const applyEvent = (save: SaveFile, event: GameEvent): SaveFile => {
   const base = { ...save, seq: event.seq, updatedAt: event.at };
@@ -264,9 +303,26 @@ export const applyEvent = (save: SaveFile, event: GameEvent): SaveFile => {
           ...base.player,
           traits: {
             ...base.player.traits,
-            [payload.trait]: clampTrait(
+            [payload.trait]: clampWithin(
+              traitsById,
               payload.trait,
               (base.player.traits[payload.trait] ?? 0) + payload.delta,
+            ),
+          },
+        },
+      };
+
+    case "tendency.changed":
+      return {
+        ...base,
+        player: {
+          ...base.player,
+          tendencies: {
+            ...base.player.tendencies,
+            [payload.tendency]: clampWithin(
+              tendenciesById,
+              payload.tendency,
+              (base.player.tendencies[payload.tendency] ?? 0) + payload.delta,
             ),
           },
         },
@@ -429,6 +485,11 @@ export const applyEvent = (save: SaveFile, event: GameEvent): SaveFile => {
           return {
             ...base,
             player: { ...base.player, traits: fresh.player.traits },
+          };
+        case "tendencies":
+          return {
+            ...base,
+            player: { ...base.player, tendencies: fresh.player.tendencies },
           };
         case "achievements":
           return { ...base, player: { ...base.player, achievements: {} } };

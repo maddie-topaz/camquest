@@ -83,6 +83,18 @@ const rewardsToEvents = (
       payload: { type: "trait.changed", trait, delta, reason, questSlug },
     });
   }
+  for (const [tendency, delta] of Object.entries(rewards.tendencies ?? {})) {
+    events.push({
+      key: `${keyPrefix}:tendency:${tendency}`,
+      payload: {
+        type: "tendency.changed",
+        tendency,
+        delta,
+        reason,
+        questSlug,
+      },
+    });
+  }
   for (const slug of rewards.unlocks ?? []) {
     if (save.world.unlockedQuests.includes(slug)) continue;
     events.push({

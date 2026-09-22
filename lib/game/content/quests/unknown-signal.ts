@@ -56,7 +56,10 @@ export const unknownSignal: QuestDefinition = {
   reward: "REGISTRATION COMPLETE. TWO SIGNATURES ADDED TO THE MAP.",
   rewards: {
     xp: 100,
-    traits: { mysteryTolerance: 1 },
+    // Holding the lock long enough to read the signal is a focus payoff;
+    // mysteryTolerance is how he took it, not what it took.
+    traits: { focus: 1 },
+    tendencies: { mysteryTolerance: 1 },
     playerName: "Cam",
     companion: { id: "kitana", name: "Kitana", species: "cat" },
     unlockSystems: ["archive", "inventory", "profile"],

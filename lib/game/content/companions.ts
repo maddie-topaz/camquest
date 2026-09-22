@@ -9,6 +9,8 @@ export type CompanionStat = {
   name: string;
   value: number;
   max: number;
+  // Its own restrained accent, same pattern as traits/tendencies.
+  color: string;
 };
 
 export type CompanionDefinition = {
@@ -30,9 +32,9 @@ export const companions: CompanionDefinition[] = [
     color: "#ff75c8",
     title: "The Lucky Paw",
     stats: [
-      { id: "luck", name: "Luck", value: 7, max: 10 },
-      { id: "stealth", name: "Stealth", value: 6, max: 10 },
-      { id: "loyalty", name: "Loyalty", value: 9, max: 10 },
+      { id: "luck", name: "Luck", value: 7, max: 10, color: "#b98bff" },
+      { id: "stealth", name: "Stealth", value: 6, max: 10, color: "#4ce0b3" },
+      { id: "loyalty", name: "Loyalty", value: 9, max: 10, color: "#ff9ecb" },
     ],
   },
 ];

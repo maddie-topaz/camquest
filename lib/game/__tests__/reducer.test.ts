@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyEvent, emptySave } from "../reducer";
+import { applyEvent, emptySave, normaliseSave } from "../reducer";
 import { completed, created, granted, saveFrom } from "./helpers";
 
 describe("reducer", () => {
@@ -8,7 +8,8 @@ describe("reducer", () => {
     expect(save.playerId).toBe("cam");
     expect(save.seq).toBe(0);
     expect(save.player.inventory).toEqual({});
-    expect(save.player.traits.chaos).toBe(5);
+    expect(save.player.traits.nerve).toBe(5);
+    expect(save.player.tendencies.chaos).toBe(5);
   });
 
   it("tracks seq and updatedAt from the last event", () => {
@@ -71,9 +72,18 @@ describe("reducer", () => {
   it("clamps traits to their defined range", () => {
     const save = saveFrom([
       created(),
-      { type: "trait.changed", trait: "chaos", delta: 40, reason: "test" },
+      { type: "trait.changed", trait: "nerve", delta: 40, reason: "test" },
     ]);
-    expect(save.player.traits.chaos).toBe(10);
+    expect(save.player.traits.nerve).toBe(10);
+  });
+
+  it("clamps tendencies to their defined range, independently of traits", () => {
+    const save = saveFrom([
+      created(),
+      { type: "tendency.changed", tendency: "chaos", delta: 40, reason: "test" },
+    ]);
+    expect(save.player.tendencies.chaos).toBe(10);
+    expect(save.player.traits.chaos).toBeUndefined();
   });
 
   it("xp never drops below zero", () => {
@@ -246,5 +256,27 @@ describe("reducer", () => {
     ]);
     expect(save.player.equipment).toEqual({});
     expect(save.player.inventory).toEqual({});
+  });
+
+  it("migrates a pre-split save: old trait values become tendencies, traits reset fresh", () => {
+    const legacy = emptySave("cam");
+    // Simulate a save written before traits/tendencies split: `traits`
+    // held what are now tendency ids, and there's no `tendencies` field.
+    const legacyPlayer = { ...legacy.player, traits: { chaos: 8, curiosity: 3 } } as typeof legacy.player;
+    delete (legacyPlayer as { tendencies?: unknown }).tendencies;
+    const save = normaliseSave({ ...legacy, player: legacyPlayer });
+    expect(save.player.tendencies.chaos).toBe(8);
+    expect(save.player.tendencies.curiosity).toBe(3);
+    // Untouched legacy dials still get a sane default.
+    expect(save.player.tendencies.caution).toBe(5);
+    // Traits (now a different ability set) start fresh, not from old data.
+    expect(save.player.traits.nerve).toBe(5);
+    expect(save.player.traits.chaos).toBeUndefined();
+  });
+
+  it("normalising an already-migrated save is a no-op for traits/tendencies", () => {
+    const save = normaliseSave(emptySave("cam"));
+    expect(save.player.traits.nerve).toBe(5);
+    expect(save.player.tendencies.chaos).toBe(5);
   });
 });

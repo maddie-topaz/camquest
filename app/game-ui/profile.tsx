@@ -5,18 +5,27 @@ import {
   ArrowLeft,
   ArrowRight,
   Backpack,
-  CircleDot,
-  Gamepad2,
+  KeyRound,
+  MapPin,
   Trophy,
   Zap,
 } from "lucide-react";
 import { quests } from "@/lib/game/content/quests";
 import { traits as traitDefinitions } from "@/lib/game/content/traits";
-import { START_UNLOCK_ID } from "@/lib/game/machines/quest";
+import { tendencies as tendencyDefinitions } from "@/lib/game/content/tendencies";
 import { useGame } from "@/app/game-provider";
+import { accentStyle } from "./colors";
 import { CompanionCard } from "./companion-card";
-import { achievementIcons } from "./icons";
+import { achievementIcons, tendencyIcons, traitIcons } from "./icons";
 import { Shell } from "./shell";
+
+// A level-derived flavor rank — display only, no save state of its own.
+const playerTitle = (level: number) => {
+  if (level >= 10) return "Legend";
+  if (level >= 7) return "Veteran";
+  if (level >= 4) return "Regular";
+  return "Newcomer";
+};
 
 export function Profile() {
   const { view, error } = useGame();
@@ -26,26 +35,14 @@ export function Profile() {
   const clearedQuests = questStates.filter(
     (state) => state.status === "completed",
   ).length;
-  const availableQuests = quests.filter(
-    (quest) => quest.status !== "coming-soon",
-  ).length;
   const decisionsMade = save
     ? Object.values(save.quests).reduce(
         (total, quest) => total + Object.keys(quest.answers).length,
         0,
       )
     : 0;
-  const checkpointsFound = save
-    ? Object.values(save.quests).reduce(
-        (total, quest) =>
-          total +
-          quest.unlockedSteps.filter((step) => step !== START_UNLOCK_ID).length,
-        0,
-      )
-    : 0;
-  const completionRate = availableQuests
-    ? Math.round((clearedQuests / availableQuests) * 100)
-    : 0;
+  const locationsDiscovered = save?.world.discoveredLocations.length ?? 0;
+  const secretsFound = save?.world.secrets.length ?? 0;
   const level = view?.level ?? {
     level: 1,
     xp: 0,
@@ -71,16 +68,15 @@ export function Profile() {
     ...trait,
     value: save?.player.traits[trait.id] ?? trait.initial,
   }));
+  const tendencyRows = tendencyDefinitions.map((tendency) => ({
+    ...tendency,
+    value: save?.player.tendencies[tendency.id] ?? tendency.initial,
+  }));
   const unlockedItems =
     inventory?.filter((item) => item.quantity > 0).length || 0;
   const unlockedAchievements = achievements.filter(
     (item) => item.unlocked,
   ).length;
-  const latestClear = questStates
-    .map((state) => state.completedAt)
-    .filter(Boolean)
-    .sort()
-    .at(-1);
 
   return (
     <Shell>
@@ -110,6 +106,7 @@ export function Profile() {
                 <p>
                   <span className="online-dot" /> Ready for quest
                 </p>
+                <p className="player-title">{playerTitle(level.level)}</p>
               </div>
               <div className="player-level">
                 <span>Level</span>
@@ -135,16 +132,6 @@ export function Profile() {
                 <p className="eyebrow">Run data</p>
                 <h2 id="player-stats-title">Player stats</h2>
               </div>
-              {latestClear && (
-                <span>
-                  Last clear{" "}
-                  {new Date(latestClear).toLocaleDateString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </span>
-              )}
             </div>
             <div className="stats-grid">
               <article className="stat-card">
@@ -161,54 +148,104 @@ export function Profile() {
                 <strong>{decisionsMade}</strong>
               </article>
               <article className="stat-card">
-                <CircleDot aria-hidden="true" />
-                <span>Checkpoints found</span>
-                <strong>{checkpointsFound}</strong>
+                <MapPin aria-hidden="true" />
+                <span>Locations discovered</span>
+                <strong>{locationsDiscovered}</strong>
               </article>
               <article className="stat-card">
-                <Gamepad2 aria-hidden="true" />
-                <span>Completion</span>
-                <strong>
-                  {completionRate}
-                  <small>%</small>
-                </strong>
+                <Backpack aria-hidden="true" />
+                <span>Items found</span>
+                <strong>{unlockedItems}</strong>
+              </article>
+              <article className="stat-card">
+                <KeyRound aria-hidden="true" />
+                <span>Secrets found</span>
+                <strong>{secretsFound}</strong>
               </article>
             </div>
           </section>
 
-          <section aria-labelledby="traits-title">
+          <section aria-labelledby="traits-title" className="dial-section">
+            <div className="profile-section-heading">
+              <div>
+                <p className="eyebrow">Abilities</p>
+                <h2 id="traits-title">Traits</h2>
+              </div>
+            </div>
+            <div className="trait-list">
+              {traitRows.map((trait) => {
+                const Icon = traitIcons[trait.icon];
+                return (
+                  <div
+                    className="trait-row"
+                    key={trait.id}
+                    title={trait.description}
+                    style={accentStyle(trait.color)}
+                  >
+                    <span className="trait-label">
+                      {Icon && <Icon aria-hidden="true" />}
+                      {trait.name}
+                    </span>
+                    <div
+                      className="trait-meter"
+                      role="meter"
+                      aria-valuemin={trait.min}
+                      aria-valuemax={trait.max}
+                      aria-valuenow={trait.value}
+                      aria-label={trait.name}
+                    >
+                      <i
+                        style={{
+                          width: `${((trait.value - trait.min) / (trait.max - trait.min)) * 100}%`,
+                        }}
+                      />
+                    </div>
+                    <strong>{trait.value}</strong>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          <section aria-labelledby="tendencies-title" className="dial-section">
             <div className="profile-section-heading">
               <div>
                 <p className="eyebrow">Calibration</p>
-                <h2 id="traits-title">Traits</h2>
+                <h2 id="tendencies-title">Tendencies</h2>
               </div>
-              <span>Shaped by every choice</span>
             </div>
             <div className="trait-list">
-              {traitRows.map((trait) => (
-                <div
-                  className="trait-row"
-                  key={trait.id}
-                  title={trait.description}
-                >
-                  <span>{trait.name}</span>
+              {tendencyRows.map((tendency) => {
+                const Icon = tendencyIcons[tendency.icon];
+                return (
                   <div
-                    className="trait-meter"
-                    role="meter"
-                    aria-valuemin={trait.min}
-                    aria-valuemax={trait.max}
-                    aria-valuenow={trait.value}
-                    aria-label={trait.name}
+                    className="trait-row"
+                    key={tendency.id}
+                    title={tendency.description}
+                    style={accentStyle(tendency.color)}
                   >
-                    <i
-                      style={{
-                        width: `${((trait.value - trait.min) / (trait.max - trait.min)) * 100}%`,
-                      }}
-                    />
+                    <span className="trait-label">
+                      {Icon && <Icon aria-hidden="true" />}
+                      {tendency.name}
+                    </span>
+                    <div
+                      className="trait-meter"
+                      role="meter"
+                      aria-valuemin={tendency.min}
+                      aria-valuemax={tendency.max}
+                      aria-valuenow={tendency.value}
+                      aria-label={tendency.name}
+                    >
+                      <i
+                        style={{
+                          width: `${((tendency.value - tendency.min) / (tendency.max - tendency.min)) * 100}%`,
+                        }}
+                      />
+                    </div>
+                    <strong>{tendency.value}</strong>
                   </div>
-                  <strong>{trait.value}</strong>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         </div>
@@ -257,15 +294,19 @@ export function Profile() {
               <p className="eyebrow">Collected loot</p>
               <h2 id="inventory-title">Inventory</h2>
             </div>
+          </div>
+          <div className="inventory-preview-card">
             <span>
               {inventory
                 ? `${unlockedItems} / ${inventory.length} items found`
-                : "Syncing pack…"}
+                : inventoryError
+                  ? "Field pack connection lost."
+                  : "Syncing pack…"}
             </span>
+            <Link className="card-link" to="/inventory">
+              <Backpack aria-hidden="true" /> View Inventory <ArrowRight />
+            </Link>
           </div>
-          <Link className="card-link" to="/inventory">
-            <Backpack aria-hidden="true" /> Open field pack <ArrowRight />
-          </Link>
         </section>
       </main>
     </Shell>

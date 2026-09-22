@@ -2335,9 +2335,9 @@ button.arcade-screen:focus-visible {
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
-.profile-companion {
-  margin-top: 4px !important;
-  color: #f0b8d2 !important;
+.player-title {
+  margin: 4px 0 0 !important;
+  color: var(--arcade-gold) !important;
 }
 .online-dot {
   display: inline-block;
@@ -2409,7 +2409,7 @@ button.arcade-screen:focus-visible {
 }
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 14px;
 }
 .trait-list {
@@ -2443,18 +2443,62 @@ button.arcade-screen:focus-visible {
     grid-template-columns: 1fr;
   }
 }
-/* Player stats + Traits, side by side on desktop. */
+/* Player stats + Traits + Tendencies, side by side on desktop. */
 .stats-traits-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px 32px;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 20px 28px;
   margin-top: 48px;
 }
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
+  .stats-traits-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .stats-traits-grid > :first-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 700px) {
   .stats-traits-grid {
     grid-template-columns: 1fr;
     gap: 40px;
   }
+  .stats-traits-grid > :first-child {
+    grid-column: auto;
+  }
+}
+/* Traits and Tendencies each get their own bordered box, side by side. */
+.dial-section {
+  padding: 22px 24px;
+  border: 2px solid #4d3987;
+  border-radius: 6px;
+  background: linear-gradient(
+    135deg,
+    rgba(42, 27, 91, 0.65),
+    rgba(13, 11, 34, 0.85)
+  );
+  box-shadow: 4px 4px 0 #21133d;
+}
+/* Compact Inventory preview, below Achievements. */
+.inventory-preview-card {
+  max-width: 360px;
+  padding: 22px 24px;
+  border: 2px solid #4d3987;
+  border-radius: 6px;
+  background: linear-gradient(
+    135deg,
+    rgba(42, 27, 91, 0.75),
+    rgba(13, 11, 34, 0.9)
+  );
+  box-shadow: 4px 4px 0 #21133d;
+}
+.inventory-preview-card > span {
+  display: block;
+  margin-bottom: 14px;
+  color: #958ba7;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 .companion-card {
   display: grid;
@@ -2465,7 +2509,9 @@ button.arcade-screen:focus-visible {
     "equipment equipment equipment";
   align-items: center;
   gap: 8px 22px;
-  padding: 24px 26px;
+  /* Match .profile-hero's padding so Cam's and Kitana's cards feel like
+     one matched pair, not two differently-sized boxes. */
+  padding: 28px 30px;
   border: 2px solid #4d3987;
   border-radius: 6px;
   background: linear-gradient(
@@ -2923,8 +2969,19 @@ button.arcade-screen:focus-visible {
 .trait-row span {
   color: #c0b7d0;
 }
+.trait-row .trait-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.trait-row .trait-label svg {
+  width: 15px;
+  height: 15px;
+  color: var(--item-color, var(--arcade-cyan));
+  filter: drop-shadow(0 0 5px var(--item-color, transparent));
+}
 .trait-row strong {
-  color: var(--arcade-gold);
+  color: var(--item-color, var(--arcade-gold));
   font-size: 1rem;
   min-width: 2ch;
   text-align: right;
@@ -2939,8 +2996,12 @@ button.arcade-screen:focus-visible {
 .trait-meter i {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--arcade-cyan), var(--arcade-pink));
-  box-shadow: 0 0 10px rgba(85, 231, 255, 0.5);
+  background: linear-gradient(
+    90deg,
+    var(--item-color, var(--arcade-cyan)),
+    var(--arcade-pink)
+  );
+  box-shadow: 0 0 10px var(--item-color, rgba(85, 231, 255, 0.5));
   transition: width 0.4s ease;
 }
 @media (max-width: 600px) {
@@ -3218,10 +3279,6 @@ button.arcade-screen:focus-visible {
 }
 .inventory-sync.is-error {
   color: #ff9bc4;
-}
-.achievements-section {
-  padding-top: 8px;
-  border-top: 1px solid rgba(98, 71, 165, 0.34);
 }
 .achievement-card.is-unlocked .inventory-icon {
   color: var(--arcade-pink);
