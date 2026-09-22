@@ -125,6 +125,49 @@ const rewardsToEvents = (
       },
     });
   }
+  if (rewards.playerName && save.player.name !== rewards.playerName)
+    events.push({
+      key: `${keyPrefix}:playerName`,
+      payload: { type: "player.renamed", name: rewards.playerName },
+    });
+  if (rewards.companion && !save.player.companions[rewards.companion.id])
+    events.push({
+      key: `${keyPrefix}:companion`,
+      payload: {
+        type: "companion.registered",
+        id: rewards.companion.id,
+        name: rewards.companion.name,
+        species: rewards.companion.species,
+        reason,
+        questSlug,
+      },
+    });
+  for (const [companionId, amount] of Object.entries(
+    rewards.companionXp ?? {},
+  )) {
+    if (!amount) continue;
+    events.push({
+      key: `${keyPrefix}:companionXp:${companionId}`,
+      payload: {
+        type: "companion.xpGained",
+        companionId,
+        amount,
+        reason,
+        questSlug,
+      },
+    });
+  }
+  for (const system of rewards.unlockSystems ?? []) {
+    if (save.world.unlockedSystems.includes(system)) continue;
+    events.push({
+      key: `${keyPrefix}:system:${system}`,
+      payload: {
+        type: "system.unlocked",
+        system,
+        reason: `${reason}:${questSlug}`,
+      },
+    });
+  }
   return events;
 };
 

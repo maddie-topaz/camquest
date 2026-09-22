@@ -47,3 +47,8 @@ export const achievementIcons: Record<string, LucideIcon> = {
   Zap,
   Sparkles,
 };
+export const companionIcons: Record<string, LucideIcon> = {
+  Cat,
+  PawPrint,
+  Sparkles,
+};

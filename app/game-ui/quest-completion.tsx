@@ -74,6 +74,15 @@ export function Completion({ quest }: { quest: QuestDefinition }) {
           {quest.reward && (
             <div className="final-note glitch-text">{quest.reward}</div>
           )}
+          {view?.companions.map((companion) => (
+            <div
+              className="run-summary-row justify-center gap-2 text-sm opacity-80"
+              key={companion.id}
+            >
+              <span>Companion registered</span>
+              <strong>{companion.name}</strong>
+            </div>
+          ))}
           {loading ? (
             <div className="loading-block" role="status" aria-live="polite">
               <div className="loading-spinner">

@@ -108,4 +108,64 @@ describe("reducer", () => {
     ]);
     expect(save.world.unlockedQuests).toEqual(["x"]);
   });
+
+  it("registers a companion once, keyed by id, starting at 0 xp", () => {
+    const save = saveFrom([
+      created(),
+      {
+        type: "companion.registered",
+        id: "kitana",
+        name: "Kitana",
+        species: "cat",
+        reason: "test",
+      },
+      // A second registration under the same id must not reset progress.
+      { type: "companion.xpGained", companionId: "kitana", amount: 50, reason: "t" },
+      {
+        type: "companion.registered",
+        id: "kitana",
+        name: "Kitana",
+        species: "cat",
+        reason: "test",
+      },
+    ]);
+    expect(Object.keys(save.player.companions)).toEqual(["kitana"]);
+    expect(save.player.companions.kitana.name).toBe("Kitana");
+    expect(save.player.companions.kitana.xp).toBe(50);
+  });
+
+  it("companion xp accrues independently of the player's own xp", () => {
+    const save = saveFrom([
+      created(),
+      { type: "xp.gained", amount: 300, reason: "t" },
+      {
+        type: "companion.registered",
+        id: "kitana",
+        name: "Kitana",
+        species: "cat",
+        reason: "test",
+      },
+      { type: "companion.xpGained", companionId: "kitana", amount: 120, reason: "t" },
+    ]);
+    expect(save.player.xp).toBe(300);
+    expect(save.player.companions.kitana.xp).toBe(120);
+  });
+
+  it("companion xp never drops below zero and ignores an unregistered companion", () => {
+    const save = saveFrom([
+      created(),
+      // No matching companion yet — the event is tolerated, not applied.
+      { type: "companion.xpGained", companionId: "ghost", amount: 10, reason: "t" },
+      {
+        type: "companion.registered",
+        id: "kitana",
+        name: "Kitana",
+        species: "cat",
+        reason: "test",
+      },
+      { type: "companion.xpGained", companionId: "kitana", amount: -999, reason: "t" },
+    ]);
+    expect(save.player.companions.ghost).toBeUndefined();
+    expect(save.player.companions.kitana.xp).toBe(0);
+  });
 });

@@ -7,6 +7,7 @@ import {
   Backpack,
   CircleDot,
   Gamepad2,
+  PawPrint,
   Trophy,
   Zap,
 } from "lucide-react";
@@ -14,6 +15,7 @@ import { quests } from "@/lib/game/content/quests";
 import { traits as traitDefinitions } from "@/lib/game/content/traits";
 import { START_UNLOCK_ID } from "@/lib/game/machines/quest";
 import { useGame } from "@/app/game-provider";
+import { CompanionCard } from "./companion-card";
 import { achievementIcons } from "./icons";
 import { Shell } from "./shell";
 
@@ -53,6 +55,7 @@ export function Profile() {
     fraction: 0,
   };
   const playerName = save?.player.name || "Player Two";
+  const companions = view?.companions ?? [];
   const inventory = view?.inventory ?? null;
   const inventoryError = Boolean(error);
 
@@ -97,6 +100,12 @@ export function Profile() {
             <p>
               <span className="online-dot" /> Ready for quest
             </p>
+            {companions[0] && (
+              <p className="profile-companion">
+                <PawPrint aria-hidden="true" size={14} /> Travelling with{" "}
+                {companions[0].name}
+              </p>
+            )}
           </div>
           <div className="player-level">
             <span>Level</span>
@@ -195,6 +204,27 @@ export function Profile() {
             ))}
           </div>
         </section>
+
+        {companions.length > 0 && (
+          <section
+            aria-labelledby="companions-title"
+            className="profile-section companions-section"
+          >
+            <div className="profile-section-heading">
+              <div>
+                <p className="eyebrow">Party</p>
+                <h2 id="companions-title">
+                  {companions.length > 1 ? "Companions" : "Companion"}
+                </h2>
+              </div>
+            </div>
+            <div className="companion-grid">
+              {companions.map((companion) => (
+                <CompanionCard companion={companion} key={companion.id} />
+              ))}
+            </div>
+          </section>
+        )}
 
         <section
           aria-labelledby="inventory-title"

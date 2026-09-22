@@ -22,6 +22,7 @@ export const emptySave = (
   updatedAt: at,
   player: {
     name: "Player",
+    companions: {},
     xp: 0,
     traits: initialTraits(),
     inventory: {},
@@ -31,6 +32,7 @@ export const emptySave = (
   },
   world: {
     unlockedQuests: [],
+    unlockedSystems: ["quest-log"],
     discoveredLocations: [],
     secrets: [],
   },
@@ -65,9 +67,19 @@ const withQuantity = (
 
 // Fills in fields added since a snapshot was written, so an old snapshot
 // replays cleanly under a newer reducer.
+// Saves written before "unlockedSystems" existed have already played
+// through onboarding by definition, so treat them as fully unlocked
+// rather than retroactively locking a returning player out of the lobby.
+const ALL_SYSTEMS = ["quest-log", "archive", "inventory", "profile"];
+
 export const normaliseSave = (save: SaveFile): SaveFile => ({
   ...save,
-  player: { ...save.player, encounters: save.player.encounters ?? {} },
+  player: {
+    ...save.player,
+    encounters: save.player.encounters ?? {},
+    companions: save.player.companions ?? {},
+  },
+  world: { ...save.world, unlockedSystems: save.world.unlockedSystems ?? ALL_SYSTEMS },
 });
 
 export const applyEvent = (save: SaveFile, event: GameEvent): SaveFile => {
@@ -87,6 +99,52 @@ export const applyEvent = (save: SaveFile, event: GameEvent): SaveFile => {
 
     case "player.renamed":
       return { ...base, player: { ...base.player, name: payload.name } };
+
+    case "companion.registered":
+      if (base.player.companions[payload.id]) return base;
+      return {
+        ...base,
+        player: {
+          ...base.player,
+          companions: {
+            ...base.player.companions,
+            [payload.id]: {
+              id: payload.id,
+              name: payload.name,
+              species: payload.species,
+              xp: 0,
+              registeredAt: event.at,
+            },
+          },
+        },
+      };
+
+    case "companion.xpGained": {
+      const current = base.player.companions[payload.companionId];
+      if (!current) return base;
+      return {
+        ...base,
+        player: {
+          ...base.player,
+          companions: {
+            ...base.player.companions,
+            [payload.companionId]: {
+              ...current,
+              xp: Math.max(0, current.xp + payload.amount),
+            },
+          },
+        },
+      };
+    }
+
+    case "system.unlocked":
+      return {
+        ...base,
+        world: {
+          ...base.world,
+          unlockedSystems: addToSet(base.world.unlockedSystems, payload.system),
+        },
+      };
 
     case "item.granted": {
       // Replaying the same grant key twice (an admin re-run, a retried

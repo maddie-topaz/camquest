@@ -3,6 +3,7 @@
 // every screen reads the same answers.
 
 import { achievements } from "./content/achievements";
+import { getCompanionDefinition, type CompanionStat } from "./content/companions";
 import { encounters } from "./content/encounters";
 import { items, getItem } from "./content/items";
 import { levelProgress } from "./content/levels";
@@ -48,6 +49,20 @@ export type AchievementView = {
   unlockedAt?: string;
 };
 
+export type CompanionView = {
+  id: string;
+  name: string;
+  species: string;
+  companionClass: string;
+  icon: string;
+  color: string;
+  title?: string;
+  stats: CompanionStat[];
+  xp: number;
+  level: ReturnType<typeof levelProgress>;
+  registeredAt: string;
+};
+
 export type EncounterView = {
   id: string;
   name: string;
@@ -66,6 +81,7 @@ export type SaveView = {
   quests: Record<string, QuestView>;
   achievements: AchievementView[];
   encounters: EncounterView[];
+  companions: CompanionView[];
 };
 
 export const buildView = (save: SaveFile): SaveView => ({
@@ -133,6 +149,22 @@ export const buildView = (save: SaveFile): SaveView => ({
       plays: record?.plays ?? 0,
       bestScore: record?.bestScore ?? 0,
       lastAt: record?.lastAt,
+    };
+  }),
+  companions: Object.values(save.player.companions ?? {}).map((companion) => {
+    const def = getCompanionDefinition(companion.id);
+    return {
+      id: companion.id,
+      name: companion.name,
+      species: companion.species,
+      companionClass: def?.companionClass ?? "Companion",
+      icon: def?.icon ?? "PawPrint",
+      color: def?.color ?? "#f0b8d2",
+      title: def?.title,
+      stats: def?.stats ?? [],
+      xp: companion.xp,
+      level: levelProgress(companion.xp),
+      registeredAt: companion.registeredAt,
     };
   }),
 });
