@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, MemoryRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Archive as ArchiveIcon, ArrowLeft, ArrowRight, Backpack, Beef, Bell, BookOpen, Cat, Check, CircleDot, Dice5, Gamepad2, Joystick, Link as LinkIcon, Lock, Martini, Moon, Origami, Palmtree, RotateCcw, Sparkles, Sun, Ticket, Trophy, UserRound, Zap, type LucideIcon } from 'lucide-react'
-import { adventures, getAdventure, type Adventure, type ChallengeStep } from '@/lib/adventures'
+import { quests, getQuest, type QuestDefinition, type ChallengeStep } from '@/lib/game/content/quests'
 import { GameProvider, useGame } from '@/app/game-provider'
 import { CommandRejectedError, type QuestView } from '@/lib/game/client'
 import { useActorRef, useSelector } from '@xstate/react'
@@ -29,7 +29,7 @@ function Shell({ children, minimal = false }: { children: React.ReactNode; minim
 function describeRequirements(missing: Requirements) {
   const parts: string[] = []
   if (missing.unlock) parts.push('a signal you haven\'t found yet')
-  for (const slug of missing.questsCompleted ?? []) parts.push(`completing ${getAdventure(slug)?.title ?? slug}`)
+  for (const slug of missing.questsCompleted ?? []) parts.push(`completing ${getQuest(slug)?.title ?? slug}`)
   for (const itemId of missing.items ?? []) parts.push(`holding the ${itemId.replace(/-/g, ' ')}`)
   for (const [trait, min] of Object.entries(missing.traits ?? {})) parts.push(`${traitDefinitions.find((t) => t.id === trait)?.name ?? trait} ${min}+`)
   if (missing.level) parts.push(`level ${missing.level}`)
@@ -118,31 +118,31 @@ const lobbyDestinations = [
   { to: '/profile', icon: UserRound, title: 'Player profile', description: 'Check your stats and collected loot.', linkLabel: 'View player profile' },
 ]
 function Lobby() { return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Game lobby</h1></div><div className="quest-grid">{lobbyDestinations.map((dest) => { const Icon = dest.icon; return <Link key={dest.to} className="quest-card" to={dest.to}><div className="card-top"><span className="quest-symbol"><Icon aria-hidden="true" /></span></div><h3>{dest.title}</h3><p>{dest.description}</p><span className="card-link">{dest.linkLabel} <ArrowRight /></span></Link> })}</div></main></Shell> }
-function QuestLog() { const { view } = useGame(); return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Quest log</h1></div><div className="quest-grid">{adventures.map((adventure) => <QuestCard key={adventure.id} adventure={adventure} quest={view?.quests[adventure.slug]} />)}</div></main></Shell> }
-function QuestCard({ adventure, quest }: { adventure: Adventure; quest?: QuestView }) {
+function QuestLog() { const { view } = useGame(); return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Quest log</h1></div><div className="quest-grid">{quests.map((quest) => <QuestCard key={quest.id} quest={quest} questView={view?.quests[quest.slug]} />)}</div></main></Shell> }
+function QuestCard({ quest, questView }: { quest: QuestDefinition; questView?: QuestView }) {
   // Status comes from the save via the rules engine; 'coming-soon' is the
   // one authoring flag that overrides it.
-  const comingSoon = adventure.status === 'coming-soon'
-  const status = quest?.status ?? 'available'
+  const comingSoon = quest.status === 'coming-soon'
+  const status = questView?.status ?? 'available'
   const locked = comingSoon || status === 'locked'
   const completed = status === 'completed'
   const pill = completed ? 'Completed' : status === 'locked' ? 'Locked' : comingSoon ? 'Coming soon' : status === 'in-progress' ? 'In progress' : 'Available'
   return (
     <article className={`quest-card ${locked ? 'is-locked' : ''}`}>
       <div className="card-top">
-        <span className="quest-symbol">{locked ? <Lock aria-hidden="true" /> : adventure.symbol}</span>
+        <span className="quest-symbol">{locked ? <Lock aria-hidden="true" /> : quest.symbol}</span>
         <span className="status-pill">{pill}</span>
       </div>
-      <h3>{adventure.title}</h3>
-      <p>{adventure.description}</p>
-      {status === 'locked' && quest ? (
-        <span className="card-link muted">{describeRequirements(quest.missing)}</span>
+      <h3>{quest.title}</h3>
+      <p>{quest.description}</p>
+      {status === 'locked' && questView ? (
+        <span className="card-link muted">{describeRequirements(questView.missing)}</span>
       ) : comingSoon ? (
         <span className="card-link muted">Still being written</span>
       ) : completed ? (
-        <Link className="card-link" to={`/quest/${adventure.slug}/complete`}>View result <ArrowRight /></Link>
+        <Link className="card-link" to={`/quest/${quest.slug}/complete`}>View result <ArrowRight /></Link>
       ) : (
-        <Link className="card-link" to={`/quest/${adventure.slug}`}>{status === 'in-progress' ? 'Continue quest' : 'Start quest'} <ArrowRight /></Link>
+        <Link className="card-link" to={`/quest/${quest.slug}`}>{status === 'in-progress' ? 'Continue quest' : 'Start quest'} <ArrowRight /></Link>
       )}
     </article>
   )
@@ -158,10 +158,10 @@ function Archive() {
           <h1>Completed quests</h1>
         </div>
         <div className="archive-list">
-          {adventures.map((a) => {
-            const quest = view?.quests[a.slug]
-            const completed = quest?.status === 'completed'
-            const completedDate = quest?.completedAt && new Date(quest.completedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+          {quests.map((a) => {
+            const questView = view?.quests[a.slug]
+            const completed = questView?.status === 'completed'
+            const completedDate = questView?.completedAt && new Date(questView.completedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
             return (
               <div className="archive-row" key={a.id}>
                 <span className="archive-symbol">{a.symbol}</span>
@@ -187,10 +187,10 @@ function Archive() {
 function Profile() {
   const { view, error } = useGame()
   const save = view?.save
-  const quests = view ? Object.values(view.quests) : []
-  const totalQuests = adventures.length
-  const clearedQuests = quests.filter((quest) => quest.status === 'completed').length
-  const availableQuests = adventures.filter((adventure) => adventure.status !== 'coming-soon').length
+  const questStates = view ? Object.values(view.quests) : []
+  const totalQuests = quests.length
+  const clearedQuests = questStates.filter((state) => state.status === 'completed').length
+  const availableQuests = quests.filter((quest) => quest.status !== 'coming-soon').length
   const decisionsMade = save ? Object.values(save.quests).reduce((total, quest) => total + Object.keys(quest.answers).length, 0) : 0
   const checkpointsFound = save ? Object.values(save.quests).reduce((total, quest) => total + quest.unlockedSteps.filter((step) => step !== startUnlockId).length, 0) : 0
   const completionRate = availableQuests ? Math.round((clearedQuests / availableQuests) * 100) : 0
@@ -211,7 +211,7 @@ function Profile() {
   const traitRows = traitDefinitions.map((trait) => ({ ...trait, value: save?.player.traits[trait.id] ?? trait.initial }))
   const unlockedItems = inventory?.filter((item) => item.quantity > 0).length || 0
   const unlockedAchievements = achievements.filter((item) => item.unlocked).length
-  const latestClear = quests.map((quest) => quest.completedAt).filter(Boolean).sort().at(-1)
+  const latestClear = questStates.map((state) => state.completedAt).filter(Boolean).sort().at(-1)
 
   return (
     <Shell>
@@ -222,7 +222,7 @@ function Profile() {
           <div className="player-identity">
             <p className="eyebrow">Player profile // Slot 02</p>
             <h1>{playerName}</h1>
-            <p><span className="online-dot" /> Ready for adventure</p>
+            <p><span className="online-dot" /> Ready for quest</p>
           </div>
           <div className="player-level">
             <span>Level</span>
@@ -371,7 +371,7 @@ function ResetDebug() {
               <RotateCcw /> Re-arm reveal
             </button>
           </div>
-          {adventures.map((a) => (
+          {quests.map((a) => (
             <div className="archive-row" key={a.id}>
               <span className="archive-symbol">{a.symbol}</span>
               <div>
@@ -386,7 +386,7 @@ function ResetDebug() {
             </div>
           ))}
         </div>
-        {adventures.map((a) => {
+        {quests.map((a) => {
           const passcodeEntries = [
             ...(a.startPasscode ? [{ id: 'start', roundNumber: 'Start', title: 'Begin quest', passcode: a.startPasscode }] : []),
             ...a.steps.map((s, index) => ({ id: s.id, roundNumber: String(index + 1), title: s.title, passcode: s.passcode })).filter((s) => s.passcode),
@@ -415,23 +415,23 @@ function ResetDebug() {
   )
 }
 const startUnlockId = START_UNLOCK_ID
-function Intro({ adventure }: { adventure: Adventure }) {
+function Intro({ quest }: { quest: QuestDefinition }) {
   const navigate = useNavigate()
   const { view, dispatch } = useGame()
-  const paragraphs = (adventure.introduction || '').split('\n\n')
+  const paragraphs = (quest.introduction || '').split('\n\n')
   const [startPasscodeInput, setStartPasscodeInput] = useState('')
   const [startPasscodeError, setStartPasscodeError] = useState(false)
-  const saved = view?.save.quests[adventure.slug]
-  const startUnlocked = !adventure.startPasscode || Boolean(saved?.unlockedSteps.includes(startUnlockId))
+  const saved = view?.save.quests[quest.slug]
+  const startUnlocked = !quest.startPasscode || Boolean(saved?.unlockedSteps.includes(startUnlockId))
 
   const unlockStart = async () => {
-    const target = adventure.startPasscode?.trim().toUpperCase()
+    const target = quest.startPasscode?.trim().toUpperCase()
     if (target && startPasscodeInput.trim().toUpperCase() === target) {
       setStartPasscodeError(false)
       emitGameSoundCue('checkpoint-unlocked')
       try {
-        await dispatch({ type: 'quest.start', slug: adventure.slug })
-        await dispatch({ type: 'quest.progress', slug: adventure.slug, step: saved?.step ?? 0, answers: saved?.answers ?? {}, unlockedSteps: [...(saved?.unlockedSteps ?? []), startUnlockId] })
+        await dispatch({ type: 'quest.start', slug: quest.slug })
+        await dispatch({ type: 'quest.progress', slug: quest.slug, step: saved?.step ?? 0, answers: saved?.answers ?? {}, unlockedSteps: [...(saved?.unlockedSteps ?? []), startUnlockId] })
       } catch (error) {
         console.error('Failed to unlock quest start', error)
         setStartPasscodeError(true)
@@ -443,13 +443,13 @@ function Intro({ adventure }: { adventure: Adventure }) {
   }
 
   return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link><div className="intro-panel transmission-panel">
-    <span className="big-symbol transmission-line" style={{ animationDelay: '.1s' }}>{adventure.symbol}</span>
+    <span className="big-symbol transmission-line" style={{ animationDelay: '.1s' }}>{quest.symbol}</span>
     <p className="eyebrow transmission-line" style={{ animationDelay: '.25s' }}>A mysterious challenger has appeared...</p>
-    <h1 className="transmission-line" style={{ animationDelay: '.4s' }}>{adventure.title}</h1>
-    {adventure.subtitle && <p className="intro-subtitle transmission-line" style={{ animationDelay: '.55s' }}>{adventure.subtitle}</p>}
+    <h1 className="transmission-line" style={{ animationDelay: '.4s' }}>{quest.title}</h1>
+    {quest.subtitle && <p className="intro-subtitle transmission-line" style={{ animationDelay: '.55s' }}>{quest.subtitle}</p>}
     <div className="story-text transmission-line" style={{ animationDelay: '.7s' }}>{paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
     {startUnlocked ? (
-      <button className="portal-button transmission-line" style={{ animationDelay: '1s' }} onClick={() => navigate(`/quest/${adventure.slug}/play`)}>{adventure.ctaLabel || 'Begin quest'} <ArrowRight /></button>
+      <button className="portal-button transmission-line" style={{ animationDelay: '1s' }} onClick={() => navigate(`/quest/${quest.slug}/play`)}>{quest.ctaLabel || 'Begin quest'} <ArrowRight /></button>
     ) : (
       <div className="riddle-box passcode-gate transmission-line" style={{ animationDelay: '1s' }}>
         <p className="eyebrow">Checkpoint synchronization required</p>
@@ -477,14 +477,14 @@ function Intro({ adventure }: { adventure: Adventure }) {
     )}
   </div></main></Shell>
 }
-function Challenge({ adventure }: { adventure: Adventure }) {
+function Challenge({ quest }: { quest: QuestDefinition }) {
   const { view } = useGame()
   if (!view) return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="inventory-sync" role="status"><div className="loading-spinner"><span /><span /><span /><span /></div><p>Loading save…</p></div></main></Shell>
   // Keyed on the slug so switching quests starts a fresh machine.
-  return <ChallengeRun key={adventure.slug} adventure={adventure} view={view} />
+  return <ChallengeRun key={quest.slug} quest={quest} view={view} />
 }
 
-function ChallengeRun({ adventure, view }: { adventure: Adventure; view: NonNullable<ReturnType<typeof useGame>['view']> }) {
+function ChallengeRun({ quest, view }: { quest: QuestDefinition; view: NonNullable<ReturnType<typeof useGame>['view']> }) {
   const navigate = useNavigate()
   const { dispatch } = useGame()
 
@@ -493,10 +493,10 @@ function ChallengeRun({ adventure, view }: { adventure: Adventure; view: NonNull
   // turns its emitted `progress` / `complete` events into commands.
   const actor = useActorRef(questMachine, {
     input: {
-      quest: adventure,
+      quest: quest,
       save: view.save,
-      saved: view.save.quests[adventure.slug],
-      completed: view.quests[adventure.slug]?.status === 'completed',
+      saved: view.save.quests[quest.slug],
+      completed: view.quests[quest.slug]?.status === 'completed',
     },
   })
   const snapshot = useSelector(actor, (state) => state)
@@ -504,29 +504,29 @@ function ChallengeRun({ adventure, view }: { adventure: Adventure; view: NonNull
   const step = questSelectors.step(snapshot)
 
   useEffect(() => {
-    void dispatch({ type: 'quest.start', slug: adventure.slug }).catch((error) => console.error('Failed to start quest', error))
+    void dispatch({ type: 'quest.start', slug: quest.slug }).catch((error) => console.error('Failed to start quest', error))
     const progress = actor.on('progress', (event) => {
-      void dispatch({ type: 'quest.progress', slug: adventure.slug, ...event.progress })
+      void dispatch({ type: 'quest.progress', slug: quest.slug, ...event.progress })
         .catch((error) => console.error('Failed to save quest progress', error))
     })
     const cues = actor.on('cue', (event) => emitGameSoundCue(event.cue, event.detail))
     const complete = actor.on('complete', (event) => {
       // The engine records the completion, pays out rewards, and unlocks
       // whatever this quest unlocks, all in one transaction.
-      dispatch({ type: 'quest.complete', slug: adventure.slug, answers: event.answers })
+      dispatch({ type: 'quest.complete', slug: quest.slug, answers: event.answers })
         .then(() => actor.send({ type: 'COMPLETED' }))
         .catch((error) => {
           if (error instanceof CommandRejectedError) console.warn('Completion not recorded:', error.rejection.message)
           else console.error('Failed to save quest completion', error)
           actor.send({ type: 'COMPLETION_FAILED' })
         })
-      navigate(`/quest/${adventure.slug}/complete`)
+      navigate(`/quest/${quest.slug}/complete`)
     })
     return () => { progress.unsubscribe(); cues.unsubscribe(); complete.unsubscribe() }
-  }, [actor, adventure.slug, dispatch, navigate])
+  }, [actor, quest.slug, dispatch, navigate])
 
   if (snapshot.matches('locked')) {
-    return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><Link to="/quest-log" className="back-link"><ArrowLeft /> Back to quest log</Link><div className="challenge-panel"><p className="eyebrow">Signal locked</p><h1>{adventure.title}</h1><p className="challenge-prompt">{describeRequirements(missing)}</p></div></main></Shell>
+    return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><Link to="/quest-log" className="back-link"><ArrowLeft /> Back to quest log</Link><div className="challenge-panel"><p className="eyebrow">Signal locked</p><h1>{quest.title}</h1><p className="challenge-prompt">{describeRequirements(missing)}</p></div></main></Shell>
   }
   if (!step) return null
 
@@ -534,13 +534,13 @@ function ChallengeRun({ adventure, view }: { adventure: Adventure; view: NonNull
   // then let the machine turn the step over.
   const onEncounterResult = useCallback((result: EncounterResult) => {
     if (step?.type !== 'encounter') return
-    dispatch({ type: 'encounter.complete', questSlug: adventure.slug, stepId: step.id, encounterId: step.encounterId, score: result.score, reward: result.reward, operationId: crypto.randomUUID() })
+    dispatch({ type: 'encounter.complete', questSlug: quest.slug, stepId: step.id, encounterId: step.encounterId, score: result.score, reward: result.reward, operationId: crypto.randomUUID() })
       .catch((error) => {
         if (error instanceof CommandRejectedError) console.warn('Encounter not recorded:', error.rejection.message)
         else console.error('Failed to record encounter', error)
       })
       .finally(() => actor.send({ type: 'ENCOUNTER_RESULT', score: result.score, reward: result.reward }))
-  }, [actor, adventure.slug, dispatch, step])
+  }, [actor, quest.slug, dispatch, step])
 
   const isGated = questSelectors.isGated(snapshot)
   const revealed = questSelectors.isRevealed(snapshot)
@@ -555,8 +555,8 @@ function ChallengeRun({ adventure, view }: { adventure: Adventure; view: NonNull
     <Shell>
       <main className="relative z-10 mx-auto max-w-3xl px-5 pb-20">
         <div className="progress-line">
-          <span>Round {stepIndex + 1} of {adventure.steps.length}</span>
-          <div><i style={{ width: `${((stepIndex + 1) / adventure.steps.length) * 100}%` }} /></div>
+          <span>Round {stepIndex + 1} of {quest.steps.length}</span>
+          <div><i style={{ width: `${((stepIndex + 1) / quest.steps.length) * 100}%` }} /></div>
         </div>
         <div className="challenge-panel">
           <p className="eyebrow">{step.type} challenge</p>
@@ -630,37 +630,37 @@ function ChallengeBody({ step, answer, setAnswer, selectAnswer, revealed, setRev
   if (step.type === 'reveal') return <div className="reveal-box"><Sparkles /><p>{step.message}</p></div>
   return <div className="confirm-box"><BookOpen /><p>{step.type === 'activity' ? step.detail : step.prompt}</p>{step.type === 'confirm' && <button className="text-button" onClick={() => setRevealed(true)}>{step.button}</button>}</div>
 }
-function Completion({ adventure }: { adventure: Adventure }) {
+function Completion({ quest }: { quest: QuestDefinition }) {
   // The save is the only source of truth for a finished quest's choices.
   // `undefined` means the save is still loading; `null` means it loaded
   // but this quest has never been completed.
   const { view, error } = useGame()
-  const quest = view?.quests[adventure.slug]
-  const answers: Record<string, string> | null | undefined = !view && !error ? undefined : quest && quest.completions > 0 ? view!.save.quests[adventure.slug].answers : null
+  const questView = view?.quests[quest.slug]
+  const answers: Record<string, string> | null | undefined = !view && !error ? undefined : questView && questView.completions > 0 ? view!.save.quests[quest.slug].answers : null
 
   const loading = answers === undefined
 
-  const outcomes = useMemo(() => adventure.steps.flatMap((step) => {
+  const outcomes = useMemo(() => quest.steps.flatMap((step) => {
     if (step.type !== 'mystery') return []
     const selected = step.cards.find((card) => card.label === answers?.[step.id])
     return selected?.outcome ? [{ choice: selected.label, outcome: selected.outcome, icon: selected.icon && choiceIcons[selected.icon], tags: selected.tags }] : []
-  }), [adventure.steps, answers])
+  }), [quest.steps, answers])
 
-  const summaryRows = useMemo(() => adventure.steps.flatMap((step) => {
+  const summaryRows = useMemo(() => quest.steps.flatMap((step) => {
     if (step.type !== 'mystery' || !step.summaryLabel) return []
     const selected = step.cards.find((card) => card.label === answers?.[step.id])
     const value = selected?.summaryValue || selected?.label
     return value ? [{ label: step.summaryLabel, value }] : []
-  }), [adventure.steps, answers])
+  }), [quest.steps, answers])
 
   const diceBasedCount = useMemo(() => outcomes.filter((result) => result.tags?.includes('dice-based')).length, [outcomes])
 
-  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="completion-panel"><div className="completion-star">✦</div><p className="eyebrow">Quest complete</p><h1>{adventure.completionTitle || 'Quest complete'}</h1><p className="challenge-prompt">{adventure.completionMessage}</p>{adventure.reward && <div className="final-note glitch-text">{adventure.reward}</div>}{loading ? <div className="loading-block" role="status" aria-live="polite"><div className="loading-spinner"><span /><span /><span /><span /></div><p className="loading-label">Loading your Saturday…</p></div> : outcomes.length > 0 && <>
+  return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="completion-panel"><div className="completion-star">✦</div><p className="eyebrow">Quest complete</p><h1>{quest.completionTitle || 'Quest complete'}</h1><p className="challenge-prompt">{quest.completionMessage}</p>{quest.reward && <div className="final-note glitch-text">{quest.reward}</div>}{loading ? <div className="loading-block" role="status" aria-live="polite"><div className="loading-spinner"><span /><span /><span /><span /></div><p className="loading-label">Loading your Saturday…</p></div> : outcomes.length > 0 && <>
     <div className="outcome-list">{outcomes.map((result) => { const Icon = result.icon; return <div className="outcome-stop" key={result.choice}><span className="outcome-icon">{Icon ? <Icon aria-hidden="true" /> : <Sparkles aria-hidden="true" />}</span><div><span className="outcome-label">{result.choice}</span><strong>{result.outcome}</strong></div></div> })}</div>
     <p className="run-summary-heading">Run summary</p>
     <div className="run-summary">
-      {adventure.companionName && <div className="run-summary-row"><span>Player 2</span><strong>{adventure.companionName}</strong></div>}
-      <div className="run-summary-row"><span>Quest</span><strong>{adventure.title}</strong></div>
+      {quest.companionName && <div className="run-summary-row"><span>Player 2</span><strong>{quest.companionName}</strong></div>}
+      <div className="run-summary-row"><span>Quest</span><strong>{quest.title}</strong></div>
       <div className="run-summary-row"><span>Status</span><strong>Cleared</strong></div>
       {summaryRows.map((row) => <div className="run-summary-row" key={row.label}><span>{row.label}</span><strong>{row.value}</strong></div>)}
     </div>
@@ -668,7 +668,7 @@ function Completion({ adventure }: { adventure: Adventure }) {
     <div className="run-summary">
       <div className="run-summary-row"><span>Decisions survived</span><strong>{outcomes.length}</strong></div>
       <div className="run-summary-row"><span>Dice-based decisions</span><strong>{diceBasedCount}</strong></div>
-      {adventure.funStats?.map((stat) => <div className="run-summary-row" key={stat.label}><span>{stat.label}</span><strong>{stat.value}</strong></div>)}
+      {quest.funStats?.map((stat) => <div className="run-summary-row" key={stat.label}><span>{stat.label}</span><strong>{stat.value}</strong></div>)}
     </div>
   </>}<div className="flex flex-wrap justify-center gap-3 mt-8"><Link className="portal-button" to="/lobby">Return to lobby</Link><Link className="secondary-button" to="/archive">View archive</Link></div></div></main></Shell>
 }
@@ -698,6 +698,6 @@ function App({ initialPath = '/' }: { initialPath?: string }) {
   // sequence is not restarted when hydration completes.
   return <AudioProvider><GameProvider><MemoryRouter initialEntries={[initialPath]}><BrowserUrlSync /><AppRoutes /></MemoryRouter></GameProvider></AudioProvider>
 }
-function RouteAdventure({ children }: { children: (a: Adventure) => React.ReactNode }) { const { slug } = useParams(); const adventure = useMemo(() => getAdventure(slug || ''), [slug]); if (!adventure || adventure.status === 'coming-soon') return <Portal />; return <>{children(adventure)}</> }
-const QuestIntroRoute = () => <RouteAdventure>{(a) => <Intro adventure={a} />}</RouteAdventure>; const ChallengeRoute = () => <RouteAdventure>{(a) => <Challenge adventure={a} />}</RouteAdventure>; const CompletionRoute = () => <RouteAdventure>{(a) => <Completion adventure={a} />}</RouteAdventure>
+function RouteQuest({ children }: { children: (a: QuestDefinition) => React.ReactNode }) { const { slug } = useParams(); const quest = useMemo(() => getQuest(slug || ''), [slug]); if (!quest || quest.status === 'coming-soon') return <Portal />; return <>{children(quest)}</> }
+const QuestIntroRoute = () => <RouteQuest>{(a) => <Intro quest={a} />}</RouteQuest>; const ChallengeRoute = () => <RouteQuest>{(a) => <Challenge quest={a} />}</RouteQuest>; const CompletionRoute = () => <RouteQuest>{(a) => <Completion quest={a} />}</RouteQuest>
 export default App

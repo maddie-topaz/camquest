@@ -13,7 +13,7 @@
 //   done        (final)
 
 import { assign, emit, setup, type SnapshotFrom } from 'xstate'
-import type { ChallengeStep } from '@/lib/adventures'
+import type { ChallengeStep } from '../content/quests'
 import type { QuestDefinition } from '../content/quests'
 import { canStartQuest } from '../rules'
 import type { QuestSave, Requirements, SaveFile } from '../types'
