@@ -31,7 +31,7 @@ const playerTitle = (level: number) => {
 // there's only one Cam, so this doesn't need a content file the way
 // companion bios do.
 const CAM_BIO =
-  "A quietly capable adventurer who prefers experience over instructions, with good rhythm and even better instincts. If there is a strange signal, hidden door, or unnecessary detour, he will eventually find it.";
+  "A quietly capable adventurer who prefers experience over instructions, with good rhythm and even better instincts. If there is a strange signal, hidden door, or questionable shortcut, he will eventually find it.";
 
 export function Profile() {
   const { view, error } = useGame();
@@ -68,6 +68,7 @@ export function Profile() {
     name: achievement.name,
     detail: achievement.description,
     icon: achievementIcons[achievement.icon] || Trophy,
+    color: achievement.color,
     unlocked: Boolean(achievement.unlockedAt),
   }));
   const traitRows = traitDefinitions.map((trait) => ({
@@ -133,7 +134,7 @@ export function Profile() {
         </section>
 
         <div className="stats-traits-grid">
-          <section aria-labelledby="player-stats-title" className="dial-section">
+          <section aria-labelledby="player-stats-title" className="dial-section stats-panel">
             <div className="profile-section-heading">
               <div>
                 <p className="eyebrow">Run data</p>
@@ -172,7 +173,7 @@ export function Profile() {
             </div>
           </section>
 
-          <section aria-labelledby="traits-title" className="dial-section">
+          <section aria-labelledby="traits-title" className="dial-section traits-panel">
             <div className="profile-section-heading">
               <div>
                 <p className="eyebrow">Abilities</p>
@@ -214,7 +215,7 @@ export function Profile() {
             </div>
           </section>
 
-          <section aria-labelledby="tendencies-title" className="dial-section">
+          <section aria-labelledby="tendencies-title" className="dial-section tendencies-panel">
             <div className="profile-section-heading">
               <div>
                 <p className="eyebrow">Calibration</p>
@@ -277,6 +278,7 @@ export function Profile() {
                 <article
                   className={`inventory-slot achievement-card ${item.unlocked ? "is-unlocked" : "is-locked"}`}
                   key={item.id}
+                  style={accentStyle(item.color)}
                 >
                   <div className="inventory-icon">
                     <Icon aria-hidden="true" />

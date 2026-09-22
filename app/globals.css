@@ -483,6 +483,10 @@ h3 {
   --arcade-cyan: #55e7ff;
   --arcade-violet: #9a6cff;
   --arcade-gold: #ffd166;
+  --arcade-mint: #4ce0b3;
+  --arcade-coral: #ff6b5e;
+  --arcade-blue: #5ab4ff;
+  --surface-divider: rgba(98, 71, 165, 0.4);
 }
 body {
   background-color: #090817;
@@ -2255,11 +2259,25 @@ button.arcade-screen:focus-visible {
   }
 }
 
-/* Player profile */
+/* Player profile
+   Cards keep the same purple-family border/gradient every other page
+   uses (.quest-card, .field-pack, etc.) so Profile still belongs to the
+   same design system. What varies per section is a thicker top border
+   in --section-accent, plus that colour showing up in the .eyebrow
+   label, level number and hover state — one variable per container,
+   read by the shared rules below, instead of five identical purple
+   boxes with no way to tell them apart at a glance. */
 .profile-page {
   max-width: 1120px;
+  --section-accent: var(--arcade-cyan);
+}
+.profile-page .eyebrow {
+  color: var(--section-accent);
 }
 .profile-hero {
+  /* Cam is the player: gold reads as "primary progression" across the
+     page, so his card carries that accent. */
+  --section-accent: var(--arcade-gold);
   display: grid;
   grid-template-columns: auto 1fr auto;
   grid-template-areas:
@@ -2270,6 +2288,7 @@ button.arcade-screen:focus-visible {
   margin-top: 34px;
   padding: 28px 30px;
   border: 2px solid #4d3987;
+  border-top: 4px solid var(--section-accent);
   border-radius: 6px;
   background: linear-gradient(
     135deg,
@@ -2278,7 +2297,7 @@ button.arcade-screen:focus-visible {
   );
   box-shadow:
     7px 7px 0 #21133d,
-    0 0 32px rgba(85, 231, 255, 0.1);
+    0 0 28px rgba(255, 209, 102, 0.08);
 }
 .profile-hero .player-avatar {
   grid-area: avatar;
@@ -2356,7 +2375,7 @@ button.arcade-screen:focus-visible {
   margin: 4px 0 0 !important;
   max-width: 62ch;
   padding-top: 14px;
-  border-top: 1px solid rgba(98, 71, 165, 0.4);
+  border-top: 1px solid var(--surface-divider);
   color: #b8afd0 !important;
   font-family: Georgia, serif !important;
   font-style: italic;
@@ -2391,10 +2410,10 @@ button.arcade-screen:focus-visible {
 .player-level strong {
   display: block;
   margin: 4px 0;
-  color: var(--arcade-gold);
+  color: var(--section-accent, var(--arcade-gold));
   font-size: 2.25rem;
   line-height: 1;
-  text-shadow: 3px 3px 0 #6e315e;
+  text-shadow: 3px 3px 0 #1c1330;
 }
 .level-meter {
   height: 8px;
@@ -2409,8 +2428,8 @@ button.arcade-screen:focus-visible {
   min-width: 2px;
   background: repeating-linear-gradient(
     90deg,
-    var(--arcade-cyan) 0 8px,
-    #d9fbff 8px 10px
+    var(--section-accent, var(--arcade-cyan)) 0 8px,
+    #fff 8px 10px
   );
 }
 .profile-section {
@@ -2493,10 +2512,15 @@ button.arcade-screen:focus-visible {
     grid-column: auto;
   }
 }
-/* Traits and Tendencies each get their own bordered box, side by side. */
+/* Every boxed section on the page (Player stats, Traits, Tendencies,
+   Achievements, Inventory) shares this neutral shell; what tells them
+   apart is a one-line --section-accent set by the more specific class
+   below, read here via the top border and (through .profile-page
+   .eyebrow) the label. */
 .dial-section {
   padding: 22px 24px;
   border: 2px solid #4d3987;
+  border-top: 4px solid var(--section-accent);
   border-radius: 6px;
   background: linear-gradient(
     135deg,
@@ -2504,6 +2528,21 @@ button.arcade-screen:focus-visible {
     rgba(13, 11, 34, 0.85)
   );
   box-shadow: 4px 4px 0 #21133d;
+}
+.stats-panel {
+  --section-accent: var(--arcade-cyan);
+}
+.traits-panel {
+  --section-accent: var(--arcade-violet);
+}
+.tendencies-panel {
+  --section-accent: var(--arcade-blue);
+}
+.achievements-section {
+  --section-accent: var(--arcade-pink);
+}
+.inventory-section {
+  --section-accent: var(--arcade-gold);
 }
 /* Compact Inventory preview, below Achievements. */
 /* Sits inside the section's own .dial-section box, so it's just a
@@ -2520,6 +2559,11 @@ button.arcade-screen:focus-visible {
   text-transform: uppercase;
 }
 .companion-card {
+  /* A companion's own colour (set per-instance via inline style, see
+     accentStyle()) doubles as this card's --section-accent, so the
+     border/eyebrow/level all pick it up automatically — no per-companion
+     CSS needed for a second one later. */
+  --section-accent: var(--item-color);
   display: grid;
   grid-template-columns: auto 1fr auto;
   grid-template-areas:
@@ -2533,6 +2577,7 @@ button.arcade-screen:focus-visible {
      one matched pair, not two differently-sized boxes. */
   padding: 28px 30px;
   border: 2px solid #4d3987;
+  border-top: 4px solid var(--section-accent);
   border-radius: 6px;
   background: linear-gradient(
     135deg,
@@ -2580,7 +2625,7 @@ button.arcade-screen:focus-visible {
   grid-area: bio;
   margin: 0;
   padding-top: 12px;
-  border-top: 1px solid rgba(98, 71, 165, 0.4);
+  border-top: 1px solid var(--surface-divider);
   color: #b8afd0;
   font-family: Georgia, serif;
   font-style: italic;
@@ -2615,13 +2660,13 @@ button.arcade-screen:focus-visible {
   grid-area: stats;
   margin-top: 8px;
   padding-top: 14px;
-  border-top: 1px solid rgba(98, 71, 165, 0.4);
+  border-top: 1px solid var(--surface-divider);
 }
 .companion-equipment {
   grid-area: equipment;
   margin-top: 8px;
   padding-top: 14px;
-  border-top: 1px solid rgba(98, 71, 165, 0.4);
+  border-top: 1px solid var(--surface-divider);
 }
 .companion-equipment-label {
   margin: 0 0 8px;
@@ -2997,6 +3042,10 @@ button.arcade-screen:focus-visible {
   font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  transition: border-color 0.15s ease;
+}
+.trait-row:hover {
+  border-color: var(--item-color, #6247a5);
 }
 .trait-row span {
   color: #c0b7d0;
@@ -3052,6 +3101,10 @@ button.arcade-screen:focus-visible {
   border: 2px solid #4d3987;
   background: rgba(20, 14, 48, 0.9);
   box-shadow: 4px 4px 0 #21133d;
+  transition: border-color 0.15s ease;
+}
+.stat-card:hover {
+  border-color: var(--arcade-cyan);
 }
 .stat-card:after {
   content: "";
@@ -3104,8 +3157,10 @@ button.arcade-screen:focus-visible {
   background: rgba(20, 14, 48, 0.9);
   box-shadow: 4px 4px 0 #21133d;
 }
+/* Each achievement carries its own accent (--item-color, set per-card),
+   so unlocked ones don't all read as the same pink tile. */
 .inventory-slot.is-unlocked {
-  border-color: #7357bb;
+  border-color: var(--item-color, var(--arcade-pink));
   background: linear-gradient(
     100deg,
     rgba(43, 27, 87, 0.97),
@@ -3125,9 +3180,9 @@ button.arcade-screen:focus-visible {
   color: #726989;
 }
 .is-unlocked .inventory-icon {
-  color: var(--arcade-gold);
-  background: rgba(255, 209, 102, 0.07);
-  box-shadow: inset 0 0 16px rgba(255, 209, 102, 0.08);
+  color: var(--item-color, var(--arcade-gold));
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 16px rgba(255, 255, 255, 0.05);
 }
 .inventory-icon svg {
   width: 25px;
@@ -3156,8 +3211,8 @@ button.arcade-screen:focus-visible {
   text-transform: uppercase;
 }
 .inventory-slot.is-unlocked > span {
-  border-color: rgba(85, 231, 255, 0.38);
-  color: var(--arcade-cyan);
+  border-color: var(--item-color, var(--arcade-pink));
+  color: var(--item-color, var(--arcade-pink));
 }
 .field-pack {
   overflow: hidden;
@@ -3311,10 +3366,6 @@ button.arcade-screen:focus-visible {
 }
 .inventory-sync.is-error {
   color: #ff9bc4;
-}
-.achievement-card.is-unlocked .inventory-icon {
-  color: var(--arcade-pink);
-  background: rgba(255, 95, 189, 0.07);
 }
 .empty-inventory {
   display: grid;

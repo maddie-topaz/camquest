@@ -58,7 +58,9 @@ export const traits: TraitDefinition[] = [
     min: 0,
     max: 10,
     initial: 5,
-    color: "#55e7ff",
+    // Blue, not cyan — cyan is reserved for system/navigation chrome
+    // elsewhere on the page, so a trait row never fights it for meaning.
+    color: "#5ab4ff",
     icon: "Target",
   },
   {
@@ -78,7 +80,9 @@ export const traits: TraitDefinition[] = [
     min: 0,
     max: 10,
     initial: 5,
-    color: "#7ee787",
+    // A distinct teal, not another green — keeps it from reading as a
+    // duplicate of Instinct's mint at a glance.
+    color: "#2dd4bf",
     icon: "Eye",
   },
 ];
