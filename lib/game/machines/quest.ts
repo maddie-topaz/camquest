@@ -58,6 +58,7 @@ export type QuestEvent =
 export type QuestEmitted =
   | { type: 'progress'; progress: QuestProgress }
   | { type: 'complete'; answers: Record<string, string> }
+  | { type: 'cue'; cue: string; detail?: Record<string, unknown> }
 
 const currentStep = (context: QuestContext): ChallengeStep | undefined => context.quest.steps[context.stepIndex]
 
@@ -132,6 +133,7 @@ export const questMachine = setup({
       return { answers: context.answer ? { ...context.answers, [step.id]: context.answer } : context.answers }
     }),
     emitProgress: emit(({ context }) => ({ type: 'progress' as const, progress: progressOf(context) })),
+    cue: emit((_, params: { cue: string }) => ({ type: 'cue' as const, cue: params.cue })),
     emitComplete: emit(({ context }) => ({ type: 'complete' as const, answers: context.answers })),
   },
 }).createMachine({
@@ -174,8 +176,8 @@ export const questMachine = setup({
           on: {
             TYPE_PASSCODE: { actions: 'typePasscode' },
             SUBMIT_PASSCODE: [
-              { guard: 'passcodeMatches', actions: ['unlockStep', 'emitProgress'], target: 'open' },
-              { actions: 'rejectPasscode' },
+              { guard: 'passcodeMatches', actions: ['unlockStep', 'emitProgress', { type: 'cue', params: { cue: 'checkpoint-unlocked' } }], target: 'open' },
+              { actions: ['rejectPasscode', { type: 'cue', params: { cue: 'checkpoint-denied' } }] },
             ],
           },
         },
@@ -184,9 +186,9 @@ export const questMachine = setup({
           states: {
             choosing: {
               on: {
-                SELECT: { actions: ['selectAnswer', 'emitProgress'] },
+                SELECT: { actions: ['selectAnswer', 'emitProgress', { type: 'cue', params: { cue: 'choice-select' } }] },
                 TYPE_ANSWER: { actions: 'typeAnswer' },
-                REVEAL: { target: 'revealed' },
+                REVEAL: { target: 'revealed', actions: { type: 'cue', params: { cue: 'choice-locked' } } },
                 ENCOUNTER_RESULT: { actions: ['recordEncounter', 'emitProgress'], target: 'revealed' },
               },
             },
@@ -194,8 +196,8 @@ export const questMachine = setup({
           },
           on: {
             NEXT: [
-              { guard: 'isLastStep', actions: 'commitAnswer', target: '#quest.completing' },
-              { guard: 'canAdvance', actions: ['advance', 'emitProgress'], target: 'deciding' },
+              { guard: 'isLastStep', actions: ['commitAnswer', { type: 'cue', params: { cue: 'quest-complete' } }], target: '#quest.completing' },
+              { guard: 'canAdvance', actions: ['advance', 'emitProgress', { type: 'cue', params: { cue: 'step-advance' } }], target: 'deciding' },
             ],
           },
         },

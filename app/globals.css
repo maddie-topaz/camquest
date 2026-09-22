@@ -407,6 +407,10 @@ button.arcade-screen:focus-visible { outline:3px solid var(--arcade-cyan, #55e7f
 .profile-section-heading>span { color:#968da6; font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; }
 .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
 .trait-list { display:grid; gap:10px; }
+.audio-toggle { position:fixed; top:16px; right:16px; z-index:60; display:grid; place-items:center; width:40px; height:40px; padding:0; border:2px solid #4d3987; border-radius:6px; background:rgba(16,11,39,.85); color:#c0b7d0; cursor:pointer; transition:color .15s ease,border-color .15s ease; }
+.audio-toggle:hover, .audio-toggle:focus-visible { color:var(--arcade-cyan); border-color:var(--arcade-cyan); outline:none; }
+.audio-toggle[aria-pressed="true"] { color:#7a6f8f; }
+.audio-toggle svg { width:18px; height:18px; }
 .encounter-stage { position:relative; width:100%; aspect-ratio:8 / 5; margin-top:28px; border:3px solid #7f58c9; border-radius:8px; background:#100b27; box-shadow:inset 0 0 0 3px #21124d,inset 0 0 30px rgba(85,231,255,.25); overflow:hidden; }
 .encounter-canvas { position:absolute; inset:0; }
 .encounter-canvas canvas { display:block; }

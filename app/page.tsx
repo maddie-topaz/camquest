@@ -10,6 +10,8 @@ import { useActorRef, useSelector } from '@xstate/react'
 import { questMachine, questSelectors, START_UNLOCK_ID } from '@/lib/game/machines/quest'
 import { startMachine, startSelectors } from '@/lib/game/machines/start'
 import { EncounterStage } from '@/app/encounter-stage'
+import { AudioProvider, AudioToggle } from '@/app/audio-provider'
+import { emitCue } from '@/lib/game/audio/bus'
 import { getEncounter, type EncounterResult } from '@/lib/game/content/encounters'
 import { traits as traitDefinitions } from '@/lib/game/content/traits'
 import type { Requirements } from '@/lib/game/types'
@@ -18,12 +20,11 @@ const choiceIcons: Record<string, LucideIcon> = { Sun, Moon, CircleDot, Joystick
 const inventoryIcons: Record<string, LucideIcon> = { Ticket, Bell, Cat, Beef, Sparkles }
 const achievementIcons: Record<string, LucideIcon> = { Trophy, Cat, Backpack, Zap, Sparkles }
 
-function emitGameSoundCue(cue: string, detail?: Record<string, unknown>) {
-  // Audio can subscribe to this event later without changing the reveal flow.
-  window.dispatchEvent(new CustomEvent('camquest:sfx', { detail: { cue, ...detail } }))
-}
+// Every sound in the game is a cue on the sound bus; the audio layer
+// (app/audio-provider) is the only thing that turns cues into audio.
+const emitGameSoundCue = emitCue
 
-function Shell({ children, minimal = false }: { children: React.ReactNode; minimal?: boolean }) { return <div className="min-h-screen bg-[#0d0b1b] text-[#f7f0ff]"><div className="stars" />{!minimal && <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-6" aria-label="Site header" />}{children}</div> }
+function Shell({ children, minimal = false }: { children: React.ReactNode; minimal?: boolean }) { return <div className="min-h-screen bg-[#0d0b1b] text-[#f7f0ff]"><div className="stars" /><AudioToggle />{!minimal && <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-6" aria-label="Site header" />}{children}</div> }
 // Turns a missing-requirements object into copy for a locked quest card.
 function describeRequirements(missing: Requirements) {
   const parts: string[] = []
@@ -427,6 +428,7 @@ function Intro({ adventure }: { adventure: Adventure }) {
     const target = adventure.startPasscode?.trim().toUpperCase()
     if (target && startPasscodeInput.trim().toUpperCase() === target) {
       setStartPasscodeError(false)
+      emitGameSoundCue('checkpoint-unlocked')
       try {
         await dispatch({ type: 'quest.start', slug: adventure.slug })
         await dispatch({ type: 'quest.progress', slug: adventure.slug, step: saved?.step ?? 0, answers: saved?.answers ?? {}, unlockedSteps: [...(saved?.unlockedSteps ?? []), startUnlockId] })
@@ -436,6 +438,7 @@ function Intro({ adventure }: { adventure: Adventure }) {
       }
     } else {
       setStartPasscodeError(true)
+      emitGameSoundCue('checkpoint-denied')
     }
   }
 
@@ -506,6 +509,7 @@ function ChallengeRun({ adventure, view }: { adventure: Adventure; view: NonNull
       void dispatch({ type: 'quest.progress', slug: adventure.slug, ...event.progress })
         .catch((error) => console.error('Failed to save quest progress', error))
     })
+    const cues = actor.on('cue', (event) => emitGameSoundCue(event.cue, event.detail))
     const complete = actor.on('complete', (event) => {
       // The engine records the completion, pays out rewards, and unlocks
       // whatever this quest unlocks, all in one transaction.
@@ -518,7 +522,7 @@ function ChallengeRun({ adventure, view }: { adventure: Adventure; view: NonNull
         })
       navigate(`/quest/${adventure.slug}/complete`)
     })
-    return () => { progress.unsubscribe(); complete.unsubscribe() }
+    return () => { progress.unsubscribe(); cues.unsubscribe(); complete.unsubscribe() }
   }, [actor, adventure.slug, dispatch, navigate])
 
   if (snapshot.matches('locked')) {
@@ -692,7 +696,7 @@ function AppRoutes() { return <Routes><Route path="/" element={<Portal />} /><Ro
 function App({ initialPath = '/' }: { initialPath?: string }) {
   // Keep one router mounted for the lifetime of the app so the CRT boot
   // sequence is not restarted when hydration completes.
-  return <GameProvider><MemoryRouter initialEntries={[initialPath]}><BrowserUrlSync /><AppRoutes /></MemoryRouter></GameProvider>
+  return <AudioProvider><GameProvider><MemoryRouter initialEntries={[initialPath]}><BrowserUrlSync /><AppRoutes /></MemoryRouter></GameProvider></AudioProvider>
 }
 function RouteAdventure({ children }: { children: (a: Adventure) => React.ReactNode }) { const { slug } = useParams(); const adventure = useMemo(() => getAdventure(slug || ''), [slug]); if (!adventure || adventure.status === 'coming-soon') return <Portal />; return <>{children(adventure)}</> }
 const QuestIntroRoute = () => <RouteAdventure>{(a) => <Intro adventure={a} />}</RouteAdventure>; const ChallengeRoute = () => <RouteAdventure>{(a) => <Challenge adventure={a} />}</RouteAdventure>; const CompletionRoute = () => <RouteAdventure>{(a) => <Completion adventure={a} />}</RouteAdventure>

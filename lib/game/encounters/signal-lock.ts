@@ -4,6 +4,7 @@
 // lock was; the encounter definition turns the total into rewards.
 
 import Phaser from 'phaser'
+import { emitCue } from '../audio/bus'
 import type { EncounterResult } from '../content/encounters'
 import type { EncounterRuntime } from '../machines/encounter'
 
@@ -64,6 +65,7 @@ class SignalLockScene extends Phaser.Scene {
     this.input.on('pointerdown', () => this.lock())
     this.input.keyboard?.on('keydown-SPACE', () => this.lock())
 
+    emitCue('encounter-start')
     this.startRound()
   }
 
@@ -95,6 +97,7 @@ class SignalLockScene extends Phaser.Scene {
     const distance = Math.abs(this.needleX - this.windowCentre)
     const points = distance <= this.windowHalf ? Math.round(100 * (1 - distance / this.windowHalf)) : 0
     this.total += points
+    emitCue(points > 0 ? 'encounter-hit' : 'encounter-miss', { points })
     this.scoreText.setText(`SCORE ${this.total}`)
     this.feedback.setText(points >= 90 ? 'PERFECT' : points > 0 ? `+${points}` : 'MISS').setColor(points >= 90 ? '#ffd166' : points > 0 ? '#55e7ff' : '#ff5fbd')
     this.cameras.main.flash(120, points > 0 ? 85 : 255, points > 0 ? 231 : 95, points > 0 ? 255 : 189, false)
@@ -107,6 +110,7 @@ class SignalLockScene extends Phaser.Scene {
   }
 
   private finish() {
+    emitCue('encounter-complete', { score: this.total })
     const banner = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, 120, INK, 0.92)
     const text = this.add.text(WIDTH / 2, HEIGHT / 2, `LOCKED  ·  ${this.total} / ${ROUNDS * 100}`, { ...FONT, fontSize: '28px', fontStyle: 'bold', color: '#ffd166' }).setOrigin(0.5)
     this.tweens.add({ targets: [banner, text], alpha: { from: 0, to: 1 }, duration: 300 })
