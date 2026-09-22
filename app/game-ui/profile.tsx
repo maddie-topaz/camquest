@@ -27,6 +27,12 @@ const playerTitle = (level: number) => {
   return "Newcomer";
 };
 
+// Flavor text for Cam's card. Static, like the rest of his identity —
+// there's only one Cam, so this doesn't need a content file the way
+// companion bios do.
+const CAM_BIO =
+  "A quietly capable adventurer who prefers experience over instructions, with good rhythm and even better instincts. If there is a strange signal, hidden door, or unnecessary detour, he will eventually find it.";
+
 export function Profile() {
   const { view, error } = useGame();
   const save = view?.save;
@@ -120,13 +126,14 @@ export function Profile() {
                   />
                 </div>
               </div>
+              <p className="player-bio">{CAM_BIO}</p>
             </div>
             {companions[0] && <CompanionCard companion={companions[0]} />}
           </div>
         </section>
 
         <div className="stats-traits-grid">
-          <section aria-labelledby="player-stats-title">
+          <section aria-labelledby="player-stats-title" className="dial-section">
             <div className="profile-section-heading">
               <div>
                 <p className="eyebrow">Run data</p>
@@ -252,7 +259,7 @@ export function Profile() {
 
         <section
           aria-labelledby="achievements-title"
-          className="profile-section achievements-section"
+          className="profile-section achievements-section dial-section"
         >
           <div className="profile-section-heading">
             <div>
@@ -287,7 +294,7 @@ export function Profile() {
 
         <section
           aria-labelledby="inventory-title"
-          className="profile-section inventory-section"
+          className="profile-section inventory-section dial-section"
         >
           <div className="profile-section-heading">
             <div>

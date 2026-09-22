@@ -70,6 +70,7 @@ export type CompanionView = {
   icon: string;
   color: string;
   title?: string;
+  bio?: string;
   stats: CompanionStat[];
   xp: number;
   level: ReturnType<typeof levelProgress>;
@@ -180,6 +181,7 @@ export const buildView = (save: SaveFile): SaveView => ({
       icon: def?.icon ?? "PawPrint",
       color: def?.color ?? "#f0b8d2",
       title: def?.title,
+      bio: def?.bio,
       stats: def?.stats ?? [],
       xp: companion.xp,
       level: levelProgress(companion.xp),

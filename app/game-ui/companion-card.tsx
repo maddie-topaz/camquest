@@ -24,6 +24,7 @@ export function CompanionCard({ companion }: { companion: CompanionView }) {
           <p className="companion-title">{companion.title}</p>
         )}
       </div>
+      {companion.bio && <p className="companion-bio">{companion.bio}</p>}
       <div className="companion-level">
         <span>Level</span>
         <strong>{String(companion.level.level).padStart(2, "0")}</strong>

@@ -21,6 +21,8 @@ export type CompanionDefinition = {
   icon: string;
   color: string;
   title?: string;
+  // A line of flavor text for the profile card.
+  bio?: string;
   stats?: CompanionStat[];
 };
 
@@ -30,7 +32,8 @@ export const companions: CompanionDefinition[] = [
     companionClass: "Feline",
     icon: "Cat",
     color: "#ff75c8",
-    title: "The Lucky Paw",
+    title: "The Soft Guardian",
+    bio: "A gentle ragdoll familiar whose gifts lie in comfort and companionship rather than battle. Few have tested her in combat. Many have benefited from the cuddles.",
     stats: [
       { id: "luck", name: "Luck", value: 7, max: 10, color: "#b98bff" },
       { id: "stealth", name: "Stealth", value: 6, max: 10, color: "#4ce0b3" },
