@@ -5,32 +5,17 @@
 // are kept only as the source for the one-time backfill below.
 //
 // Usage:
-//   node --env-file=.env.local scripts/migrate.mjs
+//   pnpm db:migrate        local Docker Postgres (.env.docker)
+//   pnpm db:migrate:rds    the real RDS database (.env.local, IAM auth)
+//
+// or directly: node --env-file=<env file> scripts/migrate.mjs
 
-import { awsCredentialsProvider } from "@vercel/functions/oidc";
-import { Signer } from "@aws-sdk/rds-signer";
 import { Pool } from "pg";
+import { databasePoolConfig, isLocalDatabase } from "../lib/db-pool.mjs";
 
-const signer = new Signer({
-  hostname: process.env.PGHOST,
-  port: Number(process.env.PGPORT),
-  username: process.env.PGUSER,
-  region: process.env.AWS_REGION,
-  credentials: awsCredentialsProvider({
-    roleArn: process.env.AWS_ROLE_ARN,
-    clientConfig: { region: process.env.AWS_REGION },
-  }),
-});
-
-const pool = new Pool({
-  host: process.env.PGHOST,
-  user: process.env.PGUSER,
-  database: process.env.PGDATABASE || "postgres",
-  password: () => signer.getAuthToken(),
-  port: Number(process.env.PGPORT),
-  ssl: { rejectUnauthorized: false },
-  max: 1,
-});
+const pool = new Pool({ ...databasePoolConfig(), max: 1 });
+const target = isLocalDatabase() ? process.env.DATABASE_URL : `${process.env.PGHOST} (IAM auth)`;
+console.log(`Migrating ${target}`);
 
 const sql = `
   BEGIN;

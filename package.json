@@ -5,6 +5,13 @@
   "scripts": {
     "dev": "vercel env pull .env.local --yes && next dev",
     "dev:offline": "next dev",
+    "dev:local": "pnpm db:up && pnpm db:migrate && set -a && . ./.env.docker && set +a && next dev",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && pnpm db:up && pnpm db:migrate",
+    "db:migrate": "node --env-file=.env.docker scripts/migrate.mjs",
+    "db:migrate:rds": "node --env-file=.env.local scripts/migrate.mjs",
+    "db:psql": "docker compose exec db psql -U camquest camquest",
     "build": "next build",
     "start": "next start",
     "test": "vitest run",

@@ -1,0 +1,24 @@
+# Local Postgres for development. Start it with `pnpm db:up` (or let
+# `pnpm dev:local` do it), then point the app at it via .env.docker.
+#
+# Host port 5440 rather than 5432: this machine already has other projects'
+# Postgres containers (and a Homebrew install) sitting on 5432/5433/5436.
+services:
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5440:5432"
+    environment:
+      POSTGRES_USER: camquest
+      POSTGRES_PASSWORD: camquest
+      POSTGRES_DB: camquest
+    volumes:
+      - camquest-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U camquest -d camquest"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  camquest-pgdata:
