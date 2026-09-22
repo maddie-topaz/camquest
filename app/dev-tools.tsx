@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { useGame } from "@/app/game-provider";
 import { achievements } from "@/lib/game/content/achievements";
+import { companions } from "@/lib/game/content/companions";
 import { items } from "@/lib/game/content/items";
 import { quests } from "@/lib/game/content/quests";
 import { traits } from "@/lib/game/content/traits";
@@ -351,6 +352,77 @@ function InventorySection({ view, r }: { view: SaveView; r: Runner }) {
             </div>
           );
         })}
+      </div>
+    </Section>
+  );
+}
+
+function CompanionsSection({ view, r }: { view: SaveView; r: Runner }) {
+  return (
+    <Section
+      id="companions"
+      title="Companions"
+      blurb="Equip/unequip go through the engine and respect the equippableBy rule. An item stays in inventory the whole time — equipping only records a reference."
+    >
+      <div className="dev-grid">
+        {view.companions.length === 0 && (
+          <div className="dev-row">
+            <span>No companion registered yet.</span>
+          </div>
+        )}
+        {view.companions.map((companion) => (
+          <div className="dev-row dev-wrap" key={companion.id}>
+            <span>
+              <strong>{companion.name}</strong> <code>{companion.id}</code>{" "}
+              Level {companion.level.level} · {companion.xp} XP
+            </span>
+            {companion.equipped.map((equipped) => (
+              <Btn
+                key={equipped.itemId}
+                mode="engine"
+                label={`Unequip ${equipped.name}`}
+                busy={r.busy}
+                onClick={() =>
+                  r.engine(`Unequip ${equipped.name}`, {
+                    type: "item.unequip",
+                    ownerId: companion.id,
+                    itemId: equipped.itemId,
+                    operationId: crypto.randomUUID(),
+                  })
+                }
+              />
+            ))}
+            {companion.equippable.map((item) => (
+              <Btn
+                key={item.id}
+                mode="engine"
+                label={`Equip ${item.name}`}
+                busy={r.busy}
+                onClick={() =>
+                  r.engine(`Equip ${item.name}`, {
+                    type: "item.equip",
+                    ownerId: companion.id,
+                    itemId: item.id,
+                    reason: "dev",
+                    operationId: crypto.randomUUID(),
+                  })
+                }
+              />
+            ))}
+            {companion.equipped.length === 0 &&
+              companion.equippable.length === 0 && (
+                <small>Nothing owned that {companion.name} can equip.</small>
+              )}
+          </div>
+        ))}
+        {companions.length > view.companions.length && (
+          <div className="dev-row">
+            <small>
+              Other companion definitions exist but aren't registered yet —
+              register them via a quest reward first.
+            </small>
+          </div>
+        )}
       </div>
     </Section>
   );
@@ -830,6 +902,7 @@ function ResetSection({ r }: { r: Runner }) {
 const sections = [
   "player",
   "inventory",
+  "companions",
   "quests",
   "world",
   "scenarios",
@@ -884,6 +957,7 @@ export function DevTools() {
         <>
           <PlayerSection view={view} r={r} />
           <InventorySection view={view} r={r} />
+          <CompanionsSection view={view} r={r} />
           <QuestsSection view={view} r={r} />
           <WorldSection view={view} r={r} />
           <ScenariosSection r={r} />

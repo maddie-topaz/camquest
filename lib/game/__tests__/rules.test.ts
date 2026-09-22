@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { levelForXp, xpForLevel } from "../content/levels";
 import {
   canConsume,
+  canEquip,
+  canUnequip,
   missingRequirements,
   newlyEarnedAchievements,
   questStatus,
@@ -48,6 +50,62 @@ describe("inventory rules", () => {
       code: "insufficient",
     });
     expect(canConsume(save, "biltong-fragment", 1)).toEqual({ ok: true });
+  });
+});
+
+describe("equipment rules", () => {
+  it("rejects an unknown item, a non-equippable one, and an ineligible owner", () => {
+    const save = saveFrom([created(), granted("cowbell"), granted("golden-key")]);
+    expect(canEquip(save, "kitana", "nope")).toMatchObject({
+      ok: false,
+      code: "unknown-item",
+    });
+    // golden-key is usable/access but not equippable.
+    expect(canEquip(save, "kitana", "golden-key")).toMatchObject({
+      ok: false,
+      code: "not-equippable",
+    });
+    // cowbell is equippable, but only by kitana.
+    expect(canEquip(save, "cam", "cowbell")).toMatchObject({
+      ok: false,
+      code: "not-eligible",
+    });
+  });
+
+  it("rejects equipping an item that isn't owned", () => {
+    const save = saveFrom([created()]);
+    expect(canEquip(save, "kitana", "cowbell")).toMatchObject({
+      ok: false,
+      code: "insufficient",
+    });
+  });
+
+  it("allows equipping an owned, eligible item, and rejects doing it twice", () => {
+    const save = saveFrom([created(), granted("cowbell")]);
+    expect(canEquip(save, "kitana", "cowbell")).toEqual({ ok: true });
+    const equipped = saveFrom([
+      created(),
+      granted("cowbell"),
+      { type: "item.equipped", ownerId: "kitana", itemId: "cowbell", reason: "t" },
+    ]);
+    expect(canEquip(equipped, "kitana", "cowbell")).toMatchObject({
+      ok: false,
+      code: "already-equipped",
+    });
+  });
+
+  it("unequip requires the item to currently be equipped", () => {
+    const save = saveFrom([created(), granted("cowbell")]);
+    expect(canUnequip(save, "kitana", "cowbell")).toMatchObject({
+      ok: false,
+      code: "not-equipped",
+    });
+    const equipped = saveFrom([
+      created(),
+      granted("cowbell"),
+      { type: "item.equipped", ownerId: "kitana", itemId: "cowbell", reason: "t" },
+    ]);
+    expect(canUnequip(equipped, "kitana", "cowbell")).toEqual({ ok: true });
   });
 });
 

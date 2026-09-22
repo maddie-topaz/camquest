@@ -10,6 +10,8 @@ const commandTypes = new Set<Command["type"]>([
   "quest.progress",
   "quest.complete",
   "item.consume",
+  "item.equip",
+  "item.unequip",
   "grants.accept",
   "encounter.complete",
 ]);

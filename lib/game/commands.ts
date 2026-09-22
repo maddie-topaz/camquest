@@ -9,7 +9,9 @@ import { getQuest, type QuestDefinition } from "./content/quests";
 import { applyEvent } from "./reducer";
 import {
   canConsume,
+  canEquip,
   canStartQuest,
+  canUnequip,
   hasCompleted,
   newlyEarnedAchievements,
   pendingGrants,
@@ -305,6 +307,50 @@ export const handleCommand = (
             quantity: command.quantity,
             reason: command.reason,
             questSlug: command.questSlug,
+          },
+        },
+      ];
+      return {
+        ok: true,
+        events: [...events, ...achievementEvents(save, events, at)],
+      };
+    }
+
+    case "item.equip": {
+      if (!command.operationId || command.operationId.length > 100)
+        return reject("bad-operation", "operationId is required");
+      const check = canEquip(save, command.ownerId, command.itemId);
+      if (!check.ok) return reject(check.code, check.message);
+      const events: NewGameEvent[] = [
+        {
+          key: `equip:${command.operationId}`,
+          payload: {
+            type: "item.equipped",
+            ownerId: command.ownerId,
+            itemId: command.itemId,
+            reason: command.reason,
+          },
+        },
+      ];
+      return {
+        ok: true,
+        events: [...events, ...achievementEvents(save, events, at)],
+      };
+    }
+
+    case "item.unequip": {
+      if (!command.operationId || command.operationId.length > 100)
+        return reject("bad-operation", "operationId is required");
+      const check = canUnequip(save, command.ownerId, command.itemId);
+      if (!check.ok) return reject(check.code, check.message);
+      const events: NewGameEvent[] = [
+        {
+          key: `unequip:${command.operationId}`,
+          payload: {
+            type: "item.unequipped",
+            ownerId: command.ownerId,
+            itemId: command.itemId,
+            reason: "player",
           },
         },
       ];

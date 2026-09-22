@@ -5,7 +5,13 @@
 import { achievements } from "./content/achievements";
 import { getCompanionDefinition, type CompanionStat } from "./content/companions";
 import { encounters } from "./content/encounters";
-import { items, getItem, type ItemKind, type ItemTrait } from "./content/items";
+import {
+  items,
+  getItem,
+  type ItemDefinition,
+  type ItemKind,
+  type ItemTrait,
+} from "./content/items";
 import { levelProgress } from "./content/levels";
 import { quests } from "./content/quests";
 import { canStartQuest, pendingGrants, questStatus } from "./rules";
@@ -49,6 +55,13 @@ export type AchievementView = {
   unlockedAt?: string;
 };
 
+export type EquippedItemView = {
+  itemId: string;
+  name: string;
+  icon: string;
+  color: string;
+};
+
 export type CompanionView = {
   id: string;
   name: string;
@@ -61,6 +74,10 @@ export type CompanionView = {
   xp: number;
   level: ReturnType<typeof levelProgress>;
   registeredAt: string;
+  equipped: EquippedItemView[];
+  // Owned items this companion could equip but hasn't yet — drives the
+  // "equip" picker without the UI needing to recompute eligibility.
+  equippable: InventoryView[];
 };
 
 export type EncounterView = {
@@ -84,24 +101,25 @@ export type SaveView = {
   companions: CompanionView[];
 };
 
+const toInventoryView = (item: ItemDefinition, save: SaveFile): InventoryView => ({
+  id: item.id,
+  name: item.name,
+  description: item.description,
+  unlockHint: item.unlockHint,
+  icon: item.icon,
+  color: item.color,
+  tilt: item.tilt,
+  quantity: save.player.inventory[item.id]?.quantity ?? 0,
+  kind: item.kind,
+  traits: item.traits ?? [],
+});
+
+const sortedItems = items.slice().sort((a, b) => a.sortOrder - b.sortOrder);
+
 export const buildView = (save: SaveFile): SaveView => ({
   save,
   level: levelProgress(save.player.xp),
-  inventory: items
-    .slice()
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((item) => ({
-      id: item.id,
-      name: item.name,
-      description: item.description,
-      unlockHint: item.unlockHint,
-      icon: item.icon,
-      color: item.color,
-      tilt: item.tilt,
-      quantity: save.player.inventory[item.id]?.quantity ?? 0,
-      kind: item.kind,
-      traits: item.traits ?? [],
-    })),
+  inventory: sortedItems.map((item) => toInventoryView(item, save)),
   pendingGrants: pendingGrants(save)
     .flatMap((grant) => {
       const item = getItem(grant.itemId);
@@ -153,6 +171,7 @@ export const buildView = (save: SaveFile): SaveView => ({
   }),
   companions: Object.values(save.player.companions ?? {}).map((companion) => {
     const def = getCompanionDefinition(companion.id);
+    const equippedIds = save.player.equipment?.[companion.id] ?? [];
     return {
       id: companion.id,
       name: companion.name,
@@ -165,6 +184,21 @@ export const buildView = (save: SaveFile): SaveView => ({
       xp: companion.xp,
       level: levelProgress(companion.xp),
       registeredAt: companion.registeredAt,
+      equipped: equippedIds.flatMap((itemId) => {
+        const item = getItem(itemId);
+        return item
+          ? [{ itemId: item.id, name: item.name, icon: item.icon, color: item.color }]
+          : [];
+      }),
+      equippable: sortedItems
+        .filter(
+          (item) =>
+            item.traits?.includes("equippable") &&
+            item.equippableBy?.includes(companion.id) &&
+            !equippedIds.includes(item.id) &&
+            (save.player.inventory[item.id]?.quantity ?? 0) > 0,
+        )
+        .map((item) => toInventoryView(item, save)),
     };
   }),
 });

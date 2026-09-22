@@ -2420,12 +2420,49 @@ button.arcade-screen:focus-visible {
   display: grid;
   gap: 18px;
 }
+/* Player + Companion: Cam keeps the dominant share (~60/40) so Kitana
+   reads as part of his party, not a second player. */
+.party-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  align-items: stretch;
+  gap: 20px;
+}
+.party-grid.is-solo {
+  grid-template-columns: 1fr;
+}
+.party-grid .profile-hero {
+  margin-top: 0;
+  height: 100%;
+}
+.party-grid .companion-card {
+  height: 100%;
+}
+@media (max-width: 900px) {
+  .party-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* Player stats + Traits, side by side on desktop. */
+.stats-traits-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 32px;
+  margin-top: 48px;
+}
+@media (max-width: 900px) {
+  .stats-traits-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
 .companion-card {
   display: grid;
   grid-template-columns: auto 1fr auto;
   grid-template-areas:
     "avatar identity level"
-    "stats stats stats";
+    "stats stats stats"
+    "equipment equipment equipment";
   align-items: center;
   gap: 8px 22px;
   padding: 24px 26px;
@@ -2503,13 +2540,58 @@ button.arcade-screen:focus-visible {
   padding-top: 14px;
   border-top: 1px solid rgba(98, 71, 165, 0.4);
 }
+.companion-equipment {
+  grid-area: equipment;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(98, 71, 165, 0.4);
+}
+.companion-equipment-label {
+  margin: 0 0 8px;
+  color: #968da6;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.companion-equipment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.companion-equipment-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--item-color);
+  border-radius: 999px;
+  background: rgba(9, 7, 20, 0.6);
+  color: #f4f0ff;
+  font-size: 0.72rem;
+}
+.companion-equipment-list li svg {
+  width: 14px;
+  height: 14px;
+  color: var(--item-color);
+  filter: drop-shadow(0 0 5px var(--item-color));
+}
+.companion-equipment-empty {
+  margin: 0;
+  color: #7c7594;
+  font-size: 0.72rem;
+  font-style: italic;
+}
 @media (max-width: 640px) {
   .companion-card {
     grid-template-columns: auto 1fr;
     grid-template-areas:
       "avatar identity"
       "level level"
-      "stats stats";
+      "stats stats"
+      "equipment equipment";
   }
   .companion-level {
     text-align: left;

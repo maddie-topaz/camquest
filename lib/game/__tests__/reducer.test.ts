@@ -168,4 +168,83 @@ describe("reducer", () => {
     expect(save.player.companions.ghost).toBeUndefined();
     expect(save.player.companions.kitana.xp).toBe(0);
   });
+
+  it("equips an item by reference without touching inventory quantity", () => {
+    const save = saveFrom([
+      created(),
+      granted("cowbell", 1),
+      {
+        type: "item.equipped",
+        ownerId: "kitana",
+        itemId: "cowbell",
+        reason: "test",
+      },
+    ]);
+    expect(save.player.equipment.kitana).toEqual(["cowbell"]);
+    expect(save.player.inventory.cowbell.quantity).toBe(1);
+  });
+
+  it("equipping the same item twice does not duplicate the slot", () => {
+    const save = saveFrom([
+      created(),
+      granted("cowbell", 1),
+      {
+        type: "item.equipped",
+        ownerId: "kitana",
+        itemId: "cowbell",
+        reason: "test",
+      },
+      {
+        type: "item.equipped",
+        ownerId: "kitana",
+        itemId: "cowbell",
+        reason: "test",
+      },
+    ]);
+    expect(save.player.equipment.kitana).toEqual(["cowbell"]);
+  });
+
+  it("unequip removes only the named item and leaves inventory untouched", () => {
+    const save = saveFrom([
+      created(),
+      granted("cowbell", 1),
+      granted("kitanas-blessing", 1),
+      {
+        type: "item.equipped",
+        ownerId: "kitana",
+        itemId: "cowbell",
+        reason: "test",
+      },
+      {
+        type: "item.equipped",
+        ownerId: "kitana",
+        itemId: "kitanas-blessing",
+        reason: "test",
+      },
+      {
+        type: "item.unequipped",
+        ownerId: "kitana",
+        itemId: "cowbell",
+        reason: "test",
+      },
+    ]);
+    expect(save.player.equipment.kitana).toEqual(["kitanas-blessing"]);
+    expect(save.player.inventory.cowbell.quantity).toBe(1);
+  });
+
+  it("resetting inventory also clears equipment so no phantom equip remains", () => {
+    const save = saveFrom([
+      created(),
+      granted("cowbell", 1),
+      {
+        type: "item.equipped",
+        ownerId: "kitana",
+        itemId: "cowbell",
+        reason: "test",
+      },
+      { type: "system.reset", system: "inventory", reason: "test" },
+    ]);
+    expect(save.player.equipment).toEqual({});
+    expect(save.player.inventory).toEqual({});
+  });
 });

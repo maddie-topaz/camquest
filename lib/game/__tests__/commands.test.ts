@@ -208,6 +208,82 @@ describe("item.consume", () => {
   });
 });
 
+describe("item.equip / item.unequip", () => {
+  it("equips an owned, eligible item and is idempotent by operationId", () => {
+    const save = saveFrom([created(), granted("cowbell", 1)]);
+    const result = handleCommand(save, {
+      type: "item.equip",
+      ownerId: "kitana",
+      itemId: "cowbell",
+      reason: "test",
+      operationId: "eq-1",
+    });
+    if (!result.ok) throw new Error("expected ok");
+    expect(result.events[0].key).toBe("equip:eq-1");
+    const next = commit(save, result.events);
+    expect(next.player.equipment.kitana).toEqual(["cowbell"]);
+    expect(next.player.inventory.cowbell.quantity).toBe(1);
+  });
+
+  it("rejects equipping an item that isn't owned or isn't eligible", () => {
+    const save = saveFrom([created()]);
+    expect(
+      handleCommand(save, {
+        type: "item.equip",
+        ownerId: "kitana",
+        itemId: "cowbell",
+        reason: "test",
+        operationId: "eq-2",
+      }),
+    ).toMatchObject({ ok: false, rejection: { code: "insufficient" } });
+    const owned = saveFrom([created(), granted("cowbell", 1)]);
+    expect(
+      handleCommand(owned, {
+        type: "item.equip",
+        ownerId: "cam",
+        itemId: "cowbell",
+        reason: "test",
+        operationId: "eq-3",
+      }),
+    ).toMatchObject({ ok: false, rejection: { code: "not-eligible" } });
+  });
+
+  it("unequips a currently-equipped item without touching inventory", () => {
+    const save = saveFrom([
+      created(),
+      granted("cowbell", 1),
+      {
+        type: "item.equipped",
+        ownerId: "kitana",
+        itemId: "cowbell",
+        reason: "test",
+      },
+    ]);
+    const result = handleCommand(save, {
+      type: "item.unequip",
+      ownerId: "kitana",
+      itemId: "cowbell",
+      operationId: "uneq-1",
+    });
+    if (!result.ok) throw new Error("expected ok");
+    const next = commit(save, result.events);
+    expect(next.player.equipment.kitana).toEqual([]);
+    expect(next.player.inventory.cowbell.quantity).toBe(1);
+  });
+
+  it("rejects unequipping an item that isn't equipped", () => {
+    const save = saveFrom([created(), granted("cowbell", 1)]);
+    expect(
+      handleCommand(save, {
+        type: "item.unequip",
+        ownerId: "kitana",
+        itemId: "cowbell",
+        operationId: "uneq-2",
+      }),
+    ).toMatchObject({ ok: false, rejection: { code: "not-equipped" } });
+  });
+});
+
 describe("grants.accept", () => {
   it("accepts only keys that are actually pending", () => {
     const save = saveFrom([

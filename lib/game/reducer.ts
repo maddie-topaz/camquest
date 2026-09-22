@@ -29,6 +29,7 @@ export const emptySave = (
     achievements: {},
     grants: [],
     encounters: {},
+    equipment: {},
   },
   world: {
     unlockedQuests: [],
@@ -78,6 +79,7 @@ export const normaliseSave = (save: SaveFile): SaveFile => ({
     ...save.player,
     encounters: save.player.encounters ?? {},
     companions: save.player.companions ?? {},
+    equipment: save.player.equipment ?? {},
   },
   world: { ...save.world, unlockedSystems: save.world.unlockedSystems ?? ALL_SYSTEMS },
 });
@@ -187,6 +189,34 @@ export const applyEvent = (save: SaveFile, event: GameEvent): SaveFile => {
           ),
         },
       };
+
+    case "item.equipped": {
+      const current = base.player.equipment[payload.ownerId] ?? [];
+      return {
+        ...base,
+        player: {
+          ...base.player,
+          equipment: {
+            ...base.player.equipment,
+            [payload.ownerId]: addToSet(current, payload.itemId),
+          },
+        },
+      };
+    }
+
+    case "item.unequipped": {
+      const current = base.player.equipment[payload.ownerId] ?? [];
+      return {
+        ...base,
+        player: {
+          ...base.player,
+          equipment: {
+            ...base.player.equipment,
+            [payload.ownerId]: current.filter((id) => id !== payload.itemId),
+          },
+        },
+      };
+    }
 
     case "grants.accepted": {
       const keys = new Set(payload.grantKeys);
@@ -384,7 +414,14 @@ export const applyEvent = (save: SaveFile, event: GameEvent): SaveFile => {
         case "inventory":
           return {
             ...base,
-            player: { ...base.player, inventory: {}, grants: [] },
+            player: {
+              ...base.player,
+              inventory: {},
+              grants: [],
+              // Equipped items are references into inventory; wiping the
+              // pack without clearing them would leave a phantom equip.
+              equipment: {},
+            },
           };
         case "xp":
           return { ...base, player: { ...base.player, xp: 0 } };

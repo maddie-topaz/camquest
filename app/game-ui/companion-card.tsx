@@ -1,8 +1,8 @@
 "use client";
 
-import { PawPrint } from "lucide-react";
+import { PawPrint, Sparkles } from "lucide-react";
 import type { CompanionView } from "@/lib/game/view";
-import { companionIcons } from "./icons";
+import { companionIcons, inventoryIcons } from "./icons";
 
 // Generic — renders whatever's in `view.companions`. No Kitana-specific
 // UI here; a second companion registered by a future quest gets the same
@@ -59,6 +59,24 @@ export function CompanionCard({ companion }: { companion: CompanionView }) {
           ))}
         </div>
       )}
+      <div className="companion-equipment">
+        <p className="companion-equipment-label">Equipment</p>
+        {companion.equipped.length > 0 ? (
+          <ul className="companion-equipment-list">
+            {companion.equipped.map((equipped) => {
+              const EquippedIcon = inventoryIcons[equipped.icon] || Sparkles;
+              return (
+                <li key={equipped.itemId} style={{ "--item-color": equipped.color } as React.CSSProperties}>
+                  <EquippedIcon aria-hidden="true" />
+                  {equipped.name}
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="companion-equipment-empty">Nothing equipped yet.</p>
+        )}
+      </div>
     </article>
   );
 }

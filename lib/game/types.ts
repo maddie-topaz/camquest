@@ -75,6 +75,11 @@ export type SaveFile = {
     achievements: Record<string, { unlockedAt: string }>;
     grants: GrantRecord[];
     encounters: Record<string, EncounterRecord>;
+    // Equipped item ids, keyed by owner id. An owner is a companion id
+    // today; the player could become an owner too (e.g. "cam") without
+    // any shape change. Items stay in `inventory` — this only records a
+    // reference, so equipping never duplicates or removes stock.
+    equipment: Record<string, string[]>;
   };
   world: {
     unlockedQuests: string[];
@@ -136,6 +141,14 @@ export type GameEventPayload =
       reason: string;
       questSlug?: string;
     }
+  | {
+      type: "item.equipped";
+      ownerId: string;
+      itemId: string;
+      reason: string;
+      questSlug?: string;
+    }
+  | { type: "item.unequipped"; ownerId: string; itemId: string; reason: string }
   | { type: "grants.accepted"; grantKeys: string[] }
   | { type: "grants.rearmed"; grantKeys?: string[] }
   | { type: "xp.gained"; amount: number; reason: string; questSlug?: string }
@@ -215,6 +228,19 @@ export type Command =
       quantity: number;
       reason: string;
       questSlug?: string;
+      operationId: string;
+    }
+  | {
+      type: "item.equip";
+      ownerId: string;
+      itemId: string;
+      reason: string;
+      operationId: string;
+    }
+  | {
+      type: "item.unequip";
+      ownerId: string;
+      itemId: string;
       operationId: string;
     }
   | { type: "grants.accept"; grantKeys: string[] }

@@ -11,7 +11,8 @@ export type ItemTrait =
   | "usable"
   | "consumable"
   | "access"
-  | "companion-related";
+  | "companion-related"
+  | "equippable";
 
 export type ItemDefinition = {
   id: string;
@@ -26,6 +27,10 @@ export type ItemDefinition = {
   sortOrder: number;
   kind: ItemKind;
   traits?: ItemTrait[];
+  // Who can equip this (companion ids, or a player id once the player
+  // gets equipment too). Only meaningful when traits include
+  // "equippable"; omitted means no one currently can.
+  equippableBy?: string[];
 };
 
 export const items: ItemDefinition[] = [
@@ -51,7 +56,8 @@ export const items: ItemDefinition[] = [
     tilt: "8deg",
     sortOrder: 20,
     kind: "trinket",
-    traits: ["usable"],
+    traits: ["usable", "equippable"],
+    equippableBy: ["kitana"],
   },
   {
     id: "kitanas-blessing",
@@ -63,7 +69,8 @@ export const items: ItemDefinition[] = [
     tilt: "-5deg",
     sortOrder: 30,
     kind: "keepsake",
-    traits: ["companion-related"],
+    traits: ["companion-related", "equippable"],
+    equippableBy: ["kitana"],
   },
   {
     id: "biltong-fragment",

@@ -51,4 +51,56 @@ describe("buildView companions", () => {
       stats: [],
     });
   });
+
+  it("lists equipped items and owned-but-unequipped eligible items separately", () => {
+    const save = saveFrom([
+      created(),
+      {
+        type: "companion.registered",
+        id: "kitana",
+        name: "Kitana",
+        species: "cat",
+        reason: "test",
+      },
+      { key: "g1", payload: { type: "item.granted", itemId: "cowbell", quantity: 1, reason: "t" } },
+      { key: "g2", payload: { type: "item.granted", itemId: "kitanas-blessing", quantity: 1, reason: "t" } },
+      {
+        type: "item.equipped",
+        ownerId: "kitana",
+        itemId: "cowbell",
+        reason: "test",
+      },
+    ]);
+    const kitana = buildView(save).companions[0];
+    expect(kitana.equipped).toEqual([
+      { itemId: "cowbell", name: "Cowbell", icon: "Bell", color: "#55e7ff" },
+    ]);
+    // kitanas-blessing is owned and equippable by kitana, but not yet
+    // equipped, so it shows up as a candidate instead.
+    expect(kitana.equippable.map((item) => item.id)).toEqual([
+      "kitanas-blessing",
+    ]);
+  });
+
+  it("does not offer an eligible item as equippable once it's equipped", () => {
+    const save = saveFrom([
+      created(),
+      {
+        type: "companion.registered",
+        id: "kitana",
+        name: "Kitana",
+        species: "cat",
+        reason: "test",
+      },
+      { key: "g1", payload: { type: "item.granted", itemId: "cowbell", quantity: 1, reason: "t" } },
+      {
+        type: "item.equipped",
+        ownerId: "kitana",
+        itemId: "cowbell",
+        reason: "test",
+      },
+    ]);
+    const kitana = buildView(save).companions[0];
+    expect(kitana.equippable).toEqual([]);
+  });
 });
