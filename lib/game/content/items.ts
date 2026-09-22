@@ -1,6 +1,18 @@
 // Every item that can exist in a pack. Add a row here, then grant it via
 // a quest reward or `scripts/game.mjs grant <id>`.
 
+// What an item fundamentally is. Drives which Inventory screen section it
+// sorts into.
+export type ItemKind = "keepsake" | "quest-item" | "trinket";
+
+// What an item can do, or how the game treats it. An item can carry any
+// number of these — e.g. a trinket can be both "usable" and "consumable".
+export type ItemTrait =
+  | "usable"
+  | "consumable"
+  | "access"
+  | "companion-related";
+
 export type ItemDefinition = {
   id: string;
   name: string;
@@ -12,12 +24,8 @@ export type ItemDefinition = {
   color: string;
   tilt: string;
   sortOrder: number;
-  // Can quests spend it? Keepsakes are permanent.
-  consumable?: boolean;
-  // Drives which Inventory screen section the item sorts into. Defaults to
-  // "keepsake" when omitted.
-  category?: "consumable" | "quest-item" | "keepsake";
-  tags?: string[];
+  kind: ItemKind;
+  traits?: ItemTrait[];
 };
 
 export const items: ItemDefinition[] = [
@@ -30,8 +38,8 @@ export const items: ItemDefinition[] = [
     color: "#ffd166",
     tilt: "-12deg",
     sortOrder: 10,
-    tags: ["access"],
-    category: "quest-item",
+    kind: "quest-item",
+    traits: ["access"],
   },
   {
     id: "cowbell",
@@ -42,8 +50,8 @@ export const items: ItemDefinition[] = [
     color: "#55e7ff",
     tilt: "8deg",
     sortOrder: 20,
-    consumable: true,
-    category: "keepsake",
+    kind: "trinket",
+    traits: ["usable"],
   },
   {
     id: "kitanas-blessing",
@@ -54,7 +62,8 @@ export const items: ItemDefinition[] = [
     color: "#ff75c8",
     tilt: "-5deg",
     sortOrder: 30,
-    tags: ["relic"],
+    kind: "keepsake",
+    traits: ["companion-related"],
   },
   {
     id: "biltong-fragment",
@@ -65,8 +74,8 @@ export const items: ItemDefinition[] = [
     color: "#d9a066",
     tilt: "6deg",
     sortOrder: 35,
-    consumable: true,
-    category: "consumable",
+    kind: "trinket",
+    traits: ["usable", "consumable", "companion-related"],
   },
   {
     id: "golden-key",
@@ -77,8 +86,8 @@ export const items: ItemDefinition[] = [
     color: "#ffd166",
     tilt: "-8deg",
     sortOrder: 40,
-    category: "quest-item",
-    tags: ["access"],
+    kind: "quest-item",
+    traits: ["usable", "access"],
   },
 ];
 

@@ -303,7 +303,9 @@ function InventorySection({ view, r }: { view: SaveView; r: Runner }) {
               <span>
                 <code>{item.id}</code> <strong>×{qty}</strong>
                 {pending ? <small> ({pending} pending)</small> : null}
-                {item.consumable ? <small> consumable</small> : null}
+                {item.traits?.includes("consumable") ? (
+                  <small> consumable</small>
+                ) : null}
               </span>
               <Btn
                 mode="force"
@@ -344,7 +346,7 @@ function InventorySection({ view, r }: { view: SaveView; r: Runner }) {
                     operationId: crypto.randomUUID(),
                   })
                 }
-                disabled={!item.consumable || qty === 0}
+                disabled={!item.traits?.includes("consumable") || qty === 0}
               />
             </div>
           );

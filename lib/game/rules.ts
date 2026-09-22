@@ -50,7 +50,7 @@ export const canConsume = (
       code: "unknown-item",
       message: `No such item: ${itemId}`,
     };
-  if (!item.consumable)
+  if (!item.traits?.includes("consumable"))
     return {
       ok: false,
       code: "not-consumable",

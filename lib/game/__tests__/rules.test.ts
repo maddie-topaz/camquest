@@ -26,21 +26,28 @@ describe("inventory rules", () => {
     const save = saveFrom([
       created(),
       granted("kitanas-blessing"),
-      granted("cowbell"),
+      granted("biltong-fragment"),
     ]);
     expect(canConsume(save, "nope", 1)).toMatchObject({
       ok: false,
       code: "unknown-item",
     });
+    // A keepsake with no "consumable" trait can't be spent.
     expect(canConsume(save, "kitanas-blessing", 1)).toMatchObject({
       ok: false,
       code: "not-consumable",
     });
-    expect(canConsume(save, "cowbell", 2)).toMatchObject({
+    // A trinket with only the "usable" trait can't be spent either —
+    // "usable" and "consumable" are independent traits.
+    expect(canConsume(save, "cowbell", 1)).toMatchObject({
+      ok: false,
+      code: "not-consumable",
+    });
+    expect(canConsume(save, "biltong-fragment", 2)).toMatchObject({
       ok: false,
       code: "insufficient",
     });
-    expect(canConsume(save, "cowbell", 1)).toEqual({ ok: true });
+    expect(canConsume(save, "biltong-fragment", 1)).toEqual({ ok: true });
   });
 });
 

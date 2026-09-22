@@ -177,10 +177,10 @@ describe("quest.start / quest.progress", () => {
 
 describe("item.consume", () => {
   it("is idempotent by operationId and enforces inventory rules", () => {
-    const save = saveFrom([created(), granted("cowbell", 1)]);
+    const save = saveFrom([created(), granted("biltong-fragment", 1)]);
     const result = handleCommand(save, {
       type: "item.consume",
-      itemId: "cowbell",
+      itemId: "biltong-fragment",
       quantity: 1,
       reason: "test",
       operationId: "op-1",
@@ -190,7 +190,7 @@ describe("item.consume", () => {
     expect(
       handleCommand(save, {
         type: "item.consume",
-        itemId: "cowbell",
+        itemId: "biltong-fragment",
         quantity: 2,
         reason: "test",
         operationId: "op-2",

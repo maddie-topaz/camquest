@@ -5,7 +5,7 @@
 import { achievements } from "./content/achievements";
 import { getCompanionDefinition, type CompanionStat } from "./content/companions";
 import { encounters } from "./content/encounters";
-import { items, getItem } from "./content/items";
+import { items, getItem, type ItemKind, type ItemTrait } from "./content/items";
 import { levelProgress } from "./content/levels";
 import { quests } from "./content/quests";
 import { canStartQuest, pendingGrants, questStatus } from "./rules";
@@ -20,8 +20,8 @@ export type InventoryView = {
   color: string;
   tilt: string;
   quantity: number;
-  consumable: boolean;
-  category: "consumable" | "quest-item" | "keepsake";
+  kind: ItemKind;
+  traits: ItemTrait[];
 };
 
 export type PendingGrantView = GrantRecord & {
@@ -99,8 +99,8 @@ export const buildView = (save: SaveFile): SaveView => ({
       color: item.color,
       tilt: item.tilt,
       quantity: save.player.inventory[item.id]?.quantity ?? 0,
-      consumable: Boolean(item.consumable),
-      category: item.category ?? "keepsake",
+      kind: item.kind,
+      traits: item.traits ?? [],
     })),
   pendingGrants: pendingGrants(save)
     .flatMap((grant) => {

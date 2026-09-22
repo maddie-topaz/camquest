@@ -7,10 +7,10 @@ import type { InventoryView } from "@/lib/game/view";
 import { inventoryIcons } from "./icons";
 import { Shell } from "./shell";
 
-const sections: { category: InventoryView["category"]; title: string; eyebrow: string }[] = [
-  { category: "quest-item", title: "Quest Items", eyebrow: "Tied to the story" },
-  { category: "consumable", title: "Consumables", eyebrow: "Spend them wisely" },
-  { category: "keepsake", title: "Keepsakes", eyebrow: "Yours to keep" },
+const sections: { kind: InventoryView["kind"]; title: string; eyebrow: string }[] = [
+  { kind: "quest-item", title: "Quest Items", eyebrow: "Tied to the story" },
+  { kind: "trinket", title: "Trinkets", eyebrow: "Handy to have" },
+  { kind: "keepsake", title: "Keepsakes", eyebrow: "Yours to keep" },
 ];
 
 function ItemGrid({ items }: { items: InventoryView[] }) {
@@ -73,19 +73,19 @@ export function Inventory() {
         {inventory &&
           sections.map((section) => {
             const items = inventory.filter(
-              (item) => item.category === section.category,
+              (item) => item.kind === section.kind,
             );
             if (items.length === 0) return null;
             return (
               <section
-                aria-labelledby={`inventory-${section.category}-title`}
+                aria-labelledby={`inventory-${section.kind}-title`}
                 className="profile-section inventory-section"
-                key={section.category}
+                key={section.kind}
               >
                 <div className="profile-section-heading">
                   <div>
                     <p className="eyebrow">{section.eyebrow}</p>
-                    <h2 id={`inventory-${section.category}-title`}>
+                    <h2 id={`inventory-${section.kind}-title`}>
                       {section.title}
                     </h2>
                   </div>
