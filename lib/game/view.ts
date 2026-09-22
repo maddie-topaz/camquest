@@ -20,6 +20,7 @@ export type InventoryView = {
   tilt: string;
   quantity: number;
   consumable: boolean;
+  category: "consumable" | "quest-item" | "keepsake";
 };
 
 export type PendingGrantView = GrantRecord & {
@@ -83,6 +84,7 @@ export const buildView = (save: SaveFile): SaveView => ({
       tilt: item.tilt,
       quantity: save.player.inventory[item.id]?.quantity ?? 0,
       consumable: Boolean(item.consumable),
+      category: item.category ?? "keepsake",
     })),
   pendingGrants: pendingGrants(save)
     .flatMap((grant) => {

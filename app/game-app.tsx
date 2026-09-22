@@ -15,6 +15,7 @@ import { DevTools } from "@/app/dev-tools";
 import { GameProvider } from "@/app/game-provider";
 import { getQuest, type QuestDefinition } from "@/lib/game/content/quests";
 import { Archive } from "./game-ui/archive";
+import { Inventory } from "./game-ui/inventory";
 import { Lobby } from "./game-ui/lobby";
 import { Portal } from "./game-ui/portal";
 import { Profile } from "./game-ui/profile";
@@ -76,6 +77,7 @@ function AppRoutes() {
       <Route path="/quest-log" element={<QuestLog />} />
       <Route path="/quests" element={<Navigate to="/quest-log" replace />} />
       <Route path="/archive" element={<Archive />} />
+      <Route path="/inventory" element={<Inventory />} />
       <Route path="/profile" element={<Profile />} />
       <Route
         path="/dev"

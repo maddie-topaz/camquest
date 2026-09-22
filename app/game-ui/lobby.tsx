@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import {
   Archive as ArchiveIcon,
   ArrowRight,
+  Backpack,
   Gamepad2,
   UserRound,
 } from "lucide-react";
@@ -25,10 +26,17 @@ const lobbyDestinations = [
     linkLabel: "Open archive",
   },
   {
+    to: "/inventory",
+    icon: Backpack,
+    title: "Inventory",
+    description: "Browse your field pack.",
+    linkLabel: "Open inventory",
+  },
+  {
     to: "/profile",
     icon: UserRound,
     title: "Player profile",
-    description: "Check your stats and collected loot.",
+    description: "Check your stats and traits.",
     linkLabel: "View player profile",
   },
 ];

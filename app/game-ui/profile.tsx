@@ -3,10 +3,10 @@
 import { Link } from "react-router-dom";
 import {
   ArrowLeft,
+  ArrowRight,
   Backpack,
   CircleDot,
   Gamepad2,
-  Sparkles,
   Trophy,
   Zap,
 } from "lucide-react";
@@ -14,7 +14,7 @@ import { quests } from "@/lib/game/content/quests";
 import { traits as traitDefinitions } from "@/lib/game/content/traits";
 import { START_UNLOCK_ID } from "@/lib/game/machines/quest";
 import { useGame } from "@/app/game-provider";
-import { achievementIcons, inventoryIcons } from "./icons";
+import { achievementIcons } from "./icons";
 import { Shell } from "./shell";
 
 export function Profile() {
@@ -211,62 +211,9 @@ export function Profile() {
                 : "Syncing pack…"}
             </span>
           </div>
-          {inventory && (
-            <div className="field-pack">
-              <div className="field-pack-bar">
-                <span>
-                  <Backpack aria-hidden="true" /> Field pack
-                </span>
-                <small>{inventory.length} slots</small>
-              </div>
-              <div className="item-grid">
-                {inventory.map((item) => {
-                  const Icon = inventoryIcons[item.icon] || Sparkles;
-                  const unlocked = item.quantity > 0;
-                  return (
-                    <article
-                      className={`item-slot ${unlocked ? "is-unlocked" : "is-locked"}`}
-                      key={item.id}
-                      style={
-                        {
-                          "--item-color": item.color,
-                          "--item-tilt": item.tilt,
-                        } as React.CSSProperties
-                      }
-                    >
-                      <div className="item-well">
-                        {unlocked ? (
-                          <Icon aria-hidden="true" />
-                        ) : (
-                          <span aria-hidden="true">?</span>
-                        )}
-                        {unlocked && <b>×{item.quantity}</b>}
-                      </div>
-                      <h3>{unlocked ? item.name : "Unknown object"}</h3>
-                      <p>{unlocked ? item.description : item.unlockHint}</p>
-                    </article>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          {!inventory && !inventoryError && (
-            <div className="inventory-sync" role="status">
-              <div className="loading-spinner">
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
-              <p>Syncing field pack…</p>
-            </div>
-          )}
-          {inventoryError && (
-            <div className="inventory-sync is-error">
-              <Backpack aria-hidden="true" />
-              <p>Field pack connection lost.</p>
-            </div>
-          )}
+          <Link className="card-link" to="/inventory">
+            <Backpack aria-hidden="true" /> Open field pack <ArrowRight />
+          </Link>
         </section>
 
         <section

@@ -14,6 +14,9 @@ export type ItemDefinition = {
   sortOrder: number;
   // Can quests spend it? Keepsakes are permanent.
   consumable?: boolean;
+  // Drives which Inventory screen section the item sorts into. Defaults to
+  // "keepsake" when omitted.
+  category?: "consumable" | "quest-item" | "keepsake";
   tags?: string[];
 };
 
@@ -39,6 +42,7 @@ export const items: ItemDefinition[] = [
     tilt: "8deg",
     sortOrder: 20,
     consumable: true,
+    category: "consumable",
   },
   {
     id: "kitanas-blessing",
@@ -61,6 +65,7 @@ export const items: ItemDefinition[] = [
     tilt: "6deg",
     sortOrder: 35,
     consumable: true,
+    category: "consumable",
   },
   {
     id: "golden-key",
@@ -71,6 +76,7 @@ export const items: ItemDefinition[] = [
     color: "#ffd166",
     tilt: "-8deg",
     sortOrder: 40,
+    category: "quest-item",
     tags: ["access"],
   },
 ];

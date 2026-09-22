@@ -72,7 +72,7 @@ describe("portal startup", () => {
       finishLoad({ pendingGrants: [], quests: {} } as unknown as SaveView);
       await vi.advanceTimersByTimeAsync(850);
     });
-    expect(screen.getByRole("heading", { name: "Quest log" })).toBeTruthy();
-    expect(window.location.pathname).toBe("/quest-log");
+    expect(screen.getByRole("heading", { name: "Game lobby" })).toBeTruthy();
+    expect(window.location.pathname).toBe("/lobby");
   });
 });

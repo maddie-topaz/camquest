@@ -50,7 +50,7 @@ export function Portal() {
 
   useEffect(() => {
     const cues = actor.on("cue", (event) => emitCue(event.cue, event.detail));
-    const enter = actor.on("enter", () => navigate("/quest-log"));
+    const enter = actor.on("enter", () => navigate("/lobby"));
     return () => {
       cues.unsubscribe();
       enter.unsubscribe();
