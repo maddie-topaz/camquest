@@ -11,8 +11,8 @@ import { completed, created, granted, saveFrom } from './helpers'
 const commit = (save: SaveFile, events: NewGameEvent[]) =>
   events.reduce((state, event, index) => applyEvent(state, { seq: state.seq + 1, key: event.key ?? `k:${state.seq + index}`, at: '2026-03-01T00:00:00.000Z', payload: event.payload } as GameEvent), save)
 
-// A save where Unknown Signal is playable.
-const readySave = () => saveFrom([created(), granted('vip-wristband'), completed('cams-gambit'), { type: 'quest.unlocked', slug: 'unknown-signal', reason: 't' }])
+// Unknown Signal is the opener: a fresh save can play it.
+const readySave = () => saveFrom([created(), granted('vip-wristband')])
 
 describe('reducer: encounter.completed', () => {
   it('keeps plays, best and last per encounter', () => {
@@ -58,7 +58,7 @@ describe('command: encounter.complete', () => {
     const base = { type: 'encounter.complete' as const, questSlug: 'unknown-signal', stepId: 'lock-signal', encounterId: 'signal-lock', score: 100, operationId: 'op' }
     expect(handleCommand(save, { ...base, stepId: 'decoded' })).toMatchObject({ ok: false, rejection: { code: 'bad-step' } })
     expect(handleCommand(save, { ...base, score: 9999 })).toMatchObject({ ok: false, rejection: { code: 'bad-score' } })
-    expect(handleCommand(saveFrom([created()]), base)).toMatchObject({ ok: false, rejection: { code: 'locked' } })
+    expect(handleCommand(saveFrom([created()]), { ...base, questSlug: 'cams-gambit', stepId: 'load-cartridge' })).toMatchObject({ ok: false, rejection: { code: 'locked' } })
   })
 })
 

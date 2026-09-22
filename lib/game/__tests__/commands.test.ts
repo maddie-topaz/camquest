@@ -8,24 +8,31 @@ const commit = (save: SaveFile, events: NewGameEvent[]) =>
   events.reduce((state, event, index) => applyEvent(state, { seq: state.seq + 1, key: event.key ?? `k:${state.seq + index}`, at: '2026-02-01T00:00:00.000Z', payload: event.payload } as GameEvent), save)
 
 describe('quest.complete', () => {
-  it('records the completion, pays rewards, unlocks the next quest, and earns achievements', () => {
-    const save = saveFrom([created(), granted('vip-wristband')])
+  it('records the completion, pays rewards, and earns achievements', () => {
+    const save = saveFrom([created(), granted('vip-wristband'), completed('unknown-signal')])
     const result = handleCommand(save, { type: 'quest.complete', slug: 'cams-gambit', answers: { 'load-cartridge': 'Sun Cartridge' } })
     expect(result.ok).toBe(true)
     if (!result.ok) return
     const types = result.events.map((e) => e.payload.type)
-    expect(types).toEqual(expect.arrayContaining(['quest.completed', 'xp.gained', 'trait.changed', 'quest.unlocked', 'achievement.unlocked']))
+    expect(types).toEqual(expect.arrayContaining(['quest.completed', 'xp.gained', 'trait.changed']))
 
     const next = commit(save, result.events)
     expect(next.quests['cams-gambit'].completions).toBe(1)
     expect(next.player.xp).toBe(250)
     expect(next.player.traits.chaos).toBe(6)
-    expect(next.world.unlockedQuests).toContain('unknown-signal')
+  })
+
+  it('unlocks quests and earns condition achievements through rewards', () => {
+    const save = saveFrom([created()])
+    const result = handleCommand(save, { type: 'quest.complete', slug: 'unknown-signal', answers: {} })
+    if (!result.ok) throw new Error('expected ok')
+    const next = commit(save, result.events)
     expect(next.player.achievements['first-quest']).toBeDefined()
+    expect(handleCommand(next, { type: 'quest.start', slug: 'cams-gambit' })).toMatchObject({ ok: true })
   })
 
   it('keys first-completion rewards so they can never be granted twice', () => {
-    const save = saveFrom([created()])
+    const save = saveFrom([created(), completed('unknown-signal')])
     const result = handleCommand(save, { type: 'quest.complete', slug: 'cams-gambit', answers: {} })
     if (!result.ok) throw new Error('expected ok')
     const xp = result.events.find((e) => e.payload.type === 'xp.gained')
@@ -33,19 +40,19 @@ describe('quest.complete', () => {
   })
 
   it('rejects completing a locked or already-complete quest', () => {
-    expect(handleCommand(saveFrom([created()]), { type: 'quest.complete', slug: 'unknown-signal', answers: {} })).toMatchObject({ ok: false, rejection: { code: 'locked', missing: { unlock: true, items: ['vip-wristband'], questsCompleted: ['cams-gambit'] } } })
-    expect(handleCommand(saveFrom([created(), completed('cams-gambit')]), { type: 'quest.complete', slug: 'cams-gambit', answers: {} })).toMatchObject({ ok: false, rejection: { code: 'already-completed' } })
+    expect(handleCommand(saveFrom([created()]), { type: 'quest.complete', slug: 'cams-gambit', answers: {} })).toMatchObject({ ok: false, rejection: { code: 'locked', missing: { questsCompleted: ['unknown-signal'] } } })
+    expect(handleCommand(saveFrom([created(), completed('unknown-signal'), completed('cams-gambit')]), { type: 'quest.complete', slug: 'cams-gambit', answers: {} })).toMatchObject({ ok: false, rejection: { code: 'already-completed' } })
   })
 })
 
 describe('quest.start / quest.progress', () => {
-  it('refuses coming-soon and locked quests', () => {
-    expect(handleCommand(saveFrom([created()]), { type: 'quest.start', slug: 'unknown-signal' })).toMatchObject({ ok: false })
-    expect(handleCommand(saveFrom([created()]), { type: 'quest.progress', slug: 'unknown-signal', step: 1, answers: {}, unlockedSteps: [] })).toMatchObject({ ok: false, rejection: { code: 'locked' } })
+  it('refuses locked quests', () => {
+    expect(handleCommand(saveFrom([created()]), { type: 'quest.start', slug: 'cams-gambit' })).toMatchObject({ ok: false, rejection: { code: 'locked' } })
+    expect(handleCommand(saveFrom([created()]), { type: 'quest.progress', slug: 'cams-gambit', step: 1, answers: {}, unlockedSteps: [] })).toMatchObject({ ok: false, rejection: { code: 'locked' } })
   })
 
   it('starting twice is a no-op, progress is bounds-checked', () => {
-    const started = saveFrom([created(), { type: 'quest.started', slug: 'cams-gambit' }])
+    const started = saveFrom([created(), completed('unknown-signal'), { type: 'quest.started', slug: 'cams-gambit' }])
     expect(handleCommand(started, { type: 'quest.start', slug: 'cams-gambit' })).toEqual({ ok: true, events: [] })
     expect(handleCommand(started, { type: 'quest.progress', slug: 'cams-gambit', step: 99, answers: {}, unlockedSteps: [] })).toMatchObject({ ok: false, rejection: { code: 'bad-step' } })
   })

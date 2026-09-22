@@ -51,15 +51,14 @@ describe('quest status', () => {
   const signal = getQuest('unknown-signal')!
 
   it('derives available → in-progress → completed', () => {
-    expect(questStatus(saveFrom([created()]), gambit)).toBe('available')
-    expect(questStatus(saveFrom([created(), { type: 'quest.started', slug: 'cams-gambit' }]), gambit)).toBe('in-progress')
-    expect(questStatus(saveFrom([created(), completed('cams-gambit')]), gambit)).toBe('completed')
+    expect(questStatus(saveFrom([created()]), signal)).toBe('available')
+    expect(questStatus(saveFrom([created(), { type: 'quest.started', slug: 'unknown-signal' }]), signal)).toBe('in-progress')
+    expect(questStatus(saveFrom([created(), completed('unknown-signal')]), signal)).toBe('completed')
   })
 
   it('locks a quest with unmet requirements until they are met', () => {
-    expect(questStatus(saveFrom([created()]), signal)).toBe('locked')
-    const ready = saveFrom([created(), granted('vip-wristband'), completed('cams-gambit'), { type: 'quest.unlocked', slug: 'unknown-signal', reason: 't' }])
-    expect(questStatus(ready, signal)).toBe('available')
+    expect(questStatus(saveFrom([created()]), gambit)).toBe('locked')
+    expect(questStatus(saveFrom([created(), completed('unknown-signal')]), gambit)).toBe('available')
   })
 })
 

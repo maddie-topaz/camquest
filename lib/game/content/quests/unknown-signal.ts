@@ -31,11 +31,6 @@ export const unknownSignal: QuestDefinition = {
   ],
   completionTitle: 'Signal locked',
   completionMessage: 'The broadcast ends. Whatever it was, it was meant for you.',
-  requirements: {
-    unlock: true,
-    items: ['vip-wristband'],
-    questsCompleted: ['cams-gambit'],
-  },
   rewards: {
     xp: 100,
     traits: { mysteryTolerance: 1 },

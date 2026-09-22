@@ -97,9 +97,12 @@ export const camsGambit: QuestDefinition = {
     { label: 'Player 1 betrayals', value: '???' },
     { label: 'Korean BBQ consumed', value: 'Critical' },
   ],
+  // The Gambit only opens once the signal has been locked.
+  requirements: {
+    questsCompleted: ['unknown-signal'],
+  },
   rewards: {
     xp: 250,
     traits: { chaos: 1, curiosity: 1 },
-    unlocks: ['unknown-signal'],
   },
 }

@@ -7,7 +7,8 @@ import { completed, created, granted, saveFrom } from './helpers'
 const gambit = getQuest('cams-gambit')!
 
 const start = (overrides: Partial<Parameters<typeof questMachine.provide>[0]> = {}, input?: Partial<{ saved: NonNullable<ReturnType<typeof saveFrom>['quests'][string]>; completed: boolean; slug: string }>) => {
-  const save = saveFrom([created()])
+  // Cam's Gambit needs the signal locked first.
+  const save = saveFrom([created(), completed('unknown-signal')])
   const emitted: QuestEmitted[] = []
   const actor = createActor(questMachine.provide(overrides), {
     input: { quest: getQuest(input?.slug ?? 'cams-gambit')!, save, saved: input?.saved, completed: input?.completed ?? false },
@@ -80,15 +81,13 @@ describe('questMachine', () => {
   })
 
   it('is locked when the save does not meet the quest requirements', () => {
-    const save = saveFrom([created()])
-    const actor = createActor(questMachine, { input: { quest: getQuest('unknown-signal')!, save, completed: false } }).start()
+    const actor = createActor(questMachine, { input: { quest: gambit, save: saveFrom([created()]), completed: false } }).start()
     expect(actor.getSnapshot().matches('locked')).toBe(true)
-    expect(actor.getSnapshot().context.missing).toMatchObject({ questsCompleted: ['cams-gambit'] })
+    expect(actor.getSnapshot().context.missing).toMatchObject({ questsCompleted: ['unknown-signal'] })
   })
 
   it('opens once the requirements are met', () => {
-    const save = saveFrom([created(), granted('vip-wristband'), completed('cams-gambit'), { type: 'quest.unlocked', slug: 'unknown-signal', reason: 't' }])
-    const actor = createActor(questMachine, { input: { quest: { ...getQuest('unknown-signal')!, steps: gambit.steps }, save, completed: false } }).start()
+    const actor = createActor(questMachine, { input: { quest: gambit, save: saveFrom([created(), completed('unknown-signal')]), completed: false } }).start()
     expect(actor.getSnapshot().matches('locked')).toBe(false)
   })
 })

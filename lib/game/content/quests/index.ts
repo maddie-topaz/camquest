@@ -9,8 +9,8 @@ import type { QuestDefinition } from './types'
 export type { QuestDefinition, QuestFlag, ChallengeStep, MysteryCard } from './types'
 
 export const quests: QuestDefinition[] = [
-  camsGambit,
   unknownSignal,
+  camsGambit,
 ]
 
 export const questsBySlug: Record<string, QuestDefinition> = Object.fromEntries(quests.map((quest) => [quest.slug, quest]))
