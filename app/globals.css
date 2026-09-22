@@ -407,6 +407,48 @@ button.arcade-screen:focus-visible { outline:3px solid var(--arcade-cyan, #55e7f
 .profile-section-heading>span { color:#968da6; font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; }
 .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
 .trait-list { display:grid; gap:10px; }
+/* Developer tools (/dev) */
+.dev-page { position:relative; z-index:10; max-width:1120px; margin:0 auto; padding:0 20px 80px; font-family:'Courier New', monospace; font-size:.8rem; }
+.dev-header { padding:24px 0 8px; }
+.dev-header h1 { font-size:clamp(2rem,5vw,3rem); margin:4px 0 10px; }
+.dev-legend { color:#c0b7d0; margin:0 0 12px; }
+.dev-nav { display:flex; flex-wrap:wrap; gap:6px 14px; margin-bottom:10px; }
+.dev-nav a { color:var(--arcade-cyan); text-transform:uppercase; letter-spacing:.12em; font-size:.7rem; text-decoration:none; }
+.dev-nav a:hover { text-decoration:underline; }
+.dev-log { list-style:none; margin:0; padding:10px 14px; border:1px solid #3b2a69; background:rgba(16,11,39,.8); display:grid; gap:4px; }
+.dev-log li.is-ok { color:#7dffad; } .dev-log li.is-error { color:#ff5fbd; }
+.dev-error { color:#ff5fbd; }
+.dev-section { margin-top:28px; padding:18px 20px 20px; border:2px solid #4d3987; background:linear-gradient(135deg,rgba(42,27,91,.55),rgba(13,11,34,.9)); }
+.dev-section-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 18px; margin-bottom:14px; }
+.dev-section-head h2 { margin:0; font-size:1.25rem; }
+.dev-section-head p { margin:0; color:#958ba7; }
+.dev-grid { display:grid; gap:8px; }
+.dev-row { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; padding:8px 10px; border:1px solid #2c1f52; background:rgba(9,7,20,.45); }
+.dev-row > span:first-child { min-width:220px; }
+.dev-row small { color:#958ba7; }
+.dev-row code { color:var(--arcade-cyan); }
+.dev-row label { display:inline-flex; align-items:center; gap:8px; color:#c0b7d0; }
+.dev-quest { display:grid; gap:6px; padding:10px; margin-bottom:10px; border:1px solid #3b2a69; }
+.dev-quest .status-pill { margin-left:6px; }
+.dev-passcodes span { display:inline-flex; gap:6px; align-items:baseline; margin-right:14px; }
+.dev-passcodes .passcode-value { font-size:.85rem; }
+.dev-input, .dev-select { padding:6px 8px; border:1px solid #514262; border-radius:4px; background:#17122a; color:#fff; font:inherit; min-width:160px; }
+.dev-input.is-short { min-width:80px; width:90px; }
+.dev-btn { display:inline-flex; align-items:center; gap:8px; padding:5px 10px 5px 6px; border:1px solid #6b4fa8; border-radius:4px; background:#1c1436; color:#f7f0ff; font:inherit; font-size:.72rem; cursor:pointer; }
+.dev-btn:hover:not(:disabled) { border-color:var(--arcade-cyan); }
+.dev-btn:disabled { opacity:.4; cursor:default; }
+.dev-btn.is-danger { border-color:#8a2c60; }
+.dev-btn.is-danger:hover:not(:disabled) { border-color:var(--arcade-pink); }
+.dev-badge { display:inline-block; padding:1px 5px; border-radius:3px; font-size:.58rem; letter-spacing:.12em; font-weight:900; }
+.dev-btn.is-engine .dev-badge, .dev-badge.is-engine { background:rgba(85,231,255,.18); color:var(--arcade-cyan); }
+.dev-btn.is-force .dev-badge, .dev-badge.is-force { background:rgba(255,95,189,.18); color:var(--arcade-pink); }
+.dev-details { margin-top:10px; border:1px solid #2c1f52; }
+.dev-details summary { padding:8px 10px; cursor:pointer; color:#c0b7d0; }
+.dev-link { display:inline-flex; align-items:center; gap:4px; margin-left:10px; border:0; background:none; color:var(--arcade-cyan); font:inherit; cursor:pointer; }
+.dev-link svg { width:12px; height:12px; }
+.dev-pre { margin:0; padding:12px; max-height:480px; overflow:auto; background:#0b0818; color:#d8cfe1; font-size:.72rem; line-height:1.45; }
+.dev-table { width:100%; border-collapse:collapse; font-size:.72rem; }
+.dev-table td { padding:4px 8px; border-top:1px solid #241a45; vertical-align:top; word-break:break-all; }
 .audio-toggle { position:fixed; top:16px; right:16px; z-index:60; display:grid; place-items:center; width:40px; height:40px; padding:0; border:2px solid #4d3987; border-radius:6px; background:rgba(16,11,39,.85); color:#c0b7d0; cursor:pointer; transition:color .15s ease,border-color .15s ease; }
 .audio-toggle:hover, .audio-toggle:focus-visible { color:var(--arcade-cyan); border-color:var(--arcade-cyan); outline:none; }
 .audio-toggle[aria-pressed="true"] { color:#7a6f8f; }

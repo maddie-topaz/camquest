@@ -10,6 +10,10 @@
 //   node scripts/game.mjs unlock <questSlug>
 //   node scripts/game.mjs reset-quest <questSlug>
 //   node scripts/game.mjs rearm
+//   node scripts/game.mjs scenario <id> [questSlug] [step]   (wipes the save)
+//   node scripts/game.mjs wipe                               (wipes the save)
+//
+// The same actions, with more, are on the /dev page in the app.
 //
 // Item, trait and quest ids come from lib/game/content.
 
@@ -24,7 +28,9 @@ const usage = () => {
   game.mjs trait <trait> <delta> [reason=admin]
   game.mjs unlock <questSlug>
   game.mjs reset-quest <questSlug>
-  game.mjs rearm`);
+  game.mjs rearm
+  game.mjs scenario <id> [questSlug] [step]
+  game.mjs wipe`);
   process.exitCode = 1;
 };
 
@@ -96,6 +102,13 @@ const main = async () => {
       break;
     case "rearm":
       await admin({ action: "rearm" });
+      break;
+    case "scenario":
+      if (!args[0]) { usage(); return; }
+      await admin({ action: "scenario", id: args[0], params: { slug: args[1], step: args[2] === undefined ? undefined : Number(args[2]) } });
+      break;
+    case "wipe":
+      await admin({ action: "wipe" });
       break;
     default:
       usage();

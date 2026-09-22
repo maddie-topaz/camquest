@@ -182,6 +182,37 @@ export const applyEvent = (save: SaveFile, event: GameEvent): SaveFile => {
     case 'secret.found':
       return { ...base, world: { ...base.world, secrets: addToSet(base.world.secrets, payload.secretId) } }
 
+    case 'quest.relocked':
+      return { ...base, world: { ...base.world, unlockedQuests: base.world.unlockedQuests.filter((slug) => slug !== payload.slug) } }
+
+    case 'location.forgotten':
+      return { ...base, world: { ...base.world, discoveredLocations: base.world.discoveredLocations.filter((id) => id !== payload.locationId) } }
+
+    case 'secret.forgotten':
+      return { ...base, world: { ...base.world, secrets: base.world.secrets.filter((id) => id !== payload.secretId) } }
+
+    case 'system.reset': {
+      const fresh = emptySave(base.playerId)
+      switch (payload.system) {
+        case 'inventory':
+          return { ...base, player: { ...base.player, inventory: {}, grants: [] } }
+        case 'xp':
+          return { ...base, player: { ...base.player, xp: 0 } }
+        case 'traits':
+          return { ...base, player: { ...base.player, traits: fresh.player.traits } }
+        case 'achievements':
+          return { ...base, player: { ...base.player, achievements: {} } }
+        case 'quests':
+          return { ...base, quests: {} }
+        case 'world':
+          return { ...base, world: fresh.world }
+        case 'encounters':
+          return { ...base, player: { ...base.player, encounters: {} } }
+        default:
+          return base
+      }
+    }
+
     case 'encounter.completed': {
       const encounters = base.player.encounters ?? {}
       const current = encounters[payload.encounterId]

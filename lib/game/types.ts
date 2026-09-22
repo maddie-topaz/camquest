@@ -68,6 +68,9 @@ export type SaveFile = {
 // Events: the only way the save changes. Append-only, replayable.
 // ---------------------------------------------------------------------------
 
+export const resettableSystems = ['inventory', 'xp', 'traits', 'achievements', 'quests', 'world', 'encounters'] as const
+export type ResettableSystem = (typeof resettableSystems)[number]
+
 export type GameEventPayload =
   | { type: 'player.created'; name: string; traits?: Record<string, number> }
   | { type: 'player.renamed'; name: string }
@@ -87,6 +90,13 @@ export type GameEventPayload =
   | { type: 'location.discovered'; locationId: string; reason: string }
   | { type: 'secret.found'; secretId: string; reason: string }
   | { type: 'encounter.completed'; encounterId: string; questSlug: string; stepId: string; score: number; reward?: string }
+  // Dev-tool events: the inverse of the flags above, and a per-system
+  // reset. Gameplay never emits these; they exist so the /dev page can
+  // undo state through the log instead of editing the snapshot.
+  | { type: 'quest.relocked'; slug: string; reason: string }
+  | { type: 'location.forgotten'; locationId: string; reason: string }
+  | { type: 'secret.forgotten'; secretId: string; reason: string }
+  | { type: 'system.reset'; system: ResettableSystem; reason: string }
 
 export type GameEventType = GameEventPayload['type']
 

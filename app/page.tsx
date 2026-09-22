@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, MemoryRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { Archive as ArchiveIcon, ArrowLeft, ArrowRight, Backpack, Beef, Bell, BookOpen, Cat, Check, CircleDot, Dice5, Gamepad2, Joystick, Link as LinkIcon, Lock, Martini, Moon, Origami, Palmtree, RotateCcw, Sparkles, Sun, Ticket, Trophy, UserRound, Zap, type LucideIcon } from 'lucide-react'
+import { Archive as ArchiveIcon, ArrowLeft, ArrowRight, Backpack, Beef, Bell, BookOpen, Cat, Check, CircleDot, Dice5, Gamepad2, Joystick, Link as LinkIcon, Lock, Martini, Moon, Origami, Palmtree, Sparkles, Sun, Ticket, Trophy, UserRound, Zap, type LucideIcon } from 'lucide-react'
 import { quests, getQuest, type QuestDefinition, type ChallengeStep } from '@/lib/game/content/quests'
 import { GameProvider, useGame } from '@/app/game-provider'
 import { CommandRejectedError, type QuestView } from '@/lib/game/client'
@@ -11,6 +11,7 @@ import { questMachine, questSelectors, START_UNLOCK_ID } from '@/lib/game/machin
 import { startMachine, startSelectors } from '@/lib/game/machines/start'
 import { EncounterStage } from '@/app/encounter-stage'
 import { AudioProvider, AudioToggle } from '@/app/audio-provider'
+import { DevTools } from '@/app/dev-tools'
 import { emitCue } from '@/lib/game/audio/bus'
 import { getEncounter, type EncounterResult } from '@/lib/game/content/encounters'
 import { traits as traitDefinitions } from '@/lib/game/content/traits'
@@ -311,109 +312,6 @@ function Profile() {
     </Shell>
   )
 }
-function ResetDebug() {
-  // Undocumented debug route: not linked from anywhere in the UI. Resets
-  // are per-quest only, on purpose — no "wipe everything" button here.
-  const { admin, view } = useGame()
-  const [pendingSlug, setPendingSlug] = useState<string | null>(null)
-  const [resultBySlug, setResultBySlug] = useState<Record<string, 'ok' | 'error'>>({})
-  const [rearmState, setRearmState] = useState<'idle' | 'pending' | 'ok' | 'error'>('idle')
-  const [rearmedCount, setRearmedCount] = useState(0)
-
-  // Puts every grant back to "not yet accepted" so the next START replays
-  // the reveal. Nothing is removed from the pack.
-  const rearmReveal = async () => {
-    setRearmState('pending')
-    try {
-      const next = await admin({ action: 'rearm' })
-      setRearmedCount(next.pendingGrants.length)
-      setRearmState('ok')
-    } catch (error) {
-      console.error('Failed to re-arm inventory reveal', error)
-      setRearmState('error')
-    }
-  }
-
-  const resetQuest = async (slug: string) => {
-    setPendingSlug(slug)
-    setResultBySlug((current) => { const next = { ...current }; delete next[slug]; return next })
-    try {
-      // Appends a quest.reset event: progress and completions go, loot
-      // already granted stays (it's still in the event log).
-      await admin({ action: 'reset-quest', slug })
-      setResultBySlug((current) => ({ ...current, [slug]: 'ok' }))
-    } catch (error) {
-      console.error('Failed to reset quest', error)
-      setResultBySlug((current) => ({ ...current, [slug]: 'error' }))
-    } finally {
-      setPendingSlug(null)
-    }
-  }
-
-  return (
-    <Shell>
-      <main className="relative z-10 mx-auto max-w-4xl px-5 pb-16">
-        <div className="page-title">
-          <p className="eyebrow">Debug</p>
-          <h1>Reset a quest</h1>
-          <p>Resets one quest's progress and completions in the save, or re-arms the inventory reveal. Rewards already granted stay in the pack. Each quest resets on its own — there's no reset-everything button here.</p>
-        </div>
-        <div className="archive-list">
-          <div className="archive-row">
-            <span className="archive-symbol"><Backpack aria-hidden="true" /></span>
-            <div>
-              <h2>Inventory reveal</h2>
-              <p>
-                {rearmState === 'pending' ? 'Re-arming…' : rearmState === 'ok' ? `Re-armed ${rearmedCount} grant${rearmedCount === 1 ? '' : 's'}. Press START to see the reveal again.` : rearmState === 'error' ? 'Something went wrong re-arming the reveal.' : `${view?.pendingGrants.length ?? 0} pending now. Mark every item grant as not yet accepted, so START shows the reveal again.`}
-              </p>
-            </div>
-            <button className="reset-button" disabled={rearmState === 'pending'} onClick={rearmReveal}>
-              <RotateCcw /> Re-arm reveal
-            </button>
-          </div>
-          {quests.map((a) => (
-            <div className="archive-row" key={a.id}>
-              <span className="archive-symbol">{a.symbol}</span>
-              <div>
-                <h2>{a.title}</h2>
-                <p>
-                  {pendingSlug === a.slug ? 'Resetting…' : resultBySlug[a.slug] === 'ok' ? 'Reset. Fresh start.' : resultBySlug[a.slug] === 'error' ? 'Something went wrong clearing the database.' : a.slug}
-                </p>
-              </div>
-              <button className="reset-button" disabled={pendingSlug === a.slug} onClick={() => resetQuest(a.slug)}>
-                <RotateCcw /> Reset this quest
-              </button>
-            </div>
-          ))}
-        </div>
-        {quests.map((a) => {
-          const passcodeEntries = [
-            ...(a.startPasscode ? [{ id: 'start', roundNumber: 'Start', title: 'Begin quest', passcode: a.startPasscode }] : []),
-            ...a.steps.map((s, index) => ({ id: s.id, roundNumber: String(index + 1), title: s.title, passcode: s.passcode })).filter((s) => s.passcode),
-          ]
-          if (!passcodeEntries.length) return null
-          return (
-            <div key={a.id} className="page-title">
-              <p className="eyebrow">{a.title}</p>
-              <h2>Round passcodes</h2>
-              <div className="archive-list">
-                {passcodeEntries.map((s) => (
-                  <div className="archive-row" key={s.id}>
-                    <span className="archive-symbol">{s.roundNumber}</span>
-                    <div>
-                      <h2>{s.title}</h2>
-                      <p className="passcode-value">{s.passcode}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )
-        })}
-      </main>
-    </Shell>
-  )
-}
 const startUnlockId = START_UNLOCK_ID
 function Intro({ quest }: { quest: QuestDefinition }) {
   const navigate = useNavigate()
@@ -691,7 +589,7 @@ function BrowserUrlSync() {
   return null
 }
 
-function AppRoutes() { return <Routes><Route path="/" element={<Portal />} /><Route path="/lobby" element={<Lobby />} /><Route path="/quest-log" element={<QuestLog />} /><Route path="/quests" element={<Navigate to="/quest-log" replace />} /><Route path="/archive" element={<Archive />} /><Route path="/profile" element={<Profile />} /><Route path="/reset" element={<ResetDebug />} /><Route path="/quest/:slug" element={<QuestIntroRoute />} /><Route path="/quest/:slug/play" element={<ChallengeRoute />} /><Route path="/quest/:slug/complete" element={<CompletionRoute />} /></Routes> }
+function AppRoutes() { return <Routes><Route path="/" element={<Portal />} /><Route path="/lobby" element={<Lobby />} /><Route path="/quest-log" element={<QuestLog />} /><Route path="/quests" element={<Navigate to="/quest-log" replace />} /><Route path="/archive" element={<Archive />} /><Route path="/profile" element={<Profile />} /><Route path="/dev" element={<Shell><DevTools /></Shell>} /><Route path="/reset" element={<Navigate to="/dev" replace />} /><Route path="/quest/:slug" element={<QuestIntroRoute />} /><Route path="/quest/:slug/play" element={<ChallengeRoute />} /><Route path="/quest/:slug/complete" element={<CompletionRoute />} /></Routes> }
 
 function App({ initialPath = '/' }: { initialPath?: string }) {
   // Keep one router mounted for the lifetime of the app so the CRT boot

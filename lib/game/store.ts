@@ -139,6 +139,16 @@ export const appendEvents = (events: NewGameEvent[], playerId: PlayerId = DEFAUL
     return appendWithClient(client, save, events)
   })
 
+// Dev tools only: erase the player's whole log and snapshot, then
+// bootstrap them again. The one operation that isn't append-only.
+export const wipeSave = (playerId: PlayerId = DEFAULT_PLAYER, name = 'Cam') =>
+  inTransaction(async (client) => {
+    await client.query(`DELETE FROM game_saves WHERE player_id = $1`, [playerId])
+    await client.query(`DELETE FROM game_events WHERE player_id = $1`, [playerId])
+    const save = emptySave(playerId)
+    return (await appendWithClient(client, save, bootstrapEvents(name))).save
+  })
+
 // Full event history, for the admin view and for rebuilding a snapshot.
 export const listEvents = (playerId: PlayerId = DEFAULT_PLAYER, limit = 200) =>
   withConnection(async (client) => {
