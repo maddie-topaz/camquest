@@ -4,14 +4,20 @@
     {
       "name": "camquest-dev",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000,
       "autoPort": true
     },
     {
-      "name": "camquest-dev-local",
+      "name": "camquest-dev-rds",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["run", "dev:local"],
+      "runtimeArgs": [
+        "run",
+        "dev:rds"
+      ],
       "port": 3000,
       "autoPort": true
     }

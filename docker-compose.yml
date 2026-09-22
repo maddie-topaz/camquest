@@ -1,11 +1,11 @@
-# Local Postgres for development. Start it with `pnpm db:up` (or let
-# `pnpm dev:local` do it), then point the app at it via .env.docker.
+# Local Postgres for development. `pnpm dev` starts it (or `pnpm db:up` on
+# its own) and points the app at it via .env.docker.
 #
 # Host port 5440 rather than 5432: this machine already has other projects'
 # Postgres containers (and a Homebrew install) sitting on 5432/5433/5436.
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     ports:
       - "5440:5432"
     environment:
