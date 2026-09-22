@@ -1,13 +1,18 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, MemoryRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { Archive as ArchiveIcon, ArrowLeft, ArrowRight, Backpack, BookOpen, Check, CircleDot, Dice5, Flame, Gamepad2, Joystick, KeyRound, Link as LinkIcon, Lock, Martini, Moon, Origami, Palmtree, RotateCcw, Sparkles, Sun, Trophy, UserRound, Zap, type LucideIcon } from 'lucide-react'
+import { Archive as ArchiveIcon, ArrowLeft, ArrowRight, Backpack, Beef, Bell, BookOpen, Cat, Check, CircleDot, Dice5, Gamepad2, Joystick, Link as LinkIcon, Lock, Martini, Moon, Origami, Palmtree, RotateCcw, Sparkles, Sun, Ticket, Trophy, UserRound, Zap, type LucideIcon } from 'lucide-react'
 import { adventures, getAdventure, getProgress, resetAdventureProgress, saveProgress, type Adventure, type AdventureProgress, type ChallengeStep } from '@/lib/adventures'
-import { loadInventory, type InventoryItem } from '@/lib/inventory-client'
+import { acceptInventoryGrants, loadInventory, rearmInventoryReveal, type InventoryItem, type InventorySnapshot, type PendingGrant } from '@/lib/inventory-client'
 
 const choiceIcons: Record<string, LucideIcon> = { Sun, Moon, CircleDot, Joystick, Origami, Sparkles, Link: LinkIcon, Dice5, Martini, Palmtree }
-const inventoryIcons: Record<string, LucideIcon> = { KeyRound, CircleDot, Sparkles, Dice5, Flame, Martini }
+const inventoryIcons: Record<string, LucideIcon> = { Ticket, Bell, Cat, Beef, Sparkles }
+
+function emitGameSoundCue(cue: string, detail?: Record<string, unknown>) {
+  // Audio can subscribe to this event later without changing the reveal flow.
+  window.dispatchEvent(new CustomEvent('camquest:sfx', { detail: { cue, ...detail } }))
+}
 
 function Shell({ children, minimal = false }: { children: React.ReactNode; minimal?: boolean }) { return <div className="min-h-screen bg-[#0d0b1b] text-[#f7f0ff]"><div className="stars" />{!minimal && <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-6" aria-label="Site header" />}{children}</div> }
 function useStoredProgress() { const [progress, setProgress] = useState<Record<string, AdventureProgress>>({}); useEffect(() => setProgress(getProgress()), []); return progress }
@@ -41,7 +46,7 @@ function useInventory() {
   useEffect(() => {
     let cancelled = false
     loadInventory()
-      .then((inventory) => { if (!cancelled) setItems(inventory) })
+      .then((inventory) => { if (!cancelled) setItems(inventory.items) })
       .catch((loadError) => {
         console.error('Failed to load inventory', loadError)
         if (!cancelled) setError(true)
@@ -50,7 +55,134 @@ function useInventory() {
   }, [])
   return { items, error }
 }
-function Portal() { return <Shell minimal><main className="arcade-home"><section className="portal-hero"><div className="arcade-machine" aria-label="Camquest arcade machine"><Link className="arcade-screen" to="/lobby" aria-label="Start Camquest and open the lobby"><span className="screen-scanlines" aria-hidden="true" /><span className="pixel-sprite sprite-heart" aria-hidden="true">♥</span><span className="screen-stars">✦  ·  ✦  ·  ✦</span><strong>CAM⚡QUEST</strong><span className="screen-subtitle">READY UP. ADVENTURE CALLS.</span><span className="screen-prompt">[ PRESS START ]</span></Link><div className="arcade-controls" aria-label="Two-player arcade controls"><div className="player-controls" aria-label="Player one buttons"><div className="arcade-buttons"><button type="button" aria-label="Player one pink button"><span /></button><button type="button" aria-label="Player one gold button"><span /></button></div></div><div className="player-controls player-two" aria-label="Player two buttons"><div className="arcade-buttons"><button type="button" aria-label="Player two cyan button"><span /></button><button type="button" aria-label="Player two violet button"><span /></button></div></div></div></div></section></main></Shell> }
+type StartPhase = 'idle' | 'transition' | 'revealing' | 'ready' | 'accepting' | 'error'
+
+// Collapses one row per grant event into one card per item, summing the
+// quantities, so gifting the same thing twice shows "×2" rather than twins.
+function groupPendingGrants(pending: PendingGrant[]) {
+  const byItem = new Map<string, PendingGrant & { eventIds: number[] }>()
+  for (const grant of pending) {
+    const existing = byItem.get(grant.itemId)
+    if (existing) {
+      existing.quantity += grant.quantity
+      existing.eventIds.push(grant.eventId)
+    } else {
+      byItem.set(grant.itemId, { ...grant, eventIds: [grant.eventId] })
+    }
+  }
+  return [...byItem.values()]
+}
+
+function Portal() {
+  const navigate = useNavigate()
+  const acceptButton = useRef<HTMLButtonElement>(null)
+  const inventoryRequest = useRef<Promise<InventorySnapshot> | null>(null)
+  const [phase, setPhase] = useState<StartPhase>('idle')
+  const [pendingItems, setPendingItems] = useState<ReturnType<typeof groupPendingGrants>>([])
+  const isFirstGrant = pendingItems.length > 0 && pendingItems.every((item) => item.reason === 'starter_loadout')
+
+  const requestInventory = () => {
+    if (!inventoryRequest.current) inventoryRequest.current = loadInventory()
+    return inventoryRequest.current
+  }
+
+  useEffect(() => {
+    // Warm the database connection during the cabinet boot animation so START
+    // normally has the inventory ready before the player can press it.
+    void requestInventory().catch(() => { inventoryRequest.current = null })
+  }, [])
+
+  const startGame = async () => {
+    if (phase !== 'idle' && phase !== 'error') return
+    setPhase('transition')
+    emitGameSoundCue('game-start')
+    try {
+      const [snapshot] = await Promise.all([
+        requestInventory(),
+        new Promise((resolve) => window.setTimeout(resolve, 850)),
+      ])
+      // Nothing waiting to be accepted: skip the ceremony and go straight in.
+      if (snapshot.pending.length === 0) {
+        navigate('/quest-log')
+        return
+      }
+      setPendingItems(groupPendingGrants(snapshot.pending))
+      setPhase('revealing')
+    } catch (error) {
+      console.error('Failed to initialise starting inventory', error)
+      inventoryRequest.current = null
+      setPhase('error')
+      emitGameSoundCue('inventory-error')
+    }
+  }
+
+  useEffect(() => {
+    if (phase !== 'revealing') return
+    emitGameSoundCue('inventory-open')
+    const itemTimers = pendingItems.map((item, index) => window.setTimeout(
+      () => emitGameSoundCue('item-acquired', { itemId: item.itemId, index }),
+      900 + index * 650,
+    ))
+    const readyTimer = window.setTimeout(() => {
+      setPhase('ready')
+      emitGameSoundCue('inventory-ready')
+    }, 1250 + pendingItems.length * 650)
+    return () => {
+      itemTimers.forEach(window.clearTimeout)
+      window.clearTimeout(readyTimer)
+    }
+  }, [phase, pendingItems])
+
+  useEffect(() => {
+    if (phase === 'ready') acceptButton.current?.focus()
+  }, [phase])
+
+  const acceptItems = async () => {
+    if (phase !== 'ready') return
+    setPhase('accepting')
+    try {
+      await acceptInventoryGrants(pendingItems.flatMap((item) => item.eventIds))
+      emitGameSoundCue('inventory-accepted')
+      navigate('/quest-log')
+    } catch (error) {
+      // Leave the reveal up so the player can try again; the grants are
+      // still pending server-side, nothing was lost.
+      console.error('Failed to accept inventory grants', error)
+      setPhase('ready')
+      emitGameSoundCue('inventory-error')
+    }
+  }
+
+  return <Shell minimal><main className={`arcade-home ${phase !== 'idle' ? 'is-starting' : ''}`} data-start-phase={phase}><section className="portal-hero"><div className="arcade-machine" aria-label="Camquest arcade machine"><button type="button" className="arcade-screen" onClick={() => { void startGame() }} aria-label="Start Camquest"><span className="screen-scanlines" aria-hidden="true" /><span className="pixel-sprite sprite-heart" aria-hidden="true">♥</span><span className="screen-stars">✦  ·  ✦  ·  ✦</span><strong>CAM⚡QUEST</strong><span className="screen-subtitle">READY UP. ADVENTURE CALLS.</span><span className="screen-prompt">[ START GAME ]</span></button><div className="arcade-controls" aria-label="Two-player arcade controls"><div className="player-controls" aria-label="Player one buttons"><div className="arcade-buttons"><button type="button" aria-label="Player one pink button"><span /></button><button type="button" aria-label="Player one gold button"><span /></button></div></div><div className="player-controls player-two" aria-label="Player two buttons"><div className="arcade-buttons"><button type="button" aria-label="Player two cyan button"><span /></button><button type="button" aria-label="Player two violet button"><span /></button></div></div></div></div></section>
+    {phase !== 'idle' && <div className={`inventory-reveal-overlay phase-${phase}`} role="dialog" aria-modal="true" aria-label="Starting inventory" data-sfx="inventory-sequence">
+      <span className="reveal-scanlines" aria-hidden="true" />
+      {phase === 'transition' && <div className="inventory-boot" role="status" aria-live="polite"><span className="boot-rune">✦</span><p>Initialising player inventory...</p><div><i /><i /><i /><i /><i /><i /><i /><i /></div><small>Synchronising field pack // Player 02</small></div>}
+      {phase === 'error' && <div className="inventory-boot inventory-boot-error"><span className="boot-rune">!</span><p>Inventory signal lost</p><small>The field pack could not be synchronised.</small><button className="portal-button" onClick={startGame}>Retry link</button></div>}
+      {(phase === 'revealing' || phase === 'ready' || phase === 'accepting') && <section className="starter-inventory-panel">
+        <span className="fantasy-corner corner-one" aria-hidden="true">✦</span><span className="fantasy-corner corner-two" aria-hidden="true">✦</span>
+        <div className="starter-heading">
+          <p>{isFirstGrant ? 'System grant // New player cache' : 'Incoming transfer // Field pack update'}</p>
+          <h1 id="inventory-reveal-title">{isFirstGrant ? 'Starting inventory loaded' : 'New items received'}</h1>
+          <span>{isFirstGrant ? 'These objects are now bound to Player 02.' : 'Someone left these for Player 02.'}</span>
+        </div>
+        <div className="starter-pack-rail"><Backpack aria-hidden="true" /><span>Field pack</span><small>{pendingItems.length} {pendingItems.length === 1 ? 'object' : 'objects'} received</small></div>
+        <div className="starter-item-grid">
+          {pendingItems.map((item, index) => {
+            const Icon = inventoryIcons[item.icon] || Sparkles
+            return <article className="starter-item" key={item.itemId} style={{ '--reveal-delay': `${.8 + index * .65}s`, '--item-color': item.color, '--item-tilt': item.tilt } as React.CSSProperties} data-sfx="item-acquired">
+              <div className="starter-item-object"><span className="item-burst" aria-hidden="true" /><Icon aria-hidden="true" /><b>×{item.quantity}</b></div>
+              <h2>{item.name}</h2>
+              <p>{item.description}</p>
+            </article>
+          })}
+        </div>
+        <button ref={acceptButton} className="accept-items-button" disabled={phase !== 'ready'} onClick={() => { void acceptItems() }} data-sfx="inventory-accepted">
+          {phase === 'ready' ? 'Accept items' : phase === 'accepting' ? 'Binding items...' : 'Loading items...'} <ArrowRight aria-hidden="true" />
+        </button>
+      </section>}
+    </div>}
+  </main></Shell>
+}
 const lobbyDestinations = [
   { to: '/quest-log', icon: Gamepad2, title: 'Quest log', description: "See your current quests.", linkLabel: 'Enter quest log' },
   { to: '/archive', icon: ArchiveIcon, title: 'Archive', description: "See completed quests.", linkLabel: 'Open archive' },
@@ -248,6 +380,21 @@ function ResetDebug() {
   // are per-quest only, on purpose — no "wipe everything" button here.
   const [pendingSlug, setPendingSlug] = useState<string | null>(null)
   const [resultBySlug, setResultBySlug] = useState<Record<string, 'ok' | 'error'>>({})
+  const [rearmState, setRearmState] = useState<'idle' | 'pending' | 'ok' | 'error'>('idle')
+  const [rearmedCount, setRearmedCount] = useState(0)
+
+  // Puts every inventory grant back to "not yet accepted" so the next START
+  // replays the reveal. Nothing is removed from the pack.
+  const rearmReveal = async () => {
+    setRearmState('pending')
+    try {
+      setRearmedCount(await rearmInventoryReveal())
+      setRearmState('ok')
+    } catch (error) {
+      console.error('Failed to re-arm inventory reveal', error)
+      setRearmState('error')
+    }
+  }
 
   const resetQuest = async (slug: string) => {
     setPendingSlug(slug)
@@ -271,9 +418,21 @@ function ResetDebug() {
         <div className="page-title">
           <p className="eyebrow">Debug</p>
           <h1>Reset a quest</h1>
-          <p>Clears this device's local progress and every stored completion for one quest. Each quest resets on its own — there's no reset-everything button here.</p>
+          <p>Clears this device's local progress and every stored completion for one quest, or re-arms the inventory reveal. Each quest resets on its own — there's no reset-everything button here.</p>
         </div>
         <div className="archive-list">
+          <div className="archive-row">
+            <span className="archive-symbol"><Backpack aria-hidden="true" /></span>
+            <div>
+              <h2>Inventory reveal</h2>
+              <p>
+                {rearmState === 'pending' ? 'Re-arming…' : rearmState === 'ok' ? `Re-armed ${rearmedCount} grant${rearmedCount === 1 ? '' : 's'}. Press START to see the reveal again.` : rearmState === 'error' ? 'Something went wrong re-arming the reveal.' : 'Mark every item grant as not yet accepted, so START shows the reveal again.'}
+              </p>
+            </div>
+            <button className="reset-button" disabled={rearmState === 'pending'} onClick={rearmReveal}>
+              <RotateCcw /> Re-arm reveal
+            </button>
+          </div>
           {adventures.map((a) => (
             <div className="archive-row" key={a.id}>
               <span className="archive-symbol">{a.symbol}</span>

@@ -73,14 +73,34 @@ const sql = `
   CREATE INDEX IF NOT EXISTS inventory_events_item_created_at_idx
     ON inventory_events (item_id, created_at DESC);
 
+  -- A grant sits in the player's "new items" reveal until they press Accept,
+  -- which stamps it. Consume events are stamped on insert; there's nothing
+  -- to accept.
+  ALTER TABLE inventory_events ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMPTZ;
+  UPDATE inventory_events SET accepted_at = created_at
+  WHERE accepted_at IS NULL AND event_type = 'consume';
+
+  CREATE INDEX IF NOT EXISTS inventory_events_pending_idx
+    ON inventory_events (created_at) WHERE accepted_at IS NULL;
+
+  -- Retired items. Remove their ledger and pack rows first so the
+  -- foreign keys let us drop the item definitions.
+  DELETE FROM inventory_events
+  WHERE item_id IN ('player-two-key', 'arcade-token', 'emergency-glitter', 'mystery-cassette',
+                  'lucky-d6', 'ktown-matchbook', 'last-call-coaster');
+  DELETE FROM player_inventory
+  WHERE item_id IN ('player-two-key', 'arcade-token', 'emergency-glitter', 'mystery-cassette',
+                  'lucky-d6', 'ktown-matchbook', 'last-call-coaster');
+  DELETE FROM inventory_items
+  WHERE id IN ('player-two-key', 'arcade-token', 'emergency-glitter', 'mystery-cassette',
+                  'lucky-d6', 'ktown-matchbook', 'last-call-coaster');
+
   INSERT INTO inventory_items (id, name, description, unlock_hint, icon, color, tilt, sort_order)
   VALUES
-    ('player-two-key', 'Player Two key', 'Opens one door. Which one? Classified.', 'Starter item', 'KeyRound', '#ffd166', '-12deg', 10),
-    ('arcade-token', 'Arcade token', 'Still warm from the machine.', 'Starter item', 'CircleDot', '#55e7ff', '8deg', 20),
-    ('emergency-glitter', 'Emergency glitter', 'For low-morale encounters.', 'Starter item', 'Sparkles', '#ff75c8', '-5deg', 30),
-    ('lucky-d6', 'Lucky D6', 'Fate is a little easier to carry.', 'Complete Cam''s Gambit to find it.', 'Dice5', '#b99cff', '10deg', 40),
-    ('ktown-matchbook', 'K-Town matchbook', 'One spark left. Save it for dramatic effect.', 'Complete Cam''s Gambit to find it.', 'Flame', '#ff8e68', '-8deg', 50),
-    ('last-call-coaster', 'Last-call coaster', 'Proof the final portal was real.', 'Complete Cam''s Gambit to find it.', 'Martini', '#7dffad', '6deg', 60)
+    ('vip-wristband', 'VIP wristband', 'Access all areas. Nobody has said which areas.', 'Starter item', 'Ticket', '#ffd166', '-12deg', 10),
+    ('cowbell', 'Cowbell', 'The prescription was more of this.', 'Starter item', 'Bell', '#55e7ff', '8deg', 20),
+    ('kitanas-blessing', 'Kitana''s Blessing', 'A lucky cat relic. The paw still waves.', 'Starter item', 'Cat', '#ff75c8', '-5deg', 30),
+    ('biltong-fragment', 'Biltong fragment', 'Cured, dried, and somehow still going.', 'Starter item', 'Beef', '#d9a066', '6deg', 35)
   ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description,
@@ -92,9 +112,10 @@ const sql = `
 
   WITH starter_items(item_id, quantity, event_key) AS (
     VALUES
-      ('player-two-key', 1, 'starter:player-two-key'),
-      ('arcade-token', 2, 'starter:arcade-token'),
-      ('emergency-glitter', 1, 'starter:emergency-glitter')
+      ('vip-wristband', 1, 'starter:vip-wristband'),
+      ('cowbell', 1, 'starter:cowbell'),
+      ('kitanas-blessing', 1, 'starter:kitanas-blessing'),
+      ('biltong-fragment', 1, 'starter:biltong-fragment')
   ), recorded AS (
     INSERT INTO inventory_events (item_id, delta, event_type, reason, event_key)
     SELECT item_id, quantity, 'grant', 'starter_loadout', event_key FROM starter_items
@@ -103,28 +124,6 @@ const sql = `
   )
   INSERT INTO player_inventory (item_id, quantity)
   SELECT item_id, delta FROM recorded
-  ON CONFLICT (item_id) DO UPDATE
-  SET quantity = player_inventory.quantity + EXCLUDED.quantity,
-      updated_at = now();
-
-  WITH completed_gambit_rewards(item_id, quantity, quest_slug, event_key) AS (
-    SELECT reward.item_id, reward.quantity, 'cams-gambit', reward.event_key
-    FROM (
-      VALUES
-        ('lucky-d6', 1, 'quest:cams-gambit:reward:lucky-d6'),
-        ('ktown-matchbook', 1, 'quest:cams-gambit:reward:ktown-matchbook'),
-        ('last-call-coaster', 1, 'quest:cams-gambit:reward:last-call-coaster')
-    ) AS reward(item_id, quantity, event_key)
-    WHERE EXISTS (SELECT 1 FROM quest_completions WHERE slug = 'cams-gambit')
-  ), recorded_rewards AS (
-    INSERT INTO inventory_events (item_id, delta, event_type, reason, quest_slug, event_key)
-    SELECT item_id, quantity, 'grant', 'quest_complete', quest_slug, event_key
-    FROM completed_gambit_rewards
-    ON CONFLICT (event_key) DO NOTHING
-    RETURNING item_id, delta
-  )
-  INSERT INTO player_inventory (item_id, quantity)
-  SELECT item_id, delta FROM recorded_rewards
   ON CONFLICT (item_id) DO UPDATE
   SET quantity = player_inventory.quantity + EXCLUDED.quantity,
       updated_at = now();
