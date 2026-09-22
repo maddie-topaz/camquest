@@ -5,7 +5,10 @@ import { Link, MemoryRouter, Navigate, Route, Routes, useLocation, useNavigate, 
 import { Archive as ArchiveIcon, ArrowLeft, ArrowRight, Backpack, Beef, Bell, BookOpen, Cat, Check, CircleDot, Dice5, Gamepad2, Joystick, Link as LinkIcon, Lock, Martini, Moon, Origami, Palmtree, RotateCcw, Sparkles, Sun, Ticket, Trophy, UserRound, Zap, type LucideIcon } from 'lucide-react'
 import { adventures, getAdventure, type Adventure, type ChallengeStep } from '@/lib/adventures'
 import { GameProvider, useGame } from '@/app/game-provider'
-import { CommandRejectedError, type PendingGrantView, type QuestView } from '@/lib/game/client'
+import { CommandRejectedError, type QuestView } from '@/lib/game/client'
+import { useActorRef, useSelector } from '@xstate/react'
+import { questMachine, questSelectors, START_UNLOCK_ID } from '@/lib/game/machines/quest'
+import { startMachine, startSelectors } from '@/lib/game/machines/start'
 import { traits as traitDefinitions } from '@/lib/game/content/traits'
 import type { Requirements } from '@/lib/game/types'
 
@@ -31,101 +34,57 @@ function describeRequirements(missing: Requirements) {
   return parts.length ? `Requires ${parts.join(', ')}.` : 'Locked.'
 }
 
-type StartPhase = 'idle' | 'transition' | 'revealing' | 'ready' | 'accepting' | 'error'
-
-// Collapses one row per grant into one card per item, summing the
-// quantities, so gifting the same thing twice shows "×2" rather than twins.
-function groupPendingGrants(pending: PendingGrantView[]) {
-  const byItem = new Map<string, PendingGrantView & { grantKeys: string[]; reasons: string[] }>()
-  for (const grant of pending) {
-    const existing = byItem.get(grant.itemId)
-    if (existing) {
-      existing.quantity += grant.quantity
-      existing.grantKeys.push(grant.key)
-      existing.reasons.push(grant.reason)
-    } else {
-      byItem.set(grant.itemId, { ...grant, grantKeys: [grant.key], reasons: [grant.reason] })
-    }
-  }
-  return [...byItem.values()]
-}
-
 function Portal() {
   const navigate = useNavigate()
   const game = useGame()
   const acceptButton = useRef<HTMLButtonElement>(null)
-  const [phase, setPhase] = useState<StartPhase>('idle')
-  const [pendingItems, setPendingItems] = useState<ReturnType<typeof groupPendingGrants>>([])
-  const isFirstGrant = pendingItems.length > 0 && pendingItems.every((item) => item.reasons.every((reason) => reason === 'starter_loadout'))
 
-  const startGame = async () => {
-    if (phase !== 'idle' && phase !== 'error') return
-    setPhase('transition')
-    emitGameSoundCue('game-start')
-    try {
-      // The provider already started loading the save during the cabinet
-      // boot animation, so this normally resolves immediately.
-      const [view] = await Promise.all([
-        game.load(),
-        new Promise((resolve) => window.setTimeout(resolve, 850)),
-      ])
-      // Nothing waiting to be accepted: skip the ceremony and go straight in.
-      if (view.pendingGrants.length === 0) {
-        navigate('/quest-log')
-        return
-      }
-      setPendingItems(groupPendingGrants(view.pendingGrants))
-      setPhase('revealing')
-    } catch (error) {
-      console.error('Failed to initialise starting inventory', error)
-      setPhase('error')
-      emitGameSoundCue('inventory-error')
-    }
-  }
+  // The reveal ceremony is a state machine (lib/game/machines/start);
+  // this component only renders its state and forwards its emitted sound
+  // cues and the final "enter" to the outside world.
+  const actor = useActorRef(startMachine, {
+    input: {
+      load: game.load,
+      accept: (grantKeys) => game.dispatch({ type: 'grants.accept', grantKeys }),
+    },
+  })
+  const phase = useSelector(actor, (snapshot) =>
+    snapshot.matches('idle') ? 'idle'
+      : snapshot.matches('booting') || snapshot.matches('deciding') ? 'transition'
+      : snapshot.matches('revealing') ? 'revealing'
+      : snapshot.matches('ready') ? 'ready'
+      : snapshot.matches('accepting') ? 'accepting'
+      : snapshot.matches('error') ? 'error'
+      : 'leaving')
+  const pendingItems = useSelector(actor, (snapshot) => snapshot.context.items)
+  const isFirstGrant = startSelectors.isFirstGrant(pendingItems)
+
+  useEffect(() => {
+    const cues = actor.on('cue', (event) => emitGameSoundCue(event.cue, event.detail))
+    const enter = actor.on('enter', () => navigate('/quest-log'))
+    return () => { cues.unsubscribe(); enter.unsubscribe() }
+  }, [actor, navigate])
 
   useEffect(() => {
     if (phase !== 'revealing') return
-    emitGameSoundCue('inventory-open')
-    const itemTimers = pendingItems.map((item, index) => window.setTimeout(
-      () => emitGameSoundCue('item-acquired', { itemId: item.itemId, index }),
-      900 + index * 650,
-    ))
-    const readyTimer = window.setTimeout(() => {
-      setPhase('ready')
-      emitGameSoundCue('inventory-ready')
-    }, 1250 + pendingItems.length * 650)
-    return () => {
-      itemTimers.forEach(window.clearTimeout)
-      window.clearTimeout(readyTimer)
-    }
+    // Per-card flourishes, timed to the CSS reveal.
+    const timers = pendingItems.map((item, index) => window.setTimeout(() => emitGameSoundCue('item-acquired', { itemId: item.itemId, index }), 900 + index * 650))
+    return () => timers.forEach(window.clearTimeout)
   }, [phase, pendingItems])
 
   useEffect(() => {
     if (phase === 'ready') acceptButton.current?.focus()
   }, [phase])
 
-  const acceptItems = async () => {
-    if (phase !== 'ready') return
-    setPhase('accepting')
-    try {
-      await game.dispatch({ type: 'grants.accept', grantKeys: pendingItems.flatMap((item) => item.grantKeys) })
-      emitGameSoundCue('inventory-accepted')
-      navigate('/quest-log')
-    } catch (error) {
-      // Leave the reveal up so the player can try again; the grants are
-      // still pending server-side, nothing was lost.
-      console.error('Failed to accept inventory grants', error)
-      setPhase('ready')
-      emitGameSoundCue('inventory-error')
-    }
-  }
+  const startGame = () => actor.send({ type: 'START' })
+  const acceptItems = () => actor.send({ type: 'ACCEPT' })
 
-  return <Shell minimal><main className={`arcade-home ${phase !== 'idle' ? 'is-starting' : ''}`} data-start-phase={phase}><section className="portal-hero"><div className="arcade-machine" aria-label="Camquest arcade machine"><button type="button" className="arcade-screen" onClick={() => { void startGame() }} aria-label="Start Camquest"><span className="screen-scanlines" aria-hidden="true" /><span className="pixel-sprite sprite-heart" aria-hidden="true">♥</span><span className="screen-stars">✦  ·  ✦  ·  ✦</span><strong>CAM⚡QUEST</strong><span className="screen-subtitle">READY UP. ADVENTURE CALLS.</span><span className="screen-prompt">[ START GAME ]</span></button><div className="arcade-controls" aria-label="Two-player arcade controls"><div className="player-controls" aria-label="Player one buttons"><div className="arcade-buttons"><button type="button" aria-label="Player one pink button"><span /></button><button type="button" aria-label="Player one gold button"><span /></button></div></div><div className="player-controls player-two" aria-label="Player two buttons"><div className="arcade-buttons"><button type="button" aria-label="Player two cyan button"><span /></button><button type="button" aria-label="Player two violet button"><span /></button></div></div></div></div></section>
+  return <Shell minimal><main className={`arcade-home ${phase !== 'idle' ? 'is-starting' : ''}`} data-start-phase={phase}><section className="portal-hero"><div className="arcade-machine" aria-label="Camquest arcade machine"><button type="button" className="arcade-screen" onClick={startGame} aria-label="Start Camquest"><span className="screen-scanlines" aria-hidden="true" /><span className="pixel-sprite sprite-heart" aria-hidden="true">♥</span><span className="screen-stars">✦  ·  ✦  ·  ✦</span><strong>CAM⚡QUEST</strong><span className="screen-subtitle">READY UP. ADVENTURE CALLS.</span><span className="screen-prompt">[ START GAME ]</span></button><div className="arcade-controls" aria-label="Two-player arcade controls"><div className="player-controls" aria-label="Player one buttons"><div className="arcade-buttons"><button type="button" aria-label="Player one pink button"><span /></button><button type="button" aria-label="Player one gold button"><span /></button></div></div><div className="player-controls player-two" aria-label="Player two buttons"><div className="arcade-buttons"><button type="button" aria-label="Player two cyan button"><span /></button><button type="button" aria-label="Player two violet button"><span /></button></div></div></div></div></section>
     {phase !== 'idle' && <div className={`inventory-reveal-overlay phase-${phase}`} role="dialog" aria-modal="true" aria-label="Starting inventory" data-sfx="inventory-sequence">
       <span className="reveal-scanlines" aria-hidden="true" />
       {phase === 'transition' && <div className="inventory-boot" role="status" aria-live="polite"><span className="boot-rune">✦</span><p>Initialising player inventory...</p><div><i /><i /><i /><i /><i /><i /><i /><i /></div><small>Synchronising field pack // Player 02</small></div>}
-      {phase === 'error' && <div className="inventory-boot inventory-boot-error"><span className="boot-rune">!</span><p>Inventory signal lost</p><small>The field pack could not be synchronised.</small><button className="portal-button" onClick={startGame}>Retry link</button></div>}
-      {(phase === 'revealing' || phase === 'ready' || phase === 'accepting') && <section className="starter-inventory-panel">
+      {phase === 'error' && <div className="inventory-boot inventory-boot-error"><span className="boot-rune">!</span><p>Inventory signal lost</p><small>The field pack could not be synchronised.</small><button className="portal-button" onClick={() => actor.send({ type: 'RETRY' })}>Retry link</button></div>}
+      {(phase === 'revealing' || phase === 'ready' || phase === 'accepting' || phase === 'leaving') && <section className="starter-inventory-panel">
         <span className="fantasy-corner corner-one" aria-hidden="true">✦</span><span className="fantasy-corner corner-two" aria-hidden="true">✦</span>
         <div className="starter-heading">
           <p>{isFirstGrant ? 'System grant // New player cache' : 'Incoming transfer // Field pack update'}</p>
@@ -143,7 +102,7 @@ function Portal() {
             </article>
           })}
         </div>
-        <button ref={acceptButton} className="accept-items-button" disabled={phase !== 'ready'} onClick={() => { void acceptItems() }} data-sfx="inventory-accepted">
+        <button ref={acceptButton} className="accept-items-button" disabled={phase !== 'ready'} onClick={acceptItems} data-sfx="inventory-accepted">
           {phase === 'ready' ? 'Accept items' : phase === 'accepting' ? 'Binding items...' : 'Loading items...'} <ArrowRight aria-hidden="true" />
         </button>
       </section>}
@@ -452,7 +411,7 @@ function ResetDebug() {
     </Shell>
   )
 }
-const startUnlockId = '__start__'
+const startUnlockId = START_UNLOCK_ID
 function Intro({ adventure }: { adventure: Adventure }) {
   const navigate = useNavigate()
   const { view, dispatch } = useGame()
@@ -514,101 +473,64 @@ function Intro({ adventure }: { adventure: Adventure }) {
   </div></main></Shell>
 }
 function Challenge({ adventure }: { adventure: Adventure }) {
+  const { view } = useGame()
+  if (!view) return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><div className="inventory-sync" role="status"><div className="loading-spinner"><span /><span /><span /><span /></div><p>Loading save…</p></div></main></Shell>
+  // Keyed on the slug so switching quests starts a fresh machine.
+  return <ChallengeRun key={adventure.slug} adventure={adventure} view={view} />
+}
+
+function ChallengeRun({ adventure, view }: { adventure: Adventure; view: NonNullable<ReturnType<typeof useGame>['view']> }) {
   const navigate = useNavigate()
-  const { view, dispatch } = useGame()
-  const [stepIndex, setStepIndex] = useState(0)
-  const [hydrated, setHydrated] = useState(false)
-  const [answer, setAnswer] = useState('')
-  const [answers, setAnswers] = useState<Record<string, string>>({})
-  const [revealed, setRevealed] = useState(false)
-  const [unlockedSteps, setUnlockedSteps] = useState<string[]>([])
-  const [passcodeInput, setPasscodeInput] = useState('')
-  const [passcodeError, setPasscodeError] = useState(false)
-  const step = adventure.steps[stepIndex]
+  const { dispatch } = useGame()
 
-  // Restore from the save once it has loaded. A completed quest replays
-  // from the top; its recorded answers stay in the archive.
+  // Quest play is a state machine (lib/game/machines/quest). It owns which
+  // step we're on and what's answered; this component renders it and
+  // turns its emitted `progress` / `complete` events into commands.
+  const actor = useActorRef(questMachine, {
+    input: {
+      quest: adventure,
+      save: view.save,
+      saved: view.save.quests[adventure.slug],
+      completed: view.quests[adventure.slug]?.status === 'completed',
+    },
+  })
+  const snapshot = useSelector(actor, (state) => state)
+  const { stepIndex, answer, passcodeInput, passcodeError, missing } = snapshot.context
+  const step = questSelectors.step(snapshot)
+
   useEffect(() => {
-    if (!view || hydrated) return
-    const saved = view.save.quests[adventure.slug]
-    const completed = view.quests[adventure.slug]?.status === 'completed'
-    const initialStep = completed ? 0 : Math.min(saved?.step || 0, Math.max(0, adventure.steps.length - 1))
-    const initialAnswers = completed ? {} : saved?.answers || {}
-    const restoredAnswer = initialAnswers[adventure.steps[initialStep]?.id] || ''
-    setStepIndex(initialStep)
-    setAnswers(initialAnswers)
-    setAnswer(restoredAnswer)
-    setRevealed(Boolean(restoredAnswer))
-    setUnlockedSteps(completed ? [] : saved?.unlockedSteps || [])
-    setHydrated(true)
     void dispatch({ type: 'quest.start', slug: adventure.slug }).catch((error) => console.error('Failed to start quest', error))
-  }, [adventure.slug, adventure.steps, dispatch, hydrated, view])
-
-  // Every change is a quest.progress command, so a refresh or another
-  // device picks up exactly where this one left off.
-  useEffect(() => {
-    if (!hydrated) return
-    void dispatch({ type: 'quest.progress', slug: adventure.slug, step: stepIndex, answers, unlockedSteps })
-      .catch((error) => console.error('Failed to save quest progress', error))
-  }, [adventure.slug, answers, dispatch, hydrated, stepIndex, unlockedSteps])
-
-  const selectAnswer = (value: string) => {
-    setAnswer(value)
-    setAnswers((current) => ({ ...current, [step.id]: value }))
-  }
-
-  const unlockStep = () => {
-    const target = step.passcode?.trim().toUpperCase()
-    if (target && passcodeInput.trim().toUpperCase() === target) {
-      setUnlockedSteps((current) => (current.includes(step.id) ? current : [...current, step.id]))
-      setPasscodeInput('')
-      setPasscodeError(false)
-    } else {
-      setPasscodeError(true)
-    }
-  }
-
-  const next = () => {
-    const nextAnswers = answer ? { ...answers, [step.id]: answer } : answers
-    if (stepIndex >= adventure.steps.length - 1) {
+    const progress = actor.on('progress', (event) => {
+      void dispatch({ type: 'quest.progress', slug: adventure.slug, ...event.progress })
+        .catch((error) => console.error('Failed to save quest progress', error))
+    })
+    const complete = actor.on('complete', (event) => {
       // The engine records the completion, pays out rewards, and unlocks
       // whatever this quest unlocks, all in one transaction.
-      dispatch({ type: 'quest.complete', slug: adventure.slug, answers: nextAnswers })
+      dispatch({ type: 'quest.complete', slug: adventure.slug, answers: event.answers })
+        .then(() => actor.send({ type: 'COMPLETED' }))
         .catch((error) => {
           if (error instanceof CommandRejectedError) console.warn('Completion not recorded:', error.rejection.message)
           else console.error('Failed to save quest completion', error)
+          actor.send({ type: 'COMPLETION_FAILED' })
         })
       navigate(`/quest/${adventure.slug}/complete`)
-      return
-    }
+    })
+    return () => { progress.unsubscribe(); complete.unsubscribe() }
+  }, [actor, adventure.slug, dispatch, navigate])
 
-    const nextIndex = stepIndex + 1
-    const restoredAnswer = nextAnswers[adventure.steps[nextIndex].id] || ''
-    setAnswers(nextAnswers)
-    setStepIndex(nextIndex)
-    setAnswer(restoredAnswer)
-    setRevealed(Boolean(restoredAnswer))
-    setPasscodeInput('')
-    setPasscodeError(false)
+  if (snapshot.matches('locked')) {
+    return <Shell><main className="relative z-10 mx-auto max-w-3xl px-5 pb-20"><Link to="/quest-log" className="back-link"><ArrowLeft /> Back to quest log</Link><div className="challenge-panel"><p className="eyebrow">Signal locked</p><h1>{adventure.title}</h1><p className="challenge-prompt">{describeRequirements(missing)}</p></div></main></Shell>
   }
+  if (!step) return null
 
-  const isLocked = Boolean(step.passcode) && !unlockedSteps.includes(step.id)
-  const hasOutcomeReveal = step.type === 'mystery'
-  const selectedCard = step.type === 'mystery' ? step.cards.find((card) => card.label === answer) : undefined
-  const showingOutcome = hasOutcomeReveal && revealed && Boolean(selectedCard)
-  const isLastStep = stepIndex === adventure.steps.length - 1
-  const needsSelection = step.type === 'choice' || step.type === 'mystery'
-  const riddleIsIncorrect = step.type === 'riddle' && answer.trim().toLowerCase() !== step.answer
-
-  const primaryAction = () => {
-    if (hasOutcomeReveal && !revealed) {
-      setRevealed(true)
-      return
-    }
-    next()
-  }
-  const primaryLabel = hasOutcomeReveal && !revealed ? 'Lock choice' : isLastStep ? 'Finish quest' : 'Continue'
-  const primaryDisabled = showingOutcome ? false : (needsSelection && !answer) || riddleIsIncorrect
+  const isGated = questSelectors.isGated(snapshot)
+  const revealed = questSelectors.isRevealed(snapshot)
+  const selectedCard = questSelectors.selectedCard(snapshot)
+  const showingOutcome = step.type === 'mystery' && revealed && Boolean(selectedCard)
+  const primaryLabel = questSelectors.primaryLabel(snapshot)
+  const primaryDisabled = questSelectors.primaryDisabled(snapshot)
+  const primaryAction = () => actor.send({ type: step.type === 'mystery' && !revealed ? 'REVEAL' : 'NEXT' })
   const OutcomeIcon = selectedCard && ((selectedCard.icon && choiceIcons[selectedCard.icon]) || Sparkles)
 
   return (
@@ -622,23 +544,20 @@ function Challenge({ adventure }: { adventure: Adventure }) {
           <p className="eyebrow">{step.type} challenge</p>
           <h1>{step.title}</h1>
           <div className="challenge-prompt">{step.prompt.split('\n\n').map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
-          {isLocked ? (
+          {isGated ? (
             <div className="riddle-box passcode-gate">
               <p className="eyebrow">Checkpoint synchronization required</p>
               <form
                 onSubmit={(e) => {
                   e.preventDefault()
-                  unlockStep()
+                  actor.send({ type: 'SUBMIT_PASSCODE' })
                 }}
               >
                 <input
                   id="passcode"
                   aria-label="Passcode"
                   value={passcodeInput}
-                  onChange={(e) => {
-                    setPasscodeInput(e.target.value)
-                    setPasscodeError(false)
-                  }}
+                  onChange={(e) => actor.send({ type: 'TYPE_PASSCODE', value: e.target.value })}
                   placeholder="Enter code"
                   autoComplete="off"
                 />
@@ -653,9 +572,16 @@ function Challenge({ adventure }: { adventure: Adventure }) {
               <p>{selectedCard.outcome}</p>
             </div>
           ) : (
-            <ChallengeBody step={step} answer={answer} setAnswer={setAnswer} selectAnswer={selectAnswer} revealed={revealed} setRevealed={setRevealed} />
+            <ChallengeBody
+              step={step}
+              answer={answer}
+              setAnswer={(value) => actor.send({ type: 'TYPE_ANSWER', value })}
+              selectAnswer={(value) => actor.send({ type: 'SELECT', value })}
+              revealed={revealed}
+              setRevealed={() => actor.send({ type: 'REVEAL' })}
+            />
           )}
-          {!isLocked && (
+          {!isGated && (
             <button className="portal-button mt-8" disabled={primaryDisabled} onClick={primaryAction}>{primaryLabel} <ArrowRight /></button>
           )}
         </div>
