@@ -3,11 +3,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, MemoryRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Archive as ArchiveIcon, ArrowLeft, ArrowRight, Backpack, Beef, Bell, BookOpen, Cat, Check, CircleDot, Dice5, Gamepad2, Joystick, Link as LinkIcon, Lock, Martini, Moon, Origami, Palmtree, RotateCcw, Sparkles, Sun, Ticket, Trophy, UserRound, Zap, type LucideIcon } from 'lucide-react'
-import { adventures, getAdventure, getProgress, resetAdventureProgress, saveProgress, type Adventure, type AdventureProgress, type ChallengeStep } from '@/lib/adventures'
-import { acceptInventoryGrants, loadInventory, rearmInventoryReveal, type InventoryItem, type InventorySnapshot, type PendingGrant } from '@/lib/inventory-client'
+import { adventures, getAdventure, type Adventure, type ChallengeStep } from '@/lib/adventures'
+import { GameProvider, useGame } from '@/app/game-provider'
+import { CommandRejectedError, type PendingGrantView, type QuestView } from '@/lib/game/client'
+import { traits as traitDefinitions } from '@/lib/game/content/traits'
+import type { Requirements } from '@/lib/game/types'
 
 const choiceIcons: Record<string, LucideIcon> = { Sun, Moon, CircleDot, Joystick, Origami, Sparkles, Link: LinkIcon, Dice5, Martini, Palmtree }
 const inventoryIcons: Record<string, LucideIcon> = { Ticket, Bell, Cat, Beef, Sparkles }
+const achievementIcons: Record<string, LucideIcon> = { Trophy, Cat, Backpack, Zap, Sparkles }
 
 function emitGameSoundCue(cue: string, detail?: Record<string, unknown>) {
   // Audio can subscribe to this event later without changing the reveal flow.
@@ -15,59 +19,32 @@ function emitGameSoundCue(cue: string, detail?: Record<string, unknown>) {
 }
 
 function Shell({ children, minimal = false }: { children: React.ReactNode; minimal?: boolean }) { return <div className="min-h-screen bg-[#0d0b1b] text-[#f7f0ff]"><div className="stars" />{!minimal && <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-6" aria-label="Site header" />}{children}</div> }
-function useStoredProgress() { const [progress, setProgress] = useState<Record<string, AdventureProgress>>({}); useEffect(() => setProgress(getProgress()), []); return progress }
-function useCompletedSlugs() {
-  // Local progress only knows what this device has done. The database is
-  // shared across devices, so a quest either of us finished elsewhere still
-  // needs to show as completed here.
-  const [completedSlugs, setCompletedSlugs] = useState<Set<string>>(new Set())
-  const [completedAt, setCompletedAt] = useState<Record<string, string>>({})
-  const [answersBySlug, setAnswersBySlug] = useState<Record<string, Record<string, string>>>({})
-  useEffect(() => {
-    let cancelled = false
-    fetch('/api/quests/completions')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (cancelled) return
-        if (Array.isArray(data?.slugs)) setCompletedSlugs(new Set(data.slugs))
-        if (data?.completedAt) setCompletedAt(data.completedAt)
-        if (data?.answers) setAnswersBySlug(data.answers)
-      })
-      .catch((error) => console.error('Failed to load quest completions', error))
-    return () => {
-      cancelled = true
-    }
-  }, [])
-  return { completedSlugs, completedAt, answersBySlug }
+// Turns a missing-requirements object into copy for a locked quest card.
+function describeRequirements(missing: Requirements) {
+  const parts: string[] = []
+  if (missing.unlock) parts.push('a signal you haven\'t found yet')
+  for (const slug of missing.questsCompleted ?? []) parts.push(`completing ${getAdventure(slug)?.title ?? slug}`)
+  for (const itemId of missing.items ?? []) parts.push(`holding the ${itemId.replace(/-/g, ' ')}`)
+  for (const [trait, min] of Object.entries(missing.traits ?? {})) parts.push(`${traitDefinitions.find((t) => t.id === trait)?.name ?? trait} ${min}+`)
+  if (missing.level) parts.push(`level ${missing.level}`)
+  for (const id of missing.achievements ?? []) parts.push(`the ${id.replace(/-/g, ' ')} achievement`)
+  return parts.length ? `Requires ${parts.join(', ')}.` : 'Locked.'
 }
-function useInventory() {
-  const [items, setItems] = useState<InventoryItem[] | null>(null)
-  const [error, setError] = useState(false)
-  useEffect(() => {
-    let cancelled = false
-    loadInventory()
-      .then((inventory) => { if (!cancelled) setItems(inventory.items) })
-      .catch((loadError) => {
-        console.error('Failed to load inventory', loadError)
-        if (!cancelled) setError(true)
-      })
-    return () => { cancelled = true }
-  }, [])
-  return { items, error }
-}
+
 type StartPhase = 'idle' | 'transition' | 'revealing' | 'ready' | 'accepting' | 'error'
 
-// Collapses one row per grant event into one card per item, summing the
+// Collapses one row per grant into one card per item, summing the
 // quantities, so gifting the same thing twice shows "×2" rather than twins.
-function groupPendingGrants(pending: PendingGrant[]) {
-  const byItem = new Map<string, PendingGrant & { eventIds: number[] }>()
+function groupPendingGrants(pending: PendingGrantView[]) {
+  const byItem = new Map<string, PendingGrantView & { grantKeys: string[]; reasons: string[] }>()
   for (const grant of pending) {
     const existing = byItem.get(grant.itemId)
     if (existing) {
       existing.quantity += grant.quantity
-      existing.eventIds.push(grant.eventId)
+      existing.grantKeys.push(grant.key)
+      existing.reasons.push(grant.reason)
     } else {
-      byItem.set(grant.itemId, { ...grant, eventIds: [grant.eventId] })
+      byItem.set(grant.itemId, { ...grant, grantKeys: [grant.key], reasons: [grant.reason] })
     }
   }
   return [...byItem.values()]
@@ -75,42 +52,32 @@ function groupPendingGrants(pending: PendingGrant[]) {
 
 function Portal() {
   const navigate = useNavigate()
+  const game = useGame()
   const acceptButton = useRef<HTMLButtonElement>(null)
-  const inventoryRequest = useRef<Promise<InventorySnapshot> | null>(null)
   const [phase, setPhase] = useState<StartPhase>('idle')
   const [pendingItems, setPendingItems] = useState<ReturnType<typeof groupPendingGrants>>([])
-  const isFirstGrant = pendingItems.length > 0 && pendingItems.every((item) => item.reason === 'starter_loadout')
-
-  const requestInventory = () => {
-    if (!inventoryRequest.current) inventoryRequest.current = loadInventory()
-    return inventoryRequest.current
-  }
-
-  useEffect(() => {
-    // Warm the database connection during the cabinet boot animation so START
-    // normally has the inventory ready before the player can press it.
-    void requestInventory().catch(() => { inventoryRequest.current = null })
-  }, [])
+  const isFirstGrant = pendingItems.length > 0 && pendingItems.every((item) => item.reasons.every((reason) => reason === 'starter_loadout'))
 
   const startGame = async () => {
     if (phase !== 'idle' && phase !== 'error') return
     setPhase('transition')
     emitGameSoundCue('game-start')
     try {
-      const [snapshot] = await Promise.all([
-        requestInventory(),
+      // The provider already started loading the save during the cabinet
+      // boot animation, so this normally resolves immediately.
+      const [view] = await Promise.all([
+        game.load(),
         new Promise((resolve) => window.setTimeout(resolve, 850)),
       ])
       // Nothing waiting to be accepted: skip the ceremony and go straight in.
-      if (snapshot.pending.length === 0) {
+      if (view.pendingGrants.length === 0) {
         navigate('/quest-log')
         return
       }
-      setPendingItems(groupPendingGrants(snapshot.pending))
+      setPendingItems(groupPendingGrants(view.pendingGrants))
       setPhase('revealing')
     } catch (error) {
       console.error('Failed to initialise starting inventory', error)
-      inventoryRequest.current = null
       setPhase('error')
       emitGameSoundCue('inventory-error')
     }
@@ -141,7 +108,7 @@ function Portal() {
     if (phase !== 'ready') return
     setPhase('accepting')
     try {
-      await acceptInventoryGrants(pendingItems.flatMap((item) => item.eventIds))
+      await game.dispatch({ type: 'grants.accept', grantKeys: pendingItems.flatMap((item) => item.grantKeys) })
       emitGameSoundCue('inventory-accepted')
       navigate('/quest-log')
     } catch (error) {
@@ -189,31 +156,37 @@ const lobbyDestinations = [
   { to: '/profile', icon: UserRound, title: 'Player profile', description: 'Check your stats and collected loot.', linkLabel: 'View player profile' },
 ]
 function Lobby() { return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Game lobby</h1></div><div className="quest-grid">{lobbyDestinations.map((dest) => { const Icon = dest.icon; return <Link key={dest.to} className="quest-card" to={dest.to}><div className="card-top"><span className="quest-symbol"><Icon aria-hidden="true" /></span></div><h3>{dest.title}</h3><p>{dest.description}</p><span className="card-link">{dest.linkLabel} <ArrowRight /></span></Link> })}</div></main></Shell> }
-function QuestLog() { const progress = useStoredProgress(); const { completedSlugs } = useCompletedSlugs(); return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Quest log</h1></div><div className="quest-grid">{adventures.map((adventure) => <QuestCard key={adventure.id} adventure={adventure} progress={progress[adventure.slug]} serverCompleted={completedSlugs.has(adventure.slug)} />)}</div></main></Shell> }
-function QuestCard({ adventure, progress, serverCompleted }: { adventure: Adventure; progress?: AdventureProgress; serverCompleted?: boolean }) {
-  const locked = adventure.status !== 'available' && adventure.status !== 'completed'
-  const completed = Boolean(progress?.completed) || serverCompleted || adventure.status === 'completed'
+function QuestLog() { const { view } = useGame(); return <Shell><main className="relative z-10 mx-auto max-w-6xl px-5 pb-16"><Link to="/lobby" className="back-link"><ArrowLeft /> Back to lobby</Link><div className="page-title"><p className="eyebrow">Cam⚡Quest</p><h1>Quest log</h1></div><div className="quest-grid">{adventures.map((adventure) => <QuestCard key={adventure.id} adventure={adventure} quest={view?.quests[adventure.slug]} />)}</div></main></Shell> }
+function QuestCard({ adventure, quest }: { adventure: Adventure; quest?: QuestView }) {
+  // Status comes from the save via the rules engine; 'coming-soon' is the
+  // one authoring flag that overrides it.
+  const comingSoon = adventure.status === 'coming-soon'
+  const status = quest?.status ?? 'available'
+  const locked = comingSoon || status === 'locked'
+  const completed = status === 'completed'
+  const pill = completed ? 'Completed' : status === 'locked' ? 'Locked' : comingSoon ? 'Coming soon' : status === 'in-progress' ? 'In progress' : 'Available'
   return (
     <article className={`quest-card ${locked ? 'is-locked' : ''}`}>
       <div className="card-top">
         <span className="quest-symbol">{locked ? <Lock aria-hidden="true" /> : adventure.symbol}</span>
-        <span className="status-pill">{completed ? 'Completed' : locked ? 'Coming soon' : 'Available'}</span>
+        <span className="status-pill">{pill}</span>
       </div>
       <h3>{adventure.title}</h3>
       <p>{adventure.description}</p>
-      {locked ? (
+      {status === 'locked' && quest ? (
+        <span className="card-link muted">{describeRequirements(quest.missing)}</span>
+      ) : comingSoon ? (
         <span className="card-link muted">Still being written</span>
       ) : completed ? (
         <Link className="card-link" to={`/quest/${adventure.slug}/complete`}>View result <ArrowRight /></Link>
       ) : (
-        <Link className="card-link" to={`/quest/${adventure.slug}`}>{progress ? 'Continue quest' : 'Start quest'} <ArrowRight /></Link>
+        <Link className="card-link" to={`/quest/${adventure.slug}`}>{status === 'in-progress' ? 'Continue quest' : 'Start quest'} <ArrowRight /></Link>
       )}
     </article>
   )
 }
 function Archive() {
-  const progress = useStoredProgress()
-  const { completedSlugs, completedAt } = useCompletedSlugs()
+  const { view } = useGame()
   return (
     <Shell>
       <main className="relative z-10 mx-auto max-w-4xl px-5 pb-16">
@@ -224,8 +197,9 @@ function Archive() {
         </div>
         <div className="archive-list">
           {adventures.map((a) => {
-            const completed = Boolean(progress[a.slug]?.completed) || completedSlugs.has(a.slug)
-            const completedDate = completedAt[a.slug] && new Date(completedAt[a.slug]).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+            const quest = view?.quests[a.slug]
+            const completed = quest?.status === 'completed'
+            const completedDate = quest?.completedAt && new Date(quest.completedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
             return (
               <div className="archive-row" key={a.id}>
                 <span className="archive-symbol">{a.symbol}</span>
@@ -249,49 +223,33 @@ function Archive() {
   )
 }
 function Profile() {
-  const progress = useStoredProgress()
-  const { completedSlugs, completedAt, answersBySlug } = useCompletedSlugs()
-  const { items: inventory, error: inventoryError } = useInventory()
-  const localCompleted = new Set(Object.entries(progress).filter(([, value]) => value.completed).map(([slug]) => slug))
-  const completed = new Set([...completedSlugs, ...localCompleted])
+  const { view, error } = useGame()
+  const save = view?.save
+  const quests = view ? Object.values(view.quests) : []
   const totalQuests = adventures.length
-  const clearedQuests = adventures.filter((adventure) => completed.has(adventure.slug) || adventure.status === 'completed').length
-  const availableQuests = adventures.filter((adventure) => adventure.status !== 'coming-soon' && adventure.status !== 'locked').length
-  const combinedAnswers = Object.fromEntries(adventures.map((adventure) => [adventure.slug, answersBySlug[adventure.slug] || progress[adventure.slug]?.answers || {}]))
-  const decisionsMade = Object.values(combinedAnswers).reduce((total, answers) => total + Object.keys(answers).length, 0)
-  const checkpointsFound = Object.values(progress).reduce((total, value) => total + (value.unlockedSteps?.filter((step) => step !== startUnlockId).length || 0), 0)
+  const clearedQuests = quests.filter((quest) => quest.status === 'completed').length
+  const availableQuests = adventures.filter((adventure) => adventure.status !== 'coming-soon').length
+  const decisionsMade = save ? Object.values(save.quests).reduce((total, quest) => total + Object.keys(quest.answers).length, 0) : 0
+  const checkpointsFound = save ? Object.values(save.quests).reduce((total, quest) => total + quest.unlockedSteps.filter((step) => step !== startUnlockId).length, 0) : 0
   const completionRate = availableQuests ? Math.round((clearedQuests / availableQuests) * 100) : 0
-  const xp = clearedQuests * 500 + decisionsMade * 75 + checkpointsFound * 25
-  const level = Math.max(1, Math.floor(xp / 500) + 1)
-  const currentLevelXp = xp % 500
-  const playerName = adventures.find((adventure) => adventure.companionName)?.companionName || 'Player Two'
+  const level = view?.level ?? { level: 1, xp: 0, floor: 0, ceiling: 100, fraction: 0 }
+  const playerName = save?.player.name || 'Player Two'
+  const inventory = view?.inventory ?? null
+  const inventoryError = Boolean(error)
 
-  const achievements = adventures.flatMap((adventure) => {
-    const answers = combinedAnswers[adventure.slug]
-    const questComplete = completed.has(adventure.slug) || adventure.status === 'completed'
-    const questItem = {
-      id: `${adventure.slug}-badge`,
-      name: `${adventure.title} badge`,
-      detail: questComplete ? 'Quest clear reward' : 'Complete the quest to unlock',
-      icon: Trophy,
-      unlocked: questComplete,
-    }
-    const choiceItems = adventure.steps.flatMap((step, index) => {
-      if (step.type !== 'mystery') return []
-      const selected = step.cards.find((card) => card.label === answers[step.id])
-      return [{
-        id: `${adventure.slug}-${step.id}`,
-        name: selected ? step.title : `Hidden achievement ${index + 1}`,
-        detail: selected?.label || 'Keep exploring to unlock',
-        icon: selected?.icon ? choiceIcons[selected.icon] || Sparkles : Lock,
-        unlocked: Boolean(selected),
-      }]
-    })
-    return [questItem, ...choiceItems]
-  })
+  // Achievements are defined in lib/game/content/achievements and unlocked
+  // by the rules engine; the profile only renders them.
+  const achievements = (view?.achievements ?? []).map((achievement) => ({
+    id: achievement.id,
+    name: achievement.name,
+    detail: achievement.description,
+    icon: achievementIcons[achievement.icon] || Trophy,
+    unlocked: Boolean(achievement.unlockedAt),
+  }))
+  const traitRows = traitDefinitions.map((trait) => ({ ...trait, value: save?.player.traits[trait.id] ?? trait.initial }))
   const unlockedItems = inventory?.filter((item) => item.quantity > 0).length || 0
   const unlockedAchievements = achievements.filter((item) => item.unlocked).length
-  const latestClear = Object.values(completedAt).filter(Boolean).sort().at(-1)
+  const latestClear = quests.map((quest) => quest.completedAt).filter(Boolean).sort().at(-1)
 
   return (
     <Shell>
@@ -306,9 +264,9 @@ function Profile() {
           </div>
           <div className="player-level">
             <span>Level</span>
-            <strong>{String(level).padStart(2, '0')}</strong>
-            <small>{currentLevelXp} / 500 XP</small>
-            <div className="level-meter"><i style={{ width: `${(currentLevelXp / 500) * 100}%` }} /></div>
+            <strong>{String(level.level).padStart(2, '0')}</strong>
+            <small>{level.xp - level.floor} / {level.ceiling - level.floor} XP</small>
+            <div className="level-meter"><i style={{ width: `${Math.round(level.fraction * 100)}%` }} /></div>
           </div>
         </section>
 
@@ -322,6 +280,22 @@ function Profile() {
             <article className="stat-card"><Zap aria-hidden="true" /><span>Decisions made</span><strong>{decisionsMade}</strong></article>
             <article className="stat-card"><CircleDot aria-hidden="true" /><span>Checkpoints found</span><strong>{checkpointsFound}</strong></article>
             <article className="stat-card"><Gamepad2 aria-hidden="true" /><span>Completion</span><strong>{completionRate}<small>%</small></strong></article>
+          </div>
+        </section>
+
+        <section aria-labelledby="traits-title" className="profile-section">
+          <div className="profile-section-heading">
+            <div><p className="eyebrow">Calibration</p><h2 id="traits-title">Traits</h2></div>
+            <span>Shaped by every choice</span>
+          </div>
+          <div className="trait-list">
+            {traitRows.map((trait) => (
+              <div className="trait-row" key={trait.id} title={trait.description}>
+                <span>{trait.name}</span>
+                <div className="trait-meter" role="meter" aria-valuemin={trait.min} aria-valuemax={trait.max} aria-valuenow={trait.value} aria-label={trait.name}><i style={{ width: `${((trait.value - trait.min) / (trait.max - trait.min)) * 100}%` }} /></div>
+                <strong>{trait.value}</strong>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -378,17 +352,19 @@ function Profile() {
 function ResetDebug() {
   // Undocumented debug route: not linked from anywhere in the UI. Resets
   // are per-quest only, on purpose — no "wipe everything" button here.
+  const { admin, view } = useGame()
   const [pendingSlug, setPendingSlug] = useState<string | null>(null)
   const [resultBySlug, setResultBySlug] = useState<Record<string, 'ok' | 'error'>>({})
   const [rearmState, setRearmState] = useState<'idle' | 'pending' | 'ok' | 'error'>('idle')
   const [rearmedCount, setRearmedCount] = useState(0)
 
-  // Puts every inventory grant back to "not yet accepted" so the next START
-  // replays the reveal. Nothing is removed from the pack.
+  // Puts every grant back to "not yet accepted" so the next START replays
+  // the reveal. Nothing is removed from the pack.
   const rearmReveal = async () => {
     setRearmState('pending')
     try {
-      setRearmedCount(await rearmInventoryReveal())
+      const next = await admin({ action: 'rearm' })
+      setRearmedCount(next.pendingGrants.length)
       setRearmState('ok')
     } catch (error) {
       console.error('Failed to re-arm inventory reveal', error)
@@ -399,10 +375,10 @@ function ResetDebug() {
   const resetQuest = async (slug: string) => {
     setPendingSlug(slug)
     setResultBySlug((current) => { const next = { ...current }; delete next[slug]; return next })
-    resetAdventureProgress(slug)
     try {
-      const res = await fetch(`/api/quests/${slug}/completion`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Request failed')
+      // Appends a quest.reset event: progress and completions go, loot
+      // already granted stays (it's still in the event log).
+      await admin({ action: 'reset-quest', slug })
       setResultBySlug((current) => ({ ...current, [slug]: 'ok' }))
     } catch (error) {
       console.error('Failed to reset quest', error)
@@ -418,7 +394,7 @@ function ResetDebug() {
         <div className="page-title">
           <p className="eyebrow">Debug</p>
           <h1>Reset a quest</h1>
-          <p>Clears this device's local progress and every stored completion for one quest, or re-arms the inventory reveal. Each quest resets on its own — there's no reset-everything button here.</p>
+          <p>Resets one quest's progress and completions in the save, or re-arms the inventory reveal. Rewards already granted stay in the pack. Each quest resets on its own — there's no reset-everything button here.</p>
         </div>
         <div className="archive-list">
           <div className="archive-row">
@@ -426,7 +402,7 @@ function ResetDebug() {
             <div>
               <h2>Inventory reveal</h2>
               <p>
-                {rearmState === 'pending' ? 'Re-arming…' : rearmState === 'ok' ? `Re-armed ${rearmedCount} grant${rearmedCount === 1 ? '' : 's'}. Press START to see the reveal again.` : rearmState === 'error' ? 'Something went wrong re-arming the reveal.' : 'Mark every item grant as not yet accepted, so START shows the reveal again.'}
+                {rearmState === 'pending' ? 'Re-arming…' : rearmState === 'ok' ? `Re-armed ${rearmedCount} grant${rearmedCount === 1 ? '' : 's'}. Press START to see the reveal again.` : rearmState === 'error' ? 'Something went wrong re-arming the reveal.' : `${view?.pendingGrants.length ?? 0} pending now. Mark every item grant as not yet accepted, so START shows the reveal again.`}
               </p>
             </div>
             <button className="reset-button" disabled={rearmState === 'pending'} onClick={rearmReveal}>
@@ -479,25 +455,24 @@ function ResetDebug() {
 const startUnlockId = '__start__'
 function Intro({ adventure }: { adventure: Adventure }) {
   const navigate = useNavigate()
+  const { view, dispatch } = useGame()
   const paragraphs = (adventure.introduction || '').split('\n\n')
-  const [startUnlocked, setStartUnlocked] = useState(!adventure.startPasscode)
   const [startPasscodeInput, setStartPasscodeInput] = useState('')
   const [startPasscodeError, setStartPasscodeError] = useState(false)
+  const saved = view?.save.quests[adventure.slug]
+  const startUnlocked = !adventure.startPasscode || Boolean(saved?.unlockedSteps.includes(startUnlockId))
 
-  useEffect(() => {
-    if (!adventure.startPasscode) return
-    const unlockedSteps = getProgress()[adventure.slug]?.unlockedSteps || []
-    setStartUnlocked(unlockedSteps.includes(startUnlockId))
-  }, [adventure.slug, adventure.startPasscode])
-
-  const unlockStart = () => {
+  const unlockStart = async () => {
     const target = adventure.startPasscode?.trim().toUpperCase()
     if (target && startPasscodeInput.trim().toUpperCase() === target) {
-      const current = getProgress()[adventure.slug]
-      const nextUnlocked = [...(current?.unlockedSteps || []), startUnlockId]
-      saveProgress(adventure.slug, current?.step ?? 0, current?.completed ?? false, current?.answers, nextUnlocked)
-      setStartUnlocked(true)
       setStartPasscodeError(false)
+      try {
+        await dispatch({ type: 'quest.start', slug: adventure.slug })
+        await dispatch({ type: 'quest.progress', slug: adventure.slug, step: saved?.step ?? 0, answers: saved?.answers ?? {}, unlockedSteps: [...(saved?.unlockedSteps ?? []), startUnlockId] })
+      } catch (error) {
+        console.error('Failed to unlock quest start', error)
+        setStartPasscodeError(true)
+      }
     } else {
       setStartPasscodeError(true)
     }
@@ -517,7 +492,7 @@ function Intro({ adventure }: { adventure: Adventure }) {
         <form
           onSubmit={(e) => {
             e.preventDefault()
-            unlockStart()
+            void unlockStart()
           }}
         >
           <input
@@ -540,6 +515,7 @@ function Intro({ adventure }: { adventure: Adventure }) {
 }
 function Challenge({ adventure }: { adventure: Adventure }) {
   const navigate = useNavigate()
+  const { view, dispatch } = useGame()
   const [stepIndex, setStepIndex] = useState(0)
   const [hydrated, setHydrated] = useState(false)
   const [answer, setAnswer] = useState('')
@@ -550,22 +526,31 @@ function Challenge({ adventure }: { adventure: Adventure }) {
   const [passcodeError, setPasscodeError] = useState(false)
   const step = adventure.steps[stepIndex]
 
+  // Restore from the save once it has loaded. A completed quest replays
+  // from the top; its recorded answers stay in the archive.
   useEffect(() => {
-    const saved = getProgress()[adventure.slug]
-    const initialStep = saved?.completed ? 0 : Math.min(saved?.step || 0, Math.max(0, adventure.steps.length - 1))
-    const initialAnswers = saved?.completed ? {} : saved?.answers || {}
+    if (!view || hydrated) return
+    const saved = view.save.quests[adventure.slug]
+    const completed = view.quests[adventure.slug]?.status === 'completed'
+    const initialStep = completed ? 0 : Math.min(saved?.step || 0, Math.max(0, adventure.steps.length - 1))
+    const initialAnswers = completed ? {} : saved?.answers || {}
     const restoredAnswer = initialAnswers[adventure.steps[initialStep]?.id] || ''
     setStepIndex(initialStep)
     setAnswers(initialAnswers)
     setAnswer(restoredAnswer)
     setRevealed(Boolean(restoredAnswer))
-    setUnlockedSteps(saved?.completed ? [] : saved?.unlockedSteps || [])
+    setUnlockedSteps(completed ? [] : saved?.unlockedSteps || [])
     setHydrated(true)
-  }, [adventure.slug, adventure.steps])
+    void dispatch({ type: 'quest.start', slug: adventure.slug }).catch((error) => console.error('Failed to start quest', error))
+  }, [adventure.slug, adventure.steps, dispatch, hydrated, view])
 
+  // Every change is a quest.progress command, so a refresh or another
+  // device picks up exactly where this one left off.
   useEffect(() => {
-    if (hydrated) saveProgress(adventure.slug, stepIndex, false, answers, unlockedSteps)
-  }, [adventure.slug, answers, hydrated, stepIndex, unlockedSteps])
+    if (!hydrated) return
+    void dispatch({ type: 'quest.progress', slug: adventure.slug, step: stepIndex, answers, unlockedSteps })
+      .catch((error) => console.error('Failed to save quest progress', error))
+  }, [adventure.slug, answers, dispatch, hydrated, stepIndex, unlockedSteps])
 
   const selectAnswer = (value: string) => {
     setAnswer(value)
@@ -586,21 +571,19 @@ function Challenge({ adventure }: { adventure: Adventure }) {
   const next = () => {
     const nextAnswers = answer ? { ...answers, [step.id]: answer } : answers
     if (stepIndex >= adventure.steps.length - 1) {
-      // The finished answers now live in the database (see the POST below);
-      // no need to keep a duplicate copy in localStorage. Just mark it done.
-      saveProgress(adventure.slug, adventure.steps.length, true, {})
-      void fetch('/api/quests/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug: adventure.slug, answers: nextAnswers }),
-      }).catch((error) => console.error('Failed to save quest completion', error))
+      // The engine records the completion, pays out rewards, and unlocks
+      // whatever this quest unlocks, all in one transaction.
+      dispatch({ type: 'quest.complete', slug: adventure.slug, answers: nextAnswers })
+        .catch((error) => {
+          if (error instanceof CommandRejectedError) console.warn('Completion not recorded:', error.rejection.message)
+          else console.error('Failed to save quest completion', error)
+        })
       navigate(`/quest/${adventure.slug}/complete`)
       return
     }
 
     const nextIndex = stepIndex + 1
     const restoredAnswer = nextAnswers[adventure.steps[nextIndex].id] || ''
-    saveProgress(adventure.slug, nextIndex, false, nextAnswers, unlockedSteps)
     setAnswers(nextAnswers)
     setStepIndex(nextIndex)
     setAnswer(restoredAnswer)
@@ -688,27 +671,12 @@ function ChallengeBody({ step, answer, setAnswer, selectAnswer, revealed, setRev
   return <div className="confirm-box"><BookOpen /><p>{step.type === 'activity' ? step.detail : step.prompt}</p>{step.type === 'confirm' && <button className="text-button" onClick={() => setRevealed(true)}>{step.button}</button>}</div>
 }
 function Completion({ adventure }: { adventure: Adventure }) {
-  // The database is the only source of truth for a finished quest's
-  // choices now. `undefined` means "still fetching" (shows the loading
-  // spinner); `null` means the fetch finished but found nothing.
-  const [answers, setAnswers] = useState<Record<string, string> | null | undefined>(undefined)
-
-  useEffect(() => {
-    let cancelled = false
-    setAnswers(undefined)
-    fetch(`/api/quests/${adventure.slug}/completion`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled) setAnswers(data?.completion?.answers ?? null)
-      })
-      .catch((error) => {
-        console.error('Failed to load stored completion', error)
-        if (!cancelled) setAnswers(null)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [adventure.slug])
+  // The save is the only source of truth for a finished quest's choices.
+  // `undefined` means the save is still loading; `null` means it loaded
+  // but this quest has never been completed.
+  const { view, error } = useGame()
+  const quest = view?.quests[adventure.slug]
+  const answers: Record<string, string> | null | undefined = !view && !error ? undefined : quest && quest.completions > 0 ? view!.save.quests[adventure.slug].answers : null
 
   const loading = answers === undefined
 
@@ -768,7 +736,7 @@ function AppRoutes() { return <Routes><Route path="/" element={<Portal />} /><Ro
 function App({ initialPath = '/' }: { initialPath?: string }) {
   // Keep one router mounted for the lifetime of the app so the CRT boot
   // sequence is not restarted when hydration completes.
-  return <MemoryRouter initialEntries={[initialPath]}><BrowserUrlSync /><AppRoutes /></MemoryRouter>
+  return <GameProvider><MemoryRouter initialEntries={[initialPath]}><BrowserUrlSync /><AppRoutes /></MemoryRouter></GameProvider>
 }
 function RouteAdventure({ children }: { children: (a: Adventure) => React.ReactNode }) { const { slug } = useParams(); const adventure = useMemo(() => getAdventure(slug || ''), [slug]); if (!adventure || adventure.status === 'coming-soon') return <Portal />; return <>{children(adventure)}</> }
 const QuestIntroRoute = () => <RouteAdventure>{(a) => <Intro adventure={a} />}</RouteAdventure>; const ChallengeRoute = () => <RouteAdventure>{(a) => <Challenge adventure={a} />}</RouteAdventure>; const CompletionRoute = () => <RouteAdventure>{(a) => <Completion adventure={a} />}</RouteAdventure>

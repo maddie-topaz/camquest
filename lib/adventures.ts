@@ -1,3 +1,10 @@
+import type { Requirements, Rewards } from '@/lib/game/types'
+
+// `status` is an authoring flag only. 'coming-soon' hides the steps until
+// the content is ready; everything else is derived at runtime from the
+// save file by lib/game/rules (locked / available / in-progress /
+// completed). The old 'locked' and 'completed' values are accepted for
+// backwards compatibility but no longer mean anything.
 export type AdventureStatus = 'available' | 'completed' | 'locked' | 'coming-soon'
 export type MysteryCard = { label: string; outcome?: string; icon?: string; summaryValue?: string; tags?: string[] }
 export type ChallengeStep =
@@ -8,10 +15,16 @@ export type ChallengeStep =
   | { type: 'reveal'; id: string; title: string; prompt: string; message: string; passcode?: string }
   | { type: 'confirm'; id: string; title: string; prompt: string; button: string; passcode?: string }
 
-export type Adventure = { id: string; slug: string; title: string; subtitle?: string; description: string; symbol: string; status: AdventureStatus; introduction?: string; ctaLabel?: string; startPasscode?: string; steps: ChallengeStep[]; completionTitle?: string; completionMessage: string; reward?: string; companionName?: string; funStats?: { label: string; value: string }[] }
-export type AdventureProgress = { step: number; completed: boolean; answers?: Record<string, string>; unlockedSteps?: string[] }
-
-const progressStorageKey = 'camquest-progress-v2'
+export type Adventure = {
+  id: string; slug: string; title: string; subtitle?: string; description: string; symbol: string; status: AdventureStatus
+  introduction?: string; ctaLabel?: string; startPasscode?: string; steps: ChallengeStep[]
+  completionTitle?: string; completionMessage: string; reward?: string; companionName?: string; funStats?: { label: string; value: string }[]
+  // Quest engine hooks. See lib/game/rules for how they are evaluated.
+  requirements?: Requirements
+  rewards?: Rewards
+  // Rewards are granted on every completion rather than only the first.
+  repeatable?: boolean
+}
 
 export const adventures: Adventure[] = [
   {
@@ -111,17 +124,40 @@ export const adventures: Adventure[] = [
       { label: 'Player 1 betrayals', value: '???' },
       { label: 'Korean BBQ consumed', value: 'Critical' },
     ],
+    rewards: {
+      xp: 250,
+      traits: { chaos: 1, curiosity: 1 },
+      unlocks: ['unknown-signal'],
+    },
+  },
+  {
+    // Placeholder for the next quest: shows how prerequisites gate a quest
+    // in the log. Flip status to 'available' once the steps are written.
+    id: 'unknown-signal',
+    slug: 'unknown-signal',
+    title: 'Unknown Signal',
+    description: 'Something is broadcasting after dark.',
+    symbol: '📡',
+    status: 'coming-soon',
+    steps: [],
+    completionMessage: 'The signal fades.',
+    requirements: {
+      unlock: true,
+      items: ['vip-wristband'],
+      questsCompleted: ['cams-gambit'],
+    },
+    rewards: {
+      xp: 100,
+      traits: { mysteryTolerance: 1 },
+    },
   },
 ]
 
 export function getAdventure(slug: string) { return adventures.find((adventure) => adventure.slug === slug) }
-export function getProgress(): Record<string, AdventureProgress> { if (typeof window === 'undefined') return {}; try { return JSON.parse(localStorage.getItem(progressStorageKey) || '{}') } catch { return {} } }
-export function saveProgress(slug: string, step: number, completed = false, answers?: Record<string, string>, unlockedSteps?: string[]) { const progress = getProgress(); const current = progress[slug]; progress[slug] = { step, completed, answers: answers ?? current?.answers, unlockedSteps: unlockedSteps ?? current?.unlockedSteps }; localStorage.setItem(progressStorageKey, JSON.stringify(progress)) }
-export function resetAdventureProgress(slug: string) { const progress = getProgress(); delete progress[slug]; localStorage.setItem(progressStorageKey, JSON.stringify(progress)) }
-
 // Add an adventure to this array. Give it a unique slug, then compose steps using the ChallengeStep union above. Generic screens render every step from its `type`.
 // See the Adventure type for every field; no component changes are needed for a new adventure.
 // Example: { type: 'confirm', id: 'door', title: 'Open the door', prompt: 'Ready?', button: 'Open it' }
-// Future authoring guide: keep copy and answers here, use an asset path in your own visual treatment, and set status to 'coming-soon' until ready.
+// Progress and completions live in the save file (lib/game); nothing here is persisted.
+// Set status to 'coming-soon' until the steps are ready; the rules engine derives everything else.
 
 export const authoringGuide = 'Create a new object in adventures with a unique id and slug, title, description, status, steps, and completionMessage. Each step must include a type and the fields for that type. Add it to the adventures array; the portal, intro, progress, persistence, and completion screens update automatically.'

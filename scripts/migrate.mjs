@@ -1,4 +1,8 @@
-// Creates the game persistence tables and starter inventory. Safe to re-run.
+// Creates the game persistence tables. Safe to re-run.
+//
+// The save file is an event log (game_events) plus a snapshot (game_saves);
+// see lib/game/store.ts. The older quest_completions / inventory_* tables
+// are kept only as the source for the one-time backfill below.
 //
 // Usage:
 //   node --env-file=.env.local scripts/migrate.mjs
@@ -83,57 +87,74 @@ const sql = `
   CREATE INDEX IF NOT EXISTS inventory_events_pending_idx
     ON inventory_events (created_at) WHERE accepted_at IS NULL;
 
-  -- Retired items. Remove their ledger and pack rows first so the
-  -- foreign keys let us drop the item definitions.
-  DELETE FROM inventory_events
-  WHERE item_id IN ('player-two-key', 'arcade-token', 'emergency-glitter', 'mystery-cassette',
-                  'lucky-d6', 'ktown-matchbook', 'last-call-coaster');
-  DELETE FROM player_inventory
-  WHERE item_id IN ('player-two-key', 'arcade-token', 'emergency-glitter', 'mystery-cassette',
-                  'lucky-d6', 'ktown-matchbook', 'last-call-coaster');
-  DELETE FROM inventory_items
-  WHERE id IN ('player-two-key', 'arcade-token', 'emergency-glitter', 'mystery-cassette',
-                  'lucky-d6', 'ktown-matchbook', 'last-call-coaster');
+  -- ---------------------------------------------------------------------
+  -- Game save: append-only event log + materialised snapshot.
+  -- See lib/game/store.ts.
+  -- ---------------------------------------------------------------------
 
-  INSERT INTO inventory_items (id, name, description, unlock_hint, icon, color, tilt, sort_order)
-  VALUES
-    ('vip-wristband', 'VIP wristband', 'Access all areas. Nobody has said which areas.', 'Starter item', 'Ticket', '#ffd166', '-12deg', 10),
-    ('cowbell', 'Cowbell', 'The prescription was more of this.', 'Starter item', 'Bell', '#55e7ff', '8deg', 20),
-    ('kitanas-blessing', 'Kitana''s Blessing', 'A lucky cat relic. The paw still waves.', 'Starter item', 'Cat', '#ff75c8', '-5deg', 30),
-    ('biltong-fragment', 'Biltong fragment', 'Cured, dried, and somehow still going.', 'Starter item', 'Beef', '#d9a066', '6deg', 35)
-  ON CONFLICT (id) DO UPDATE SET
-    name = EXCLUDED.name,
-    description = EXCLUDED.description,
-    unlock_hint = EXCLUDED.unlock_hint,
-    icon = EXCLUDED.icon,
-    color = EXCLUDED.color,
-    tilt = EXCLUDED.tilt,
-    sort_order = EXCLUDED.sort_order;
+  CREATE TABLE IF NOT EXISTS game_events (
+    id BIGSERIAL PRIMARY KEY,
+    player_id TEXT NOT NULL,
+    seq BIGINT NOT NULL,
+    event_key TEXT NOT NULL,
+    payload JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (player_id, seq),
+    UNIQUE (player_id, event_key)
+  );
 
-  WITH starter_items(item_id, quantity, event_key) AS (
-    VALUES
-      ('vip-wristband', 1, 'starter:vip-wristband'),
-      ('cowbell', 1, 'starter:cowbell'),
-      ('kitanas-blessing', 1, 'starter:kitanas-blessing'),
-      ('biltong-fragment', 1, 'starter:biltong-fragment')
-  ), recorded AS (
-    INSERT INTO inventory_events (item_id, delta, event_type, reason, event_key)
-    SELECT item_id, quantity, 'grant', 'starter_loadout', event_key FROM starter_items
-    ON CONFLICT (event_key) DO NOTHING
-    RETURNING item_id, delta
+  CREATE TABLE IF NOT EXISTS game_saves (
+    player_id TEXT PRIMARY KEY,
+    state JSONB NOT NULL,
+    last_seq BIGINT NOT NULL DEFAULT 0,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+
+  -- One-time backfill from the pre-event-log tables, so Cam's history
+  -- survives the switch. Every row is keyed, so re-running is a no-op.
+  -- Order: player, grants (oldest first), acceptances, completions.
+  WITH numbered AS (
+    SELECT * FROM (
+      SELECT 'player:created' AS event_key,
+             jsonb_build_object('type', 'player.created', 'name', 'Cam') AS payload,
+             '1970-01-01'::timestamptz AS created_at, 0 AS ord
+      UNION ALL
+      SELECT COALESCE(event_key, 'legacy:grant:' || id::text),
+             jsonb_build_object('type', 'item.granted', 'itemId', item_id, 'quantity', delta, 'reason', reason, 'questSlug', quest_slug),
+             created_at, 1
+      FROM inventory_events WHERE event_type = 'grant' AND delta > 0
+      UNION ALL
+      SELECT COALESCE(event_key, 'legacy:consume:' || id::text),
+             jsonb_build_object('type', 'item.consumed', 'itemId', item_id, 'quantity', -delta, 'reason', reason, 'questSlug', quest_slug),
+             created_at, 1
+      FROM inventory_events WHERE event_type = 'consume' AND delta < 0
+      UNION ALL
+      SELECT 'legacy:accept:' || id::text,
+             jsonb_build_object('type', 'grants.accepted', 'grantKeys', jsonb_build_array(COALESCE(event_key, 'legacy:grant:' || id::text))),
+             accepted_at, 2
+      FROM inventory_events WHERE event_type = 'grant' AND accepted_at IS NOT NULL
+      UNION ALL
+      SELECT 'legacy:completion:' || id::text,
+             jsonb_build_object('type', 'quest.completed', 'slug', slug, 'answers', answers),
+             completed_at, 3
+      FROM quest_completions
+    ) AS legacy
+    WHERE NOT EXISTS (SELECT 1 FROM game_events WHERE game_events.player_id = 'cam')
+  ), ordered AS (
+    SELECT event_key, payload, created_at,
+           ROW_NUMBER() OVER (ORDER BY ord, created_at, event_key) AS seq
+    FROM numbered
   )
-  INSERT INTO player_inventory (item_id, quantity)
-  SELECT item_id, delta FROM recorded
-  ON CONFLICT (item_id) DO UPDATE
-  SET quantity = player_inventory.quantity + EXCLUDED.quantity,
-      updated_at = now();
+  INSERT INTO game_events (player_id, seq, event_key, payload, created_at)
+  SELECT 'cam', seq, event_key, payload, created_at FROM ordered
+  ON CONFLICT (player_id, event_key) DO NOTHING;
 
   COMMIT;
 `;
 
 try {
   await pool.query(sql);
-  console.log("✓ Game persistence tables and starter inventory are ready.");
+  console.log("✓ Game persistence tables, starter inventory, and the event log are ready.");
 } catch (error) {
   console.error("✗ Migration failed:", error.message);
   process.exitCode = 1;

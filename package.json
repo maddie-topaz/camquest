@@ -6,7 +6,9 @@
     "dev": "vercel env pull .env.local --yes && next dev",
     "dev:offline": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@aws-sdk/rds-signer": "3.1123.0",
