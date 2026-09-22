@@ -1,4 +1,4 @@
-import App from '@/app/page'
+import { GameApp } from "@/app/game-app";
 
 // Camquest's actual routing (portal, quest log, archive, individual quests)
 // is all client-side (react-router's MemoryRouter inside app/page.tsx). That
@@ -10,7 +10,11 @@ import App from '@/app/page'
 // page, and hands the requested path down as `initialPath` so the client
 // router opens directly on the right screen instead of always starting
 // at the portal.
-export default async function CatchAllPage({ params }: { params: Promise<{ path: string[] }> }) {
-  const { path } = await params
-  return <App initialPath={`/${path.join('/')}`} />
+export default async function CatchAllPage({
+  params,
+}: {
+  params: Promise<{ path: string[] }>;
+}) {
+  const { path } = await params;
+  return <GameApp initialPath={`/${path.join("/")}`} />;
 }

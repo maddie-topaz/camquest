@@ -1,45 +1,11 @@
-import { awsCredentialsProvider } from "@vercel/functions/oidc";
 import { attachDatabasePool } from "@vercel/functions";
-import { Signer } from "@aws-sdk/rds-signer";
 import { ClientBase, Pool } from "pg";
+import { databasePoolConfig } from "./db-pool.mjs";
 
-const signer = new Signer({
-  hostname: process.env.PGHOST!,
-  port: Number(process.env.PGPORT),
-  username: process.env.PGUSER!,
-  region: process.env.AWS_REGION!,
-  credentials: awsCredentialsProvider({
-    roleArn: process.env.AWS_ROLE_ARN!,
-    clientConfig: { region: process.env.AWS_REGION! },
-  }),
-});
-
-// IAM auth tokens are valid for 15 minutes, but signer.getAuthToken() doesn't
-// cache on its own — called fresh, it re-runs the AWS credential exchange
-// every time. Cache the token in-process and reuse it for any new
-// connection the pool opens within that window, refreshing a minute early
-// for safety.
-const AUTH_TOKEN_TTL_MS = 14 * 60 * 1000;
-let cachedToken: { value: string; expiresAt: number } | null = null;
-
-async function getCachedAuthToken() {
-  if (cachedToken && cachedToken.expiresAt > Date.now()) {
-    return cachedToken.value;
-  }
-  const value = await signer.getAuthToken();
-  cachedToken = { value, expiresAt: Date.now() + AUTH_TOKEN_TTL_MS };
-  return value;
-}
-
+// Which database this talks to (local Docker vs. RDS with IAM auth) is
+// decided by the environment; see lib/db-pool.mjs.
 const pool = new Pool({
-  host: process.env.PGHOST,
-  user: process.env.PGUSER,
-  database: process.env.PGDATABASE || "postgres",
-  password: getCachedAuthToken,
-  port: Number(process.env.PGPORT),
-  // Recommended to switch to `true` in production.
-  // See https://docs.aws.amazon.com/lambda/latest/dg/services-rds.html#rds-lambda-certificates
-  ssl: { rejectUnauthorized: false },
+  ...databasePoolConfig(),
   max: 20,
   // node-postgres's default idleTimeoutMillis (10s) closes a connection
   // almost as soon as a request finishes, which meant nearly every request

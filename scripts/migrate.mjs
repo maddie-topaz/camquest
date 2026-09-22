@@ -1,32 +1,23 @@
-// Creates the game persistence tables and starter inventory. Safe to re-run.
+// Creates the game persistence tables. Safe to re-run.
+//
+// The save file is an event log (game_events) plus a snapshot (game_saves);
+// see lib/game/store.ts. The older quest_completions / inventory_* tables
+// are kept only as the source for the one-time backfill below.
 //
 // Usage:
-//   node --env-file=.env.local scripts/migrate.mjs
+//   pnpm db:migrate        local Docker Postgres (.env.docker)
+//   pnpm db:migrate:rds    the real RDS database (.env.local, IAM auth)
+//
+// or directly: node --env-file=<env file> scripts/migrate.mjs
 
-import { awsCredentialsProvider } from "@vercel/functions/oidc";
-import { Signer } from "@aws-sdk/rds-signer";
 import { Pool } from "pg";
+import { databasePoolConfig, isLocalDatabase } from "../lib/db-pool.mjs";
 
-const signer = new Signer({
-  hostname: process.env.PGHOST,
-  port: Number(process.env.PGPORT),
-  username: process.env.PGUSER,
-  region: process.env.AWS_REGION,
-  credentials: awsCredentialsProvider({
-    roleArn: process.env.AWS_ROLE_ARN,
-    clientConfig: { region: process.env.AWS_REGION },
-  }),
-});
-
-const pool = new Pool({
-  host: process.env.PGHOST,
-  user: process.env.PGUSER,
-  database: process.env.PGDATABASE || "postgres",
-  password: () => signer.getAuthToken(),
-  port: Number(process.env.PGPORT),
-  ssl: { rejectUnauthorized: false },
-  max: 1,
-});
+const pool = new Pool({ ...databasePoolConfig(), max: 1 });
+const target = isLocalDatabase()
+  ? process.env.DATABASE_URL
+  : `${process.env.PGHOST} (IAM auth)`;
+console.log(`Migrating ${target}`);
 
 const sql = `
   BEGIN;
@@ -73,68 +64,86 @@ const sql = `
   CREATE INDEX IF NOT EXISTS inventory_events_item_created_at_idx
     ON inventory_events (item_id, created_at DESC);
 
-  INSERT INTO inventory_items (id, name, description, unlock_hint, icon, color, tilt, sort_order)
-  VALUES
-    ('player-two-key', 'Player Two key', 'Opens one door. Which one? Classified.', 'Starter item', 'KeyRound', '#ffd166', '-12deg', 10),
-    ('arcade-token', 'Arcade token', 'Still warm from the machine.', 'Starter item', 'CircleDot', '#55e7ff', '8deg', 20),
-    ('emergency-glitter', 'Emergency glitter', 'For low-morale encounters.', 'Starter item', 'Sparkles', '#ff75c8', '-5deg', 30),
-    ('lucky-d6', 'Lucky D6', 'Fate is a little easier to carry.', 'Complete Cam''s Gambit to find it.', 'Dice5', '#b99cff', '10deg', 40),
-    ('ktown-matchbook', 'K-Town matchbook', 'One spark left. Save it for dramatic effect.', 'Complete Cam''s Gambit to find it.', 'Flame', '#ff8e68', '-8deg', 50),
-    ('last-call-coaster', 'Last-call coaster', 'Proof the final portal was real.', 'Complete Cam''s Gambit to find it.', 'Martini', '#7dffad', '6deg', 60)
-  ON CONFLICT (id) DO UPDATE SET
-    name = EXCLUDED.name,
-    description = EXCLUDED.description,
-    unlock_hint = EXCLUDED.unlock_hint,
-    icon = EXCLUDED.icon,
-    color = EXCLUDED.color,
-    tilt = EXCLUDED.tilt,
-    sort_order = EXCLUDED.sort_order;
+  -- A grant sits in the player's "new items" reveal until they press Accept,
+  -- which stamps it. Consume events are stamped on insert; there's nothing
+  -- to accept.
+  ALTER TABLE inventory_events ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMPTZ;
+  UPDATE inventory_events SET accepted_at = created_at
+  WHERE accepted_at IS NULL AND event_type = 'consume';
 
-  WITH starter_items(item_id, quantity, event_key) AS (
-    VALUES
-      ('player-two-key', 1, 'starter:player-two-key'),
-      ('arcade-token', 2, 'starter:arcade-token'),
-      ('emergency-glitter', 1, 'starter:emergency-glitter')
-  ), recorded AS (
-    INSERT INTO inventory_events (item_id, delta, event_type, reason, event_key)
-    SELECT item_id, quantity, 'grant', 'starter_loadout', event_key FROM starter_items
-    ON CONFLICT (event_key) DO NOTHING
-    RETURNING item_id, delta
-  )
-  INSERT INTO player_inventory (item_id, quantity)
-  SELECT item_id, delta FROM recorded
-  ON CONFLICT (item_id) DO UPDATE
-  SET quantity = player_inventory.quantity + EXCLUDED.quantity,
-      updated_at = now();
+  CREATE INDEX IF NOT EXISTS inventory_events_pending_idx
+    ON inventory_events (created_at) WHERE accepted_at IS NULL;
 
-  WITH completed_gambit_rewards(item_id, quantity, quest_slug, event_key) AS (
-    SELECT reward.item_id, reward.quantity, 'cams-gambit', reward.event_key
-    FROM (
-      VALUES
-        ('lucky-d6', 1, 'quest:cams-gambit:reward:lucky-d6'),
-        ('ktown-matchbook', 1, 'quest:cams-gambit:reward:ktown-matchbook'),
-        ('last-call-coaster', 1, 'quest:cams-gambit:reward:last-call-coaster')
-    ) AS reward(item_id, quantity, event_key)
-    WHERE EXISTS (SELECT 1 FROM quest_completions WHERE slug = 'cams-gambit')
-  ), recorded_rewards AS (
-    INSERT INTO inventory_events (item_id, delta, event_type, reason, quest_slug, event_key)
-    SELECT item_id, quantity, 'grant', 'quest_complete', quest_slug, event_key
-    FROM completed_gambit_rewards
-    ON CONFLICT (event_key) DO NOTHING
-    RETURNING item_id, delta
+  -- ---------------------------------------------------------------------
+  -- Game save: append-only event log + materialised snapshot.
+  -- See lib/game/store.ts.
+  -- ---------------------------------------------------------------------
+
+  CREATE TABLE IF NOT EXISTS game_events (
+    id BIGSERIAL PRIMARY KEY,
+    player_id TEXT NOT NULL,
+    seq BIGINT NOT NULL,
+    event_key TEXT NOT NULL,
+    payload JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (player_id, seq),
+    UNIQUE (player_id, event_key)
+  );
+
+  CREATE TABLE IF NOT EXISTS game_saves (
+    player_id TEXT PRIMARY KEY,
+    state JSONB NOT NULL,
+    last_seq BIGINT NOT NULL DEFAULT 0,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+
+  -- One-time backfill from the pre-event-log tables, so Cam's history
+  -- survives the switch. Every row is keyed, so re-running is a no-op.
+  -- Order: player, grants (oldest first), acceptances, completions.
+  WITH numbered AS (
+    SELECT * FROM (
+      SELECT 'player:created' AS event_key,
+             jsonb_build_object('type', 'player.created', 'name', 'Cam') AS payload,
+             '1970-01-01'::timestamptz AS created_at, 0 AS ord
+      UNION ALL
+      SELECT COALESCE(event_key, 'legacy:grant:' || id::text),
+             jsonb_build_object('type', 'item.granted', 'itemId', item_id, 'quantity', delta, 'reason', reason, 'questSlug', quest_slug),
+             created_at, 1
+      FROM inventory_events WHERE event_type = 'grant' AND delta > 0
+      UNION ALL
+      SELECT COALESCE(event_key, 'legacy:consume:' || id::text),
+             jsonb_build_object('type', 'item.consumed', 'itemId', item_id, 'quantity', -delta, 'reason', reason, 'questSlug', quest_slug),
+             created_at, 1
+      FROM inventory_events WHERE event_type = 'consume' AND delta < 0
+      UNION ALL
+      SELECT 'legacy:accept:' || id::text,
+             jsonb_build_object('type', 'grants.accepted', 'grantKeys', jsonb_build_array(COALESCE(event_key, 'legacy:grant:' || id::text))),
+             accepted_at, 2
+      FROM inventory_events WHERE event_type = 'grant' AND accepted_at IS NOT NULL
+      UNION ALL
+      SELECT 'legacy:completion:' || id::text,
+             jsonb_build_object('type', 'quest.completed', 'slug', slug, 'answers', answers),
+             completed_at, 3
+      FROM quest_completions
+    ) AS legacy
+    WHERE NOT EXISTS (SELECT 1 FROM game_events WHERE game_events.player_id = 'cam')
+  ), ordered AS (
+    SELECT event_key, payload, created_at,
+           ROW_NUMBER() OVER (ORDER BY ord, created_at, event_key) AS seq
+    FROM numbered
   )
-  INSERT INTO player_inventory (item_id, quantity)
-  SELECT item_id, delta FROM recorded_rewards
-  ON CONFLICT (item_id) DO UPDATE
-  SET quantity = player_inventory.quantity + EXCLUDED.quantity,
-      updated_at = now();
+  INSERT INTO game_events (player_id, seq, event_key, payload, created_at)
+  SELECT 'cam', seq, event_key, payload, created_at FROM ordered
+  ON CONFLICT (player_id, event_key) DO NOTHING;
 
   COMMIT;
 `;
 
 try {
   await pool.query(sql);
-  console.log("✓ Game persistence tables and starter inventory are ready.");
+  console.log(
+    "✓ Game persistence tables, starter inventory, and the event log are ready.",
+  );
 } catch (error) {
   console.error("✗ Migration failed:", error.message);
   process.exitCode = 1;
