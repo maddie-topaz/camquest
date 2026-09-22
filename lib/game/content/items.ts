@@ -22,6 +22,7 @@ export const items: ItemDefinition[] = [
   { id: 'cowbell', name: 'Cowbell', description: 'The prescription was more of this.', unlockHint: 'Starter item', icon: 'Bell', color: '#55e7ff', tilt: '8deg', sortOrder: 20, consumable: true },
   { id: 'kitanas-blessing', name: "Kitana's Blessing", description: 'A lucky cat relic. The paw still waves.', unlockHint: 'Starter item', icon: 'Cat', color: '#ff75c8', tilt: '-5deg', sortOrder: 30, tags: ['relic'] },
   { id: 'biltong-fragment', name: 'Biltong fragment', description: 'Cured, dried, and somehow still going.', unlockHint: 'Starter item', icon: 'Beef', color: '#d9a066', tilt: '6deg', sortOrder: 35, consumable: true },
+  { id: 'golden-key', name: 'Golden key', description: 'Won from the signal. It opens something.', unlockHint: 'Lock the Unknown Signal with a clean score.', icon: 'KeyRound', color: '#ffd166', tilt: '-8deg', sortOrder: 40, tags: ['access'] },
 ]
 
 export const itemsById: Record<string, ItemDefinition> = Object.fromEntries(items.map((item) => [item.id, item]))

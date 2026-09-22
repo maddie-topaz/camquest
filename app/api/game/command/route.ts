@@ -5,7 +5,7 @@ import { buildView } from '@/lib/game/view'
 
 export const runtime = 'nodejs'
 
-const commandTypes = new Set<Command['type']>(['quest.start', 'quest.progress', 'quest.complete', 'item.consume', 'grants.accept'])
+const commandTypes = new Set<Command['type']>(['quest.start', 'quest.progress', 'quest.complete', 'item.consume', 'grants.accept', 'encounter.complete'])
 
 // Runs one command through the engine. A rejection is a 409 with the
 // reason and what's missing; the fresh view comes back either way so the

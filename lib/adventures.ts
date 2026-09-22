@@ -14,6 +14,10 @@ export type ChallengeStep =
   | { type: 'activity'; id: string; title: string; prompt: string; detail: string; passcode?: string }
   | { type: 'reveal'; id: string; title: string; prompt: string; message: string; passcode?: string }
   | { type: 'confirm'; id: string; title: string; prompt: string; button: string; passcode?: string }
+  // A Phaser mini-game. `encounterId` names an entry in
+  // lib/game/content/encounters; the step completes when the game reports
+  // a result, and the encounter's own rewards are paid at that moment.
+  | { type: 'encounter'; id: string; title: string; prompt: string; encounterId: string; passcode?: string }
 
 export type Adventure = {
   id: string; slug: string; title: string; subtitle?: string; description: string; symbol: string; status: AdventureStatus
@@ -138,9 +142,30 @@ export const adventures: Adventure[] = [
     title: 'Unknown Signal',
     description: 'Something is broadcasting after dark.',
     symbol: '📡',
-    status: 'coming-soon',
-    steps: [],
-    completionMessage: 'The signal fades.',
+    status: 'available',
+    introduction: 'A carrier wave, faint but steady, cuts through the static.' +
+        '\n\nSomeone is broadcasting. The wristband hums in reply.' +
+        '\n\nLock the signal before it drifts.',
+    ctaLabel: 'Tune in',
+    steps: [
+      {
+        type: 'encounter',
+        id: 'lock-signal',
+        title: 'Lock the signal',
+        prompt: 'The dial sweeps. Tap when the needle crosses the glow.' +
+            '\n\nFive sweeps. The window narrows each time.',
+        encounterId: 'signal-lock',
+      },
+      {
+        type: 'reveal',
+        id: 'decoded',
+        title: 'Signal decoded',
+        prompt: 'The static clears.',
+        message: 'A voice, a place, a time. Placeholder copy: replace with the real transmission.',
+      },
+    ],
+    completionTitle: 'Signal locked',
+    completionMessage: 'The broadcast ends. Whatever it was, it was meant for you.',
     requirements: {
       unlock: true,
       items: ['vip-wristband'],

@@ -3,11 +3,12 @@
 // or a rejection. It never writes anything: the store commits the events,
 // which keeps this pure and testable.
 
+import { getEncounter } from './content/encounters'
 import { getItem } from './content/items'
 import { getQuest, type QuestDefinition } from './content/quests'
 import { applyEvent } from './reducer'
 import { canConsume, canStartQuest, hasCompleted, newlyEarnedAchievements, pendingGrants } from './rules'
-import type { Command, CommandResult, GameEvent, NewGameEvent, Requirements, SaveFile } from './types'
+import type { Command, CommandResult, GameEvent, NewGameEvent, Requirements, Rewards, SaveFile } from './types'
 
 const reject = (code: string, message: string, missing?: Requirements): CommandResult =>
   ({ ok: false, rejection: { code, message, missing } })
@@ -21,42 +22,44 @@ const simulate = (save: SaveFile, events: NewGameEvent[], at: string) =>
     save,
   )
 
-// Rewards for finishing a quest, as events. First-completion rewards are
-// keyed by slug so a replayed completion can never grant them twice;
-// repeatable quests get a fresh key per completion.
-const rewardEvents = (save: SaveFile, quest: QuestDefinition, completionIndex: number): NewGameEvent[] => {
-  const rewards = quest.rewards
+// Turns a Rewards block into keyed events. Same keyPrefix twice = no
+// second payout, which is how first-completion rewards stay one-shot.
+const rewardsToEvents = (save: SaveFile, rewards: Rewards | undefined, keyPrefix: string, reason: string, questSlug: string): NewGameEvent[] => {
   if (!rewards) return []
-  const keyPrefix = quest.repeatable ? `quest:${quest.slug}:${completionIndex}` : `quest:${quest.slug}`
   const events: NewGameEvent[] = []
-  const reason = 'quest_complete'
 
-  if (rewards.xp) events.push({ key: `${keyPrefix}:xp`, payload: { type: 'xp.gained', amount: rewards.xp, reason, questSlug: quest.slug } })
+  if (rewards.xp) events.push({ key: `${keyPrefix}:xp`, payload: { type: 'xp.gained', amount: rewards.xp, reason, questSlug } })
   for (const reward of rewards.items ?? []) {
     if (!getItem(reward.itemId)) continue
-    events.push({ key: `${keyPrefix}:item:${reward.itemId}`, payload: { type: 'item.granted', itemId: reward.itemId, quantity: reward.quantity ?? 1, reason, questSlug: quest.slug } })
+    events.push({ key: `${keyPrefix}:item:${reward.itemId}`, payload: { type: 'item.granted', itemId: reward.itemId, quantity: reward.quantity ?? 1, reason, questSlug } })
   }
   for (const [trait, delta] of Object.entries(rewards.traits ?? {})) {
-    events.push({ key: `${keyPrefix}:trait:${trait}`, payload: { type: 'trait.changed', trait, delta, reason, questSlug: quest.slug } })
+    events.push({ key: `${keyPrefix}:trait:${trait}`, payload: { type: 'trait.changed', trait, delta, reason, questSlug } })
   }
   for (const slug of rewards.unlocks ?? []) {
     if (save.world.unlockedQuests.includes(slug)) continue
-    events.push({ key: `${keyPrefix}:unlock:${slug}`, payload: { type: 'quest.unlocked', slug, reason: `${reason}:${quest.slug}` } })
+    events.push({ key: `${keyPrefix}:unlock:${slug}`, payload: { type: 'quest.unlocked', slug, reason: `${reason}:${questSlug}` } })
   }
   for (const achievementId of rewards.achievements ?? []) {
     if (save.player.achievements[achievementId]) continue
-    events.push({ key: `${keyPrefix}:achievement:${achievementId}`, payload: { type: 'achievement.unlocked', achievementId, reason: `${reason}:${quest.slug}` } })
+    events.push({ key: `${keyPrefix}:achievement:${achievementId}`, payload: { type: 'achievement.unlocked', achievementId, reason: `${reason}:${questSlug}` } })
   }
   for (const locationId of rewards.locations ?? []) {
     if (save.world.discoveredLocations.includes(locationId)) continue
-    events.push({ key: `${keyPrefix}:location:${locationId}`, payload: { type: 'location.discovered', locationId, reason: `${reason}:${quest.slug}` } })
+    events.push({ key: `${keyPrefix}:location:${locationId}`, payload: { type: 'location.discovered', locationId, reason: `${reason}:${questSlug}` } })
   }
   for (const secretId of rewards.secrets ?? []) {
     if (save.world.secrets.includes(secretId)) continue
-    events.push({ key: `${keyPrefix}:secret:${secretId}`, payload: { type: 'secret.found', secretId, reason: `${reason}:${quest.slug}` } })
+    events.push({ key: `${keyPrefix}:secret:${secretId}`, payload: { type: 'secret.found', secretId, reason: `${reason}:${questSlug}` } })
   }
   return events
 }
+
+// Rewards for finishing a quest. First-completion rewards are keyed by
+// slug so a replayed completion can never grant them twice; repeatable
+// quests get a fresh key per completion.
+const rewardEvents = (save: SaveFile, quest: QuestDefinition, completionIndex: number): NewGameEvent[] =>
+  rewardsToEvents(save, quest.rewards, quest.repeatable ? `quest:${quest.slug}:${completionIndex}` : `quest:${quest.slug}`, 'quest_complete', quest.slug)
 
 // Condition-based achievements the resulting save now earns.
 const achievementEvents = (save: SaveFile, events: NewGameEvent[], at: string): NewGameEvent[] =>
@@ -111,6 +114,26 @@ export const handleCommand = (save: SaveFile, command: Command, at = new Date().
       if (!check.ok) return reject(check.code, check.message)
       const events: NewGameEvent[] = [
         { key: `consume:${command.operationId}`, payload: { type: 'item.consumed', itemId: command.itemId, quantity: command.quantity, reason: command.reason, questSlug: command.questSlug } },
+      ]
+      return { ok: true, events: [...events, ...achievementEvents(save, events, at)] }
+    }
+
+    case 'encounter.complete': {
+      if (!command.operationId || command.operationId.length > 100) return reject('bad-operation', 'operationId is required')
+      const quest = getQuest(command.questSlug)
+      if (!quest) return reject('unknown-quest', `No such quest: ${command.questSlug}`)
+      const gate = canStartQuest(save, quest)
+      if (!gate.ok) return reject('locked', `${quest.title} is locked`, gate.missing)
+      const step = quest.steps.find((candidate) => candidate.id === command.stepId)
+      if (!step || step.type !== 'encounter' || step.encounterId !== command.encounterId) return reject('bad-step', `${quest.title} has no encounter step ${command.stepId}`)
+      const encounter = getEncounter(command.encounterId)
+      if (!encounter) return reject('unknown-encounter', `No such encounter: ${command.encounterId}`)
+      if (!Number.isFinite(command.score) || command.score < 0 || command.score > encounter.maxScore) return reject('bad-score', `score must be 0–${encounter.maxScore}`)
+      const plays = save.player.encounters?.[command.encounterId]?.plays ?? 0
+      const keyPrefix = encounter.repeatableRewards ? `encounter:${quest.slug}:${step.id}:${plays + 1}` : `encounter:${quest.slug}:${step.id}`
+      const events: NewGameEvent[] = [
+        { key: `encounter:${command.operationId}`, payload: { type: 'encounter.completed', encounterId: command.encounterId, questSlug: quest.slug, stepId: step.id, score: command.score, reward: command.reward } },
+        ...rewardsToEvents(save, encounter.rewards({ score: command.score, reward: command.reward }), keyPrefix, 'encounter', quest.slug),
       ]
       return { ok: true, events: [...events, ...achievementEvents(save, events, at)] }
     }

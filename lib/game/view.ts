@@ -3,6 +3,7 @@
 // every screen reads the same answers.
 
 import { achievements } from './content/achievements'
+import { encounters } from './content/encounters'
 import { items, getItem } from './content/items'
 import { levelProgress } from './content/levels'
 import { quests } from './content/quests'
@@ -27,6 +28,8 @@ export type QuestView = { slug: string; status: QuestStatus; missing: Requiremen
 
 export type AchievementView = { id: string; name: string; description: string; icon: string; unlockedAt?: string }
 
+export type EncounterView = { id: string; name: string; description: string; maxScore: number; plays: number; bestScore: number; lastAt?: string }
+
 export type SaveView = {
   save: SaveFile
   level: ReturnType<typeof levelProgress>
@@ -34,6 +37,7 @@ export type SaveView = {
   pendingGrants: PendingGrantView[]
   quests: Record<string, QuestView>
   achievements: AchievementView[]
+  encounters: EncounterView[]
 }
 
 export const buildView = (save: SaveFile): SaveView => ({
@@ -78,4 +82,8 @@ export const buildView = (save: SaveFile): SaveView => ({
     icon: achievement.icon,
     unlockedAt: save.player.achievements[achievement.id]?.unlockedAt,
   })),
+  encounters: encounters.map((encounter) => {
+    const record = save.player.encounters?.[encounter.id]
+    return { id: encounter.id, name: encounter.name, description: encounter.description, maxScore: encounter.maxScore, plays: record?.plays ?? 0, bestScore: record?.bestScore ?? 0, lastAt: record?.lastAt }
+  }),
 })

@@ -38,6 +38,9 @@ importers:
       pg:
         specifier: ^8.23.0
         version: 8.23.0
+      phaser:
+        specifier: ^4.2.1
+        version: 4.2.1
       react:
         specifier: ^19
         version: 19.2.4
@@ -2484,6 +2487,9 @@ packages:
     resolution: {integrity: sha512-aIL5Fx7mawVa300al2BnEE4iNvo1qETxLrPI/o05L7z6go7fCw1J6EQmbK4FmJ2AS7kgVF/KEZWufBfdClMcPg==}
     engines: {node: '>= 0.6'}
 
+  eventemitter3@5.0.4:
+    resolution: {integrity: sha512-mlsTRyGaPBjPedk6Bvw+aqbsXDtoAyAzm5MO7JgU+yVRyMQ5O8bD4Kcci7BS85f93veegeCPkL8R4GLClnjLFw==}
+
   events-intercept@2.0.0:
     resolution: {integrity: sha512-blk1va0zol9QOrdZt0rFXo5KMkNPVSp92Eju/Qz8THwKWKRKeE0T8Br/1aW6+Edkyq9xHYgYxn2QtOnUKPUp+Q==}
 
@@ -3479,6 +3485,9 @@ packages:
 
   pgpass@1.0.5:
     resolution: {integrity: sha512-FdW9r/jQZhSeohs1Z3sI1yxFQNFvMcnmfuj4WBMUTxOrAyLMaTcE1aAMBiTlbMNaXvBCQuVi0R7hd8udDSP7ug==}
+
+  phaser@4.2.1:
+    resolution: {integrity: sha512-WUNwCPJpdjvZiuT6SgCfYVW8Qw/3j0jJ4ws7P2QkhFLFu74sbGuyHJcbFueGkY/AYO4Pi47bNQXn1OCJeLX//w==}
 
   picocolors@1.0.0:
     resolution: {integrity: sha512-1fygroTLlHu66zi26VoTDv8yRgm0Fccecssto+MhsZ0D/DGW2sm8E8AjW7NU5VVTRt5GxbeZ5qBuJr+HyLYkjQ==}
@@ -6654,6 +6663,8 @@ snapshots:
 
   etag@1.8.1: {}
 
+  eventemitter3@5.0.4: {}
+
   events-intercept@2.0.0: {}
 
   events-universal@1.0.1:
@@ -7597,6 +7608,10 @@ snapshots:
   pgpass@1.0.5:
     dependencies:
       split2: 4.2.0
+
+  phaser@4.2.1:
+    dependencies:
+      eventemitter3: 5.0.4
 
   picocolors@1.0.0: {}
 

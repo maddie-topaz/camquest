@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, MemoryRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Archive as ArchiveIcon, ArrowLeft, ArrowRight, Backpack, Beef, Bell, BookOpen, Cat, Check, CircleDot, Dice5, Gamepad2, Joystick, Link as LinkIcon, Lock, Martini, Moon, Origami, Palmtree, RotateCcw, Sparkles, Sun, Ticket, Trophy, UserRound, Zap, type LucideIcon } from 'lucide-react'
 import { adventures, getAdventure, type Adventure, type ChallengeStep } from '@/lib/adventures'
@@ -9,6 +9,8 @@ import { CommandRejectedError, type QuestView } from '@/lib/game/client'
 import { useActorRef, useSelector } from '@xstate/react'
 import { questMachine, questSelectors, START_UNLOCK_ID } from '@/lib/game/machines/quest'
 import { startMachine, startSelectors } from '@/lib/game/machines/start'
+import { EncounterStage } from '@/app/encounter-stage'
+import { getEncounter, type EncounterResult } from '@/lib/game/content/encounters'
 import { traits as traitDefinitions } from '@/lib/game/content/traits'
 import type { Requirements } from '@/lib/game/types'
 
@@ -524,6 +526,18 @@ function ChallengeRun({ adventure, view }: { adventure: Adventure; view: NonNull
   }
   if (!step) return null
 
+  // The mini-game reported back: record it (rewards are paid server-side)
+  // then let the machine turn the step over.
+  const onEncounterResult = useCallback((result: EncounterResult) => {
+    if (step?.type !== 'encounter') return
+    dispatch({ type: 'encounter.complete', questSlug: adventure.slug, stepId: step.id, encounterId: step.encounterId, score: result.score, reward: result.reward, operationId: crypto.randomUUID() })
+      .catch((error) => {
+        if (error instanceof CommandRejectedError) console.warn('Encounter not recorded:', error.rejection.message)
+        else console.error('Failed to record encounter', error)
+      })
+      .finally(() => actor.send({ type: 'ENCOUNTER_RESULT', score: result.score, reward: result.reward }))
+  }, [actor, adventure.slug, dispatch, step])
+
   const isGated = questSelectors.isGated(snapshot)
   const revealed = questSelectors.isRevealed(snapshot)
   const selectedCard = questSelectors.selectedCard(snapshot)
@@ -571,6 +585,10 @@ function ChallengeRun({ adventure, view }: { adventure: Adventure; view: NonNull
               <strong>{selectedCard.label}</strong>
               <p>{selectedCard.outcome}</p>
             </div>
+          ) : step.type === 'encounter' && revealed ? (
+            <EncounterResultCard encounterId={step.encounterId} score={Number(answer)} />
+          ) : step.type === 'encounter' ? (
+            <EncounterStage encounterId={step.encounterId} onResult={onEncounterResult} />
           ) : (
             <ChallengeBody
               step={step}
@@ -581,12 +599,24 @@ function ChallengeRun({ adventure, view }: { adventure: Adventure; view: NonNull
               setRevealed={() => actor.send({ type: 'REVEAL' })}
             />
           )}
-          {!isGated && (
+          {!isGated && questSelectors.showsPrimary(snapshot) && (
             <button className="portal-button mt-8" disabled={primaryDisabled} onClick={primaryAction}>{primaryLabel} <ArrowRight /></button>
           )}
         </div>
       </main>
     </Shell>
+  )
+}
+function EncounterResultCard({ encounterId, score }: { encounterId: string; score: number }) {
+  const encounter = getEncounter(encounterId)
+  const { view } = useGame()
+  const record = view?.encounters.find((entry) => entry.id === encounterId)
+  return (
+    <div className="reveal-box outcome-reveal encounter-result">
+      <span className="mystery-mark"><Zap aria-hidden="true" /></span>
+      <strong>{encounter?.rank?.({ score }) ?? 'Locked'}</strong>
+      <p>{score} / {encounter?.maxScore ?? '?'}{record && record.bestScore > score ? ` · best ${record.bestScore}` : record && record.plays > 1 ? ' · new best' : ''}</p>
+    </div>
   )
 }
 function ChallengeBody({ step, answer, setAnswer, selectAnswer, revealed, setRevealed }: { step: ChallengeStep; answer: string; setAnswer: (v: string) => void; selectAnswer: (v: string) => void; revealed: boolean; setRevealed: (v: boolean) => void }) {

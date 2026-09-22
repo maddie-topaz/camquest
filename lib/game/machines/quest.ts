@@ -45,6 +45,8 @@ export type QuestContext = {
 
 export type QuestEvent =
   | { type: 'SELECT'; value: string }
+  // The step's mini-game reported a result (already recorded server-side).
+  | { type: 'ENCOUNTER_RESULT'; score: number; reward?: string }
   | { type: 'TYPE_ANSWER'; value: string }
   | { type: 'TYPE_PASSCODE'; value: string }
   | { type: 'SUBMIT_PASSCODE' }
@@ -76,14 +78,18 @@ export const questMachine = setup({
       const step = currentStep(context)
       return Boolean(step?.passcode) && !context.unlockedSteps.includes(step!.id)
     },
-    // A restored mystery answer comes back already turned over.
-    stepAlreadyRevealed: ({ context }) => currentStep(context)?.type === 'mystery' && Boolean(context.answer),
+    // A restored mystery answer, or an encounter already played, comes
+    // back already turned over.
+    stepAlreadyRevealed: ({ context }) => {
+      const type = currentStep(context)?.type
+      return (type === 'mystery' || type === 'encounter') && Boolean(context.answer)
+    },
     passcodeMatches: ({ context }) => normalise(context.passcodeInput) === normalise(currentStep(context)?.passcode),
     isLastStep: ({ context }) => context.stepIndex >= context.quest.steps.length - 1,
     canAdvance: ({ context }) => {
       const step = currentStep(context)
       if (!step) return false
-      if (step.type === 'choice' || step.type === 'mystery') return Boolean(context.answer)
+      if (step.type === 'choice' || step.type === 'mystery' || step.type === 'encounter') return Boolean(context.answer)
       if (step.type === 'riddle') return context.answer.trim().toLowerCase() === step.answer
       return true
     },
@@ -104,6 +110,14 @@ export const questMachine = setup({
       if (event.type !== 'SELECT') return {}
       const step = currentStep(context)!
       return { answer: event.value, answers: { ...context.answers, [step.id]: event.value } }
+    }),
+    // An encounter's answer is its score, so the archive can show it and a
+    // reload treats the step as done.
+    recordEncounter: assign(({ context, event }) => {
+      if (event.type !== 'ENCOUNTER_RESULT') return {}
+      const step = currentStep(context)!
+      const value = String(event.score)
+      return { answer: value, answers: { ...context.answers, [step.id]: value } }
     }),
     // Commit the working answer and move to the next step, restoring any
     // answer already saved for it.
@@ -173,6 +187,7 @@ export const questMachine = setup({
                 SELECT: { actions: ['selectAnswer', 'emitProgress'] },
                 TYPE_ANSWER: { actions: 'typeAnswer' },
                 REVEAL: { target: 'revealed' },
+                ENCOUNTER_RESULT: { actions: ['recordEncounter', 'emitProgress'], target: 'revealed' },
               },
             },
             revealed: {},
@@ -216,6 +231,8 @@ export const questSelectors = {
     const step = currentStep(snapshot.context)
     return step?.type === 'mystery' ? step.cards.find((card) => card.label === snapshot.context.answer) : undefined
   },
+  // An encounter step has no button until the game reports back.
+  showsPrimary: (snapshot: Snapshot) => currentStep(snapshot.context)?.type !== 'encounter' || questSelectors.isRevealed(snapshot),
   primaryLabel: (snapshot: Snapshot) => {
     const step = currentStep(snapshot.context)
     if (step?.type === 'mystery' && !questSelectors.isRevealed(snapshot)) return 'Lock choice'
@@ -225,7 +242,7 @@ export const questSelectors = {
     const step = currentStep(snapshot.context)
     if (!step) return true
     if (step.type === 'mystery' && questSelectors.isRevealed(snapshot) && questSelectors.selectedCard(snapshot)) return false
-    if (step.type === 'choice' || step.type === 'mystery') return !snapshot.context.answer
+    if (step.type === 'choice' || step.type === 'mystery' || step.type === 'encounter') return !snapshot.context.answer
     if (step.type === 'riddle') return snapshot.context.answer.trim().toLowerCase() !== step.answer
     return false
   },

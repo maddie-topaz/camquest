@@ -18,6 +18,7 @@ export const emptySave = (playerId: PlayerId, at = new Date(0).toISOString()): S
     inventory: {},
     achievements: {},
     grants: [],
+    encounters: {},
   },
   world: {
     unlockedQuests: [],
@@ -42,6 +43,13 @@ const withQuantity = (inventory: SaveFile['player']['inventory'], itemId: string
   const { [itemId]: _removed, ...rest } = inventory
   return next === 0 ? rest : { ...rest, [itemId]: { quantity: next } }
 }
+
+// Fills in fields added since a snapshot was written, so an old snapshot
+// replays cleanly under a newer reducer.
+export const normaliseSave = (save: SaveFile): SaveFile => ({
+  ...save,
+  player: { ...save.player, encounters: save.player.encounters ?? {} },
+})
 
 export const applyEvent = (save: SaveFile, event: GameEvent): SaveFile => {
   const base = { ...save, seq: event.seq, updatedAt: event.at }
@@ -173,6 +181,26 @@ export const applyEvent = (save: SaveFile, event: GameEvent): SaveFile => {
 
     case 'secret.found':
       return { ...base, world: { ...base.world, secrets: addToSet(base.world.secrets, payload.secretId) } }
+
+    case 'encounter.completed': {
+      const encounters = base.player.encounters ?? {}
+      const current = encounters[payload.encounterId]
+      return {
+        ...base,
+        player: {
+          ...base.player,
+          encounters: {
+            ...encounters,
+            [payload.encounterId]: {
+              plays: (current?.plays ?? 0) + 1,
+              bestScore: Math.max(current?.bestScore ?? 0, payload.score),
+              lastScore: payload.score,
+              lastAt: event.at,
+            },
+          },
+        },
+      }
+    }
 
     default: {
       // An event type this build doesn't know (written by a newer deploy).

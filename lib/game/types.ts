@@ -37,6 +37,9 @@ export type QuestSave = {
   completions: number
 }
 
+// Per-encounter arcade record.
+export type EncounterRecord = { plays: number; bestScore: number; lastScore: number; lastAt: string }
+
 export type SaveFile = {
   version: number
   playerId: PlayerId
@@ -51,6 +54,7 @@ export type SaveFile = {
     inventory: Record<string, ItemStack>
     achievements: Record<string, { unlockedAt: string }>
     grants: GrantRecord[]
+    encounters: Record<string, EncounterRecord>
   }
   world: {
     unlockedQuests: string[]
@@ -82,6 +86,7 @@ export type GameEventPayload =
   | { type: 'quest.reset'; slug: string; reason: string }
   | { type: 'location.discovered'; locationId: string; reason: string }
   | { type: 'secret.found'; secretId: string; reason: string }
+  | { type: 'encounter.completed'; encounterId: string; questSlug: string; stepId: string; score: number; reward?: string }
 
 export type GameEventType = GameEventPayload['type']
 
@@ -111,6 +116,8 @@ export type Command =
   | { type: 'quest.complete'; slug: string; answers: Record<string, string> }
   | { type: 'item.consume'; itemId: string; quantity: number; reason: string; questSlug?: string; operationId: string }
   | { type: 'grants.accept'; grantKeys: string[] }
+  // A mini-game finished. `operationId` makes a retried report a no-op.
+  | { type: 'encounter.complete'; questSlug: string; stepId: string; encounterId: string; score: number; reward?: string; operationId: string }
 
 export type CommandRejection = { code: string; message: string; missing?: Requirements }
 

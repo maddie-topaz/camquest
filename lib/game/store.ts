@@ -13,7 +13,7 @@ import type { ClientBase } from 'pg'
 import { withConnection } from '@/lib/db'
 import { handleCommand } from './commands'
 import { starterLoadout } from './content/items'
-import { applyEvent, emptySave, replay } from './reducer'
+import { applyEvent, emptySave, normaliseSave, replay } from './reducer'
 import type { Command, CommandRejection, GameEvent, GameEventPayload, NewGameEvent, PlayerId, SaveFile } from './types'
 
 export const DEFAULT_PLAYER: PlayerId = 'cam'
@@ -41,7 +41,7 @@ const loadWithClient = async (client: ClientBase, playerId: PlayerId, forUpdate 
     `SELECT state, last_seq FROM game_saves WHERE player_id = $1${forUpdate ? ' FOR UPDATE' : ''}`,
     [playerId],
   )
-  let save: SaveFile = snapshot.rows[0]?.state ?? emptySave(playerId)
+  let save: SaveFile = snapshot.rows[0]?.state ? normaliseSave(snapshot.rows[0].state) : emptySave(playerId)
   const lastSeq = Number(snapshot.rows[0]?.last_seq ?? 0)
 
   const newer = await client.query(

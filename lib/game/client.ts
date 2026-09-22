@@ -3,7 +3,7 @@
 import type { Command, CommandRejection, GameEvent } from './types'
 import type { SaveView } from './view'
 
-export type { SaveView, InventoryView, PendingGrantView, QuestView, AchievementView } from './view'
+export type { SaveView, InventoryView, PendingGrantView, QuestView, AchievementView, EncounterView } from './view'
 
 export class CommandRejectedError extends Error {
   rejection: CommandRejection
