@@ -9,6 +9,9 @@ export type AchievementDefinition = {
   name: string;
   description: string;
   icon: string;
+  // Its own accent, same pattern as traits/tendencies/items — so the
+  // Achievements grid doesn't read as one repeated pink tile.
+  color: string;
   condition?: (save: SaveFile) => boolean;
 };
 
@@ -21,6 +24,7 @@ export const achievements: AchievementDefinition[] = [
     name: "First quest",
     description: "First quest complete. We always believed in you. Mostly.",
     icon: "Trophy",
+    color: "#ffd166",
     condition: (save) => completedCount(save) >= 1,
   },
   {
@@ -28,6 +32,8 @@ export const achievements: AchievementDefinition[] = [
     name: "Blessed by Kitana",
     description: "A feline blessing issued in your name.",
     icon: "Cat",
+    // Matches Kitana's own companion colour.
+    color: "#ff75c8",
     condition: (save) =>
       (save.player.inventory["kitanas-blessing"]?.quantity ?? 0) > 0,
   },
@@ -36,6 +42,7 @@ export const achievements: AchievementDefinition[] = [
     name: "Full pack",
     description: "Accepted every starter item.",
     icon: "Backpack",
+    color: "#4ce0b3",
     condition: (save) =>
       save.player.grants
         .filter((grant) => grant.reason === "starter_loadout")
@@ -47,6 +54,7 @@ export const achievements: AchievementDefinition[] = [
     name: "Level 5",
     description: "Reached level 5.",
     icon: "Zap",
+    color: "#9a6cff",
     condition: (save) => save.player.xp >= 1600,
   },
 ];

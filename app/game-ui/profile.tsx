@@ -68,6 +68,7 @@ export function Profile() {
     name: achievement.name,
     detail: achievement.description,
     icon: achievementIcons[achievement.icon] || Trophy,
+    color: achievement.color,
     unlocked: Boolean(achievement.unlockedAt),
   }));
   const traitRows = traitDefinitions.map((trait) => ({
@@ -277,6 +278,7 @@ export function Profile() {
                 <article
                   className={`inventory-slot achievement-card ${item.unlocked ? "is-unlocked" : "is-locked"}`}
                   key={item.id}
+                  style={accentStyle(item.color)}
                 >
                   <div className="inventory-icon">
                     <Icon aria-hidden="true" />

@@ -486,16 +486,7 @@ h3 {
   --arcade-mint: #4ce0b3;
   --arcade-coral: #ff6b5e;
   --arcade-blue: #5ab4ff;
-
-  /* Player Profile surface system: neutral dark navy/indigo panels so the
-     semantic accents below (assigned per section, not fixed here) are
-     what carries colour, not the panel itself. Purple stays available as
-     one accent (--arcade-violet) rather than the default border/bg. */
-  --surface-panel: #12111f;
-  --surface-panel-soft: #171526;
-  --surface-border: #2a2740;
-  --surface-border-strong: #3a3555;
-  --surface-divider: rgba(255, 255, 255, 0.08);
+  --surface-divider: rgba(98, 71, 165, 0.4);
 }
 body {
   background-color: #090817;
@@ -2269,12 +2260,13 @@ button.arcade-screen:focus-visible {
 }
 
 /* Player profile
-   One reusable idea drives all the colour here: each container sets
-   --section-accent to whichever semantic colour it represents, and a
-   shared set of rules below (border-top, .eyebrow, hover states) reads
-   that variable. Swap the accent by changing one declaration instead of
-   re-styling a whole card. Falls back to cyan (system/navigation) when a
-   container doesn't set one. */
+   Cards keep the same purple-family border/gradient every other page
+   uses (.quest-card, .field-pack, etc.) so Profile still belongs to the
+   same design system. What varies per section is a thicker top border
+   in --section-accent, plus that colour showing up in the .eyebrow
+   label, level number and hover state — one variable per container,
+   read by the shared rules below, instead of five identical purple
+   boxes with no way to tell them apart at a glance. */
 .profile-page {
   max-width: 1120px;
   --section-accent: var(--arcade-cyan);
@@ -2295,12 +2287,16 @@ button.arcade-screen:focus-visible {
   gap: 8px 24px;
   margin-top: 34px;
   padding: 28px 30px;
-  border: 1px solid var(--surface-border);
-  border-top: 3px solid var(--section-accent);
+  border: 2px solid #4d3987;
+  border-top: 4px solid var(--section-accent);
   border-radius: 6px;
-  background: linear-gradient(160deg, var(--surface-panel-soft), var(--surface-panel) 60%);
+  background: linear-gradient(
+    135deg,
+    rgba(42, 27, 91, 0.98),
+    rgba(13, 11, 34, 0.98)
+  );
   box-shadow:
-    7px 7px 0 #0c0a16,
+    7px 7px 0 #21133d,
     0 0 28px rgba(255, 209, 102, 0.08);
 }
 .profile-hero .player-avatar {
@@ -2398,9 +2394,9 @@ button.arcade-screen:focus-visible {
 .player-level {
   min-width: 180px;
   padding: 17px 18px;
-  border: 1px solid var(--surface-border-strong);
+  border: 2px solid #6247a5;
   background: rgba(9, 7, 20, 0.48);
-  box-shadow: 4px 4px 0 #0c0a16;
+  box-shadow: 4px 4px 0 #21133d;
   text-align: right;
 }
 .player-level > span,
@@ -2423,7 +2419,7 @@ button.arcade-screen:focus-visible {
   height: 8px;
   margin-top: 12px;
   padding: 1px;
-  border: 1px solid var(--surface-border-strong);
+  border: 2px solid #433477;
   background: #100b27;
 }
 .level-meter i {
@@ -2523,11 +2519,15 @@ button.arcade-screen:focus-visible {
    .eyebrow) the label. */
 .dial-section {
   padding: 22px 24px;
-  border: 1px solid var(--surface-border);
-  border-top: 3px solid var(--section-accent);
+  border: 2px solid #4d3987;
+  border-top: 4px solid var(--section-accent);
   border-radius: 6px;
-  background: var(--surface-panel);
-  box-shadow: 4px 4px 0 #0c0a16;
+  background: linear-gradient(
+    135deg,
+    rgba(42, 27, 91, 0.65),
+    rgba(13, 11, 34, 0.85)
+  );
+  box-shadow: 4px 4px 0 #21133d;
 }
 .stats-panel {
   --section-accent: var(--arcade-cyan);
@@ -2576,11 +2576,17 @@ button.arcade-screen:focus-visible {
   /* Match .profile-hero's padding so Cam's and Kitana's cards feel like
      one matched pair, not two differently-sized boxes. */
   padding: 28px 30px;
-  border: 1px solid var(--surface-border);
-  border-top: 3px solid var(--section-accent);
+  border: 2px solid #4d3987;
+  border-top: 4px solid var(--section-accent);
   border-radius: 6px;
-  background: linear-gradient(160deg, var(--surface-panel-soft), var(--surface-panel) 60%);
-  box-shadow: 6px 6px 0 #0c0a16;
+  background: linear-gradient(
+    135deg,
+    rgba(42, 27, 91, 0.92),
+    rgba(13, 11, 34, 0.92)
+  );
+  box-shadow:
+    6px 6px 0 #21133d,
+    0 0 24px rgba(255, 117, 200, 0.12);
 }
 .companion-avatar {
   grid-area: avatar;
@@ -2630,9 +2636,9 @@ button.arcade-screen:focus-visible {
   grid-area: level;
   min-width: 140px;
   padding: 12px 16px;
-  border: 1px solid var(--surface-border-strong);
+  border: 2px solid #6247a5;
   background: rgba(9, 7, 20, 0.48);
-  box-shadow: 3px 3px 0 #0c0a16;
+  box-shadow: 3px 3px 0 #21133d;
   text-align: right;
 }
 .companion-level > span,
@@ -3027,15 +3033,19 @@ button.arcade-screen:focus-visible {
   align-items: center;
   gap: 14px;
   padding: 12px 16px;
-  border: 1px solid var(--surface-border);
-  background: var(--surface-panel-soft);
+  border: 2px solid #4d3987;
+  background: linear-gradient(
+    135deg,
+    rgba(42, 27, 91, 0.7),
+    rgba(13, 11, 34, 0.9)
+  );
   font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   transition: border-color 0.15s ease;
 }
 .trait-row:hover {
-  border-color: var(--item-color, var(--surface-border-strong));
+  border-color: var(--item-color, #6247a5);
 }
 .trait-row span {
   color: #c0b7d0;
@@ -3060,8 +3070,8 @@ button.arcade-screen:focus-visible {
 .trait-meter {
   position: relative;
   height: 10px;
-  background: #100e1c;
-  border: 1px solid var(--surface-border);
+  background: #1c1436;
+  border: 1px solid #3b2a69;
   overflow: hidden;
 }
 .trait-meter i {
@@ -3088,9 +3098,9 @@ button.arcade-screen:focus-visible {
   min-height: 150px;
   padding: 19px;
   overflow: hidden;
-  border: 1px solid var(--surface-border);
-  background: var(--surface-panel-soft);
-  box-shadow: 4px 4px 0 #0c0a16;
+  border: 2px solid #4d3987;
+  background: rgba(20, 14, 48, 0.9);
+  box-shadow: 4px 4px 0 #21133d;
   transition: border-color 0.15s ease;
 }
 .stat-card:hover {
@@ -3103,7 +3113,7 @@ button.arcade-screen:focus-visible {
   height: 54px;
   right: -25px;
   bottom: -25px;
-  border: 8px solid rgba(85, 231, 255, 0.1);
+  border: 8px solid rgba(154, 108, 255, 0.12);
   transform: rotate(45deg);
 }
 .stat-card svg {
@@ -3143,18 +3153,18 @@ button.arcade-screen:focus-visible {
   gap: 16px;
   min-height: 104px;
   padding: 16px;
-  border: 1px solid var(--surface-border);
-  background: var(--surface-panel-soft);
-  box-shadow: 4px 4px 0 #0c0a16;
+  border: 2px solid #433477;
+  background: rgba(20, 14, 48, 0.9);
+  box-shadow: 4px 4px 0 #21133d;
 }
-/* Achievements are the pink system; an unlocked one picks up that accent
-   instead of the generic gold "unlocked" treatment other slots would use. */
+/* Each achievement carries its own accent (--item-color, set per-card),
+   so unlocked ones don't all read as the same pink tile. */
 .inventory-slot.is-unlocked {
-  border-color: var(--arcade-pink);
+  border-color: var(--item-color, var(--arcade-pink));
   background: linear-gradient(
     100deg,
-    rgba(255, 95, 189, 0.08),
-    var(--surface-panel-soft) 65%
+    rgba(43, 27, 87, 0.97),
+    rgba(20, 14, 48, 0.92)
   );
 }
 .inventory-slot.is-locked {
@@ -3165,14 +3175,14 @@ button.arcade-screen:focus-visible {
   place-items: center;
   width: 56px;
   height: 56px;
-  border: 1px solid var(--surface-border-strong);
+  border: 2px solid #6247a5;
   background: #120b2b;
   color: #726989;
 }
 .is-unlocked .inventory-icon {
-  color: var(--arcade-gold);
-  background: rgba(255, 209, 102, 0.07);
-  box-shadow: inset 0 0 16px rgba(255, 209, 102, 0.08);
+  color: var(--item-color, var(--arcade-gold));
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 16px rgba(255, 255, 255, 0.05);
 }
 .inventory-icon svg {
   width: 25px;
@@ -3193,7 +3203,7 @@ button.arcade-screen:focus-visible {
 .inventory-slot > span {
   align-self: start;
   padding: 4px 6px;
-  border: 1px solid var(--surface-border-strong);
+  border: 1px solid #514262;
   color: #8f87a4;
   font-size: 0.52rem;
   font-weight: 900;
@@ -3201,8 +3211,8 @@ button.arcade-screen:focus-visible {
   text-transform: uppercase;
 }
 .inventory-slot.is-unlocked > span {
-  border-color: rgba(255, 95, 189, 0.4);
-  color: var(--arcade-pink);
+  border-color: var(--item-color, var(--arcade-pink));
+  color: var(--item-color, var(--arcade-pink));
 }
 .field-pack {
   overflow: hidden;
@@ -3356,10 +3366,6 @@ button.arcade-screen:focus-visible {
 }
 .inventory-sync.is-error {
   color: #ff9bc4;
-}
-.achievement-card.is-unlocked .inventory-icon {
-  color: var(--arcade-pink);
-  background: rgba(255, 95, 189, 0.07);
 }
 .empty-inventory {
   display: grid;

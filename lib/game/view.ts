@@ -52,6 +52,7 @@ export type AchievementView = {
   name: string;
   description: string;
   icon: string;
+  color: string;
   unlockedAt?: string;
 };
 
@@ -156,6 +157,7 @@ export const buildView = (save: SaveFile): SaveView => ({
     name: achievement.name,
     description: achievement.description,
     icon: achievement.icon,
+    color: achievement.color,
     unlockedAt: save.player.achievements[achievement.id]?.unlockedAt,
   })),
   encounters: encounters.map((encounter) => {
