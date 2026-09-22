@@ -12,7 +12,7 @@ import {
 } from "react-router-dom";
 import { AudioProvider } from "@/app/audio-provider";
 import { DevTools } from "@/app/dev-tools";
-import { GameProvider } from "@/app/game-provider";
+import { GameProvider, useGame } from "@/app/game-provider";
 import { getQuest, type QuestDefinition } from "@/lib/game/content/quests";
 import { Archive } from "./game-ui/archive";
 import { Inventory } from "./game-ui/inventory";
@@ -59,6 +59,23 @@ function RouteQuest({
   return <>{children(quest)}</>;
 }
 
+// Direct-loads a locked destination (bookmark, stale link, someone typing
+// a URL) get sent back to the lobby instead of the system rendering with
+// no data behind it. Waits for the save before judging: `view` is
+// undefined while loading, so an unlocked flash never happens.
+function RequireSystem({
+  system,
+  children,
+}: {
+  system: string;
+  children: React.ReactNode;
+}) {
+  const { view } = useGame();
+  if (view?.save && !view.save.world.unlockedSystems.includes(system))
+    return <Navigate to="/lobby" replace />;
+  return <>{children}</>;
+}
+
 const QuestIntroRoute = () => (
   <RouteQuest>{(quest) => <Intro quest={quest} />}</RouteQuest>
 );
@@ -76,9 +93,30 @@ function AppRoutes() {
       <Route path="/lobby" element={<Lobby />} />
       <Route path="/quest-log" element={<QuestLog />} />
       <Route path="/quests" element={<Navigate to="/quest-log" replace />} />
-      <Route path="/archive" element={<Archive />} />
-      <Route path="/inventory" element={<Inventory />} />
-      <Route path="/profile" element={<Profile />} />
+      <Route
+        path="/archive"
+        element={
+          <RequireSystem system="archive">
+            <Archive />
+          </RequireSystem>
+        }
+      />
+      <Route
+        path="/inventory"
+        element={
+          <RequireSystem system="inventory">
+            <Inventory />
+          </RequireSystem>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <RequireSystem system="profile">
+            <Profile />
+          </RequireSystem>
+        }
+      />
       <Route
         path="/dev"
         element={

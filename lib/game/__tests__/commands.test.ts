@@ -56,6 +56,46 @@ describe("quest.complete", () => {
     ).toMatchObject({ ok: true });
   });
 
+  it("registers the companion named in rewards.companion, at 0 xp", () => {
+    const save = saveFrom([created()]);
+    const result = handleCommand(save, {
+      type: "quest.complete",
+      slug: "unknown-signal",
+      answers: {},
+    });
+    if (!result.ok) throw new Error("expected ok");
+    const next = commit(save, result.events);
+    expect(next.player.companions.kitana).toMatchObject({
+      id: "kitana",
+      name: "Kitana",
+      species: "cat",
+      xp: 0,
+    });
+  });
+
+  it("grants companionXp to an already-registered companion independently of player xp", () => {
+    const save = saveFrom([
+      created(),
+      completed("unknown-signal"),
+      {
+        type: "companion.registered",
+        id: "kitana",
+        name: "Kitana",
+        species: "cat",
+        reason: "test",
+      },
+    ]);
+    const result = handleCommand(save, {
+      type: "quest.complete",
+      slug: "cams-gambit",
+      answers: { "load-cartridge": "Sun Cartridge" },
+    });
+    if (!result.ok) throw new Error("expected ok");
+    const next = commit(save, result.events);
+    expect(next.player.companions.kitana.xp).toBe(150);
+    expect(next.player.xp).toBe(250);
+  });
+
   it("keys first-completion rewards so they can never be granted twice", () => {
     const save = saveFrom([created(), completed("unknown-signal")]);
     const result = handleCommand(save, {

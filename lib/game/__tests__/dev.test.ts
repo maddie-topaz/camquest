@@ -20,6 +20,7 @@ describe("dev events", () => {
     ]);
     expect(save.world).toEqual({
       unlockedQuests: [],
+      unlockedSystems: ["quest-log"],
       discoveredLocations: [],
       secrets: [],
     });

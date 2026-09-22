@@ -26,6 +26,19 @@ export type GrantRecord = {
 
 export type QuestStatus = "locked" | "available" | "in-progress" | "completed";
 
+// A registered companion/pet. `id` keys it in `player.companions` and
+// looks up its content definition (lib/game/content/companions) for the
+// flavor (class, avatar, stats) that doesn't belong in save state. Name,
+// species and xp are the actual instance state, and persist independently
+// of the player's own xp/level.
+export type CompanionRecord = {
+  id: string;
+  name: string;
+  species: string;
+  xp: number;
+  registeredAt: string;
+};
+
 export type QuestSave = {
   step: number;
   answers: Record<string, string>;
@@ -54,6 +67,8 @@ export type SaveFile = {
   updatedAt: string;
   player: {
     name: string;
+    // Keyed by companion id, so more than one can be registered later.
+    companions: Record<string, CompanionRecord>;
     xp: number;
     traits: Record<string, number>;
     inventory: Record<string, ItemStack>;
@@ -63,6 +78,10 @@ export type SaveFile = {
   };
   world: {
     unlockedQuests: string[];
+    // Lobby destinations the player has unlocked (e.g. "archive",
+    // "inventory", "profile"). New saves start with only "quest-log" so
+    // onboarding has somewhere to send them.
+    unlockedSystems: string[];
     discoveredLocations: string[];
     secrets: string[];
   };
@@ -87,6 +106,22 @@ export type ResettableSystem = (typeof resettableSystems)[number];
 export type GameEventPayload =
   | { type: "player.created"; name: string; traits?: Record<string, number> }
   | { type: "player.renamed"; name: string }
+  | {
+      type: "companion.registered";
+      id: string;
+      name: string;
+      species: string;
+      reason: string;
+      questSlug?: string;
+    }
+  | {
+      type: "companion.xpGained";
+      companionId: string;
+      amount: number;
+      reason: string;
+      questSlug?: string;
+    }
+  | { type: "system.unlocked"; system: string; reason: string }
   | {
       type: "item.granted";
       itemId: string;
@@ -229,4 +264,13 @@ export type Rewards = {
   traits?: Record<string, number>;
   locations?: string[];
   secrets?: string[];
+  // Confirms/sets the player's registered name.
+  playerName?: string;
+  // Registers a companion/pet, once, by id.
+  companion?: { id: string; name: string; species: string };
+  // Companion XP, keyed by companion id — lets one quest award XP to the
+  // player, a companion, or both at once.
+  companionXp?: Record<string, number>;
+  // Lobby destinations (system ids) to unlock, e.g. "archive".
+  unlockSystems?: string[];
 };

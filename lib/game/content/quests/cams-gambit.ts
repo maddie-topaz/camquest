@@ -148,5 +148,7 @@ export const camsGambit: QuestDefinition = {
   rewards: {
     xp: 250,
     traits: { chaos: 1, curiosity: 1 },
+    // Kitana rode along for the whole gambit — she levels too.
+    companionXp: { kitana: 150 },
   },
 };

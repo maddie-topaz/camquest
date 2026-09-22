@@ -1,42 +1,60 @@
 import type { QuestDefinition } from "./types";
 
+// The onboarding quest. Mechanically it's still the signal-lock encounter;
+// narratively it's the system finding Cam for the first time, confirming
+// him as the registered player, and turning up a second heat signature it
+// wasn't expecting. Completion is what actually persists that — see
+// `rewards` below, applied once via lib/game/commands.ts.
 export const unknownSignal: QuestDefinition = {
-  // Placeholder copy: the encounter is real, the transmission text isn't yet.
   id: "unknown-signal",
   slug: "unknown-signal",
-  title: "Unknown Signal",
-  description: "Something is broadcasting after dark.",
+  title: "First Contact",
+  description: "Something out there is trying to find you.",
   symbol: "📡",
   status: "available",
   introduction:
-    "A carrier wave, faint but steady, cuts through the static." +
-    "\n\nSomeone is broadcasting. The wristband hums in reply." +
-    "\n\nLock the signal before it drifts.",
-  ctaLabel: "Tune in",
+    "A frequency flickers awake in the dark — not quite sound, not quite light." +
+    "\n\nIt isn't searching at random. It's searching for something specific." +
+    "\n\nHold the line. Let it find you.",
+  ctaLabel: "Answer the signal",
   steps: [
     {
       type: "encounter",
       id: "lock-signal",
-      title: "Lock the signal",
+      title: "Hold the frequency",
       prompt:
-        "The dial sweeps. Tap when the needle crosses the glow." +
-        "\n\nFive sweeps. The window narrows each time.",
+        "The dial drifts, hunting for a lock. Tap when the needle crosses the glow." +
+        "\n\nFive passes. The window tightens every time.",
       encounterId: "signal-lock",
     },
     {
       type: "reveal",
-      id: "decoded",
-      title: "Signal decoded",
-      prompt: "The static clears.",
-      message:
-        "A voice, a place, a time. Placeholder copy: replace with the real transmission.",
+      id: "registration",
+      title: "Identity confirmed",
+      prompt:
+        "The static resolves into a single clean tone." +
+        "\n\nSomewhere behind the signal, something old wakes up and starts reading.",
+      message: "PLAYER FOUND — designation CAM — status: ONLINE.",
+    },
+    {
+      type: "reveal",
+      id: "companion-detected",
+      title: "Second signature",
+      prompt:
+        "Before the channel closes, the readout flickers." +
+        "\n\nThere's a second heat signature. Small. Close. It's been there the whole time.",
+      message: "COMPANION DETECTED — designation KITANA — logging now.",
     },
   ],
-  completionTitle: "Signal locked",
+  completionTitle: "Contact established",
   completionMessage:
-    "The broadcast ends. Whatever it was, it was meant for you.",
+    "The line goes quiet, but the system doesn't forget a signal once it's locked. You're on the map now — both of you.",
+  reward: "TWO NAMES ON FILE. THE SYSTEM WAS WAITING FOR BOTH.",
   rewards: {
     xp: 100,
     traits: { mysteryTolerance: 1 },
+    playerName: "Cam",
+    companion: { id: "kitana", name: "Kitana", species: "cat" },
+    unlockSystems: ["archive", "inventory", "profile"],
   },
 };

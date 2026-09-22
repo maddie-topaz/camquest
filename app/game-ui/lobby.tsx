@@ -8,10 +8,12 @@ import {
   Gamepad2,
   UserRound,
 } from "lucide-react";
+import { useGame } from "@/app/game-provider";
 import { Shell } from "./shell";
 
 const lobbyDestinations = [
   {
+    system: "quest-log",
     to: "/quest-log",
     icon: Gamepad2,
     title: "Quest log",
@@ -19,6 +21,7 @@ const lobbyDestinations = [
     linkLabel: "Enter quest log",
   },
   {
+    system: "archive",
     to: "/archive",
     icon: ArchiveIcon,
     title: "Archive",
@@ -26,6 +29,7 @@ const lobbyDestinations = [
     linkLabel: "Open archive",
   },
   {
+    system: "inventory",
     to: "/inventory",
     icon: Backpack,
     title: "Inventory",
@@ -33,6 +37,7 @@ const lobbyDestinations = [
     linkLabel: "Open inventory",
   },
   {
+    system: "profile",
     to: "/profile",
     icon: UserRound,
     title: "Player profile",
@@ -41,6 +46,13 @@ const lobbyDestinations = [
   },
 ];
 export function Lobby() {
+  const { view } = useGame();
+  // Before the save loads, show every destination rather than flash a
+  // near-empty lobby; once it's in, only unlocked systems render.
+  const unlocked = view?.save?.world.unlockedSystems;
+  const destinations = unlocked
+    ? lobbyDestinations.filter((dest) => unlocked.includes(dest.system))
+    : lobbyDestinations;
   return (
     <Shell>
       <main className="relative z-10 mx-auto max-w-6xl px-5 pb-16">
@@ -49,7 +61,7 @@ export function Lobby() {
           <h1>Game lobby</h1>
         </div>
         <div className="quest-grid">
-          {lobbyDestinations.map((dest) => {
+          {destinations.map((dest) => {
             const Icon = dest.icon;
             return (
               <Link key={dest.to} className="quest-card" to={dest.to}>
