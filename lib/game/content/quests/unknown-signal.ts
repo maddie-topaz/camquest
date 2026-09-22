@@ -13,7 +13,7 @@ export const unknownSignal: QuestDefinition = {
   symbol: "📡",
   status: "available",
   introduction:
-    "A frequency flickers awake in the dark — not quite sound, not quite light." +
+    "A frequency flickers awake in the dark, not quite sound, not quite light." +
     "\n\nIt isn't searching at random. It's searching for something specific." +
     "\n\nHold the line. Let it find you.",
   ctaLabel: "Answer the signal",
@@ -21,19 +21,21 @@ export const unknownSignal: QuestDefinition = {
     {
       type: "encounter",
       id: "lock-signal",
-      title: "Hold the frequency",
+      title: "Lock the signal",
       prompt:
-        "The dial drifts, hunting for a lock. Tap when the needle crosses the glow." +
-        "\n\nFive passes. The window tightens every time.",
+        "The frequency won't hold still." +
+        "\n\nCatch the needle inside the glow and keep the channel open." +
+        "\n\nFive passes. Less room for error each time.",
       encounterId: "signal-lock",
     },
     {
       type: "reveal",
       id: "registration",
-      title: "Identity confirmed",
+      title: "Signal identified",
       prompt:
-        "The static resolves into a single clean tone." +
-        "\n\nSomewhere behind the signal, something old wakes up and starts reading.",
+        "The static drops away." +
+        "\n\nFor a moment, the channel is perfectly clear." +
+        "\n\nSomewhere behind the signal, something old wakes up and starts writing.",
       message: "PLAYER FOUND — designation CAM — status: ONLINE.",
     },
     {
@@ -41,18 +43,23 @@ export const unknownSignal: QuestDefinition = {
       id: "companion-detected",
       title: "Second signature",
       prompt:
-        "Before the channel closes, the readout flickers." +
-        "\n\nThere's a second heat signature. Small. Close. It's been there the whole time.",
-      message: "COMPANION DETECTED — designation KITANA — logging now.",
+        "The scan should be finished." +
+        "\n\nIt isn't." +
+        "\n\nSomething else is still appearing on the readout." +
+        "\n\nA second heat signature from something small, close and furry.",
+      message: "COMPANION DETECTED — designation KITANA — status: ONLINE.",
     },
   ],
   completionTitle: "Contact established",
   completionMessage:
-    "The line goes quiet, but the system doesn't forget a signal once it's locked. You're on the map now — both of you.",
-  reward: "TWO NAMES ON FILE. THE SYSTEM WAS WAITING FOR BOTH.",
+    "The line goes quiet, but the system doesn't forget a signal once it's locked. You're on the map now both of you.",
+  reward: "REGISTRATION COMPLETE. TWO SIGNATURES ADDED TO THE MAP.",
   rewards: {
     xp: 100,
-    traits: { mysteryTolerance: 1 },
+    // Holding the lock long enough to read the signal is a focus payoff;
+    // mysteryTolerance is how he took it, not what it took.
+    traits: { focus: 1 },
+    tendencies: { mysteryTolerance: 1 },
     playerName: "Cam",
     companion: { id: "kitana", name: "Kitana", species: "cat" },
     unlockSystems: ["archive", "inventory", "profile"],

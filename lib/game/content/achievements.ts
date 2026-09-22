@@ -19,14 +19,14 @@ export const achievements: AchievementDefinition[] = [
   {
     id: "first-quest",
     name: "First quest",
-    description: "Completed a quest. The map is bigger than it looked.",
+    description: "First quest complete. We always believed in you. Mostly.",
     icon: "Trophy",
     condition: (save) => completedCount(save) >= 1,
   },
   {
     id: "blessed-by-kitana",
     name: "Blessed by Kitana",
-    description: "Holding Kitana's Blessing. The paw approves.",
+    description: "A feline blessing issued in your name.",
     icon: "Cat",
     condition: (save) =>
       (save.player.inventory["kitanas-blessing"]?.quantity ?? 0) > 0,

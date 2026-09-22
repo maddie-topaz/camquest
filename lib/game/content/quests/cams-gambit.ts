@@ -147,7 +147,10 @@ export const camsGambit: QuestDefinition = {
   },
   rewards: {
     xp: 250,
-    traits: { chaos: 1, curiosity: 1 },
+    // A whole night riding on chance and a fate engine — luck earns its
+    // keep here; chaos/curiosity are how he played it, not what it took.
+    traits: { luck: 1 },
+    tendencies: { chaos: 1, curiosity: 1 },
     // Kitana rode along for the whole gambit — she levels too.
     companionXp: { kitana: 150 },
   },

@@ -66,6 +66,87 @@ export const canConsume = (
 };
 
 // ---------------------------------------------------------------------------
+// Equipment rules
+// ---------------------------------------------------------------------------
+
+export const isEquipped = (save: SaveFile, ownerId: string, itemId: string) =>
+  (save.player.equipment[ownerId] ?? []).includes(itemId);
+
+export type EquipCheck =
+  | { ok: true }
+  | {
+      ok: false;
+      code:
+        | "unknown-item"
+        | "not-equippable"
+        | "not-eligible"
+        | "insufficient"
+        | "already-equipped";
+      message: string;
+    };
+
+// An item is equipped by reference, not moved: it must stay owned in
+// `inventory` the whole time, so unequipping never needs to re-grant it.
+export const canEquip = (
+  save: SaveFile,
+  ownerId: string,
+  itemId: string,
+): EquipCheck => {
+  const item = getItem(itemId);
+  if (!item)
+    return {
+      ok: false,
+      code: "unknown-item",
+      message: `No such item: ${itemId}`,
+    };
+  if (!item.traits?.includes("equippable"))
+    return {
+      ok: false,
+      code: "not-equippable",
+      message: `${item.name} can't be equipped`,
+    };
+  if (!item.equippableBy?.includes(ownerId))
+    return {
+      ok: false,
+      code: "not-eligible",
+      message: `${item.name} can't be equipped by ${ownerId}`,
+    };
+  if (!hasItem(save, itemId, 1))
+    return {
+      ok: false,
+      code: "insufficient",
+      message: `Not holding ${item.name}`,
+    };
+  if (isEquipped(save, ownerId, itemId))
+    return {
+      ok: false,
+      code: "already-equipped",
+      message: `${item.name} is already equipped`,
+    };
+  return { ok: true };
+};
+
+export type UnequipCheck =
+  | { ok: true }
+  | { ok: false; code: "not-equipped"; message: string };
+
+export const canUnequip = (
+  save: SaveFile,
+  ownerId: string,
+  itemId: string,
+): UnequipCheck => {
+  if (!isEquipped(save, ownerId, itemId)) {
+    const item = getItem(itemId);
+    return {
+      ok: false,
+      code: "not-equipped",
+      message: `${item?.name ?? itemId} isn't equipped`,
+    };
+  }
+  return { ok: true };
+};
+
+// ---------------------------------------------------------------------------
 // Prerequisites
 // ---------------------------------------------------------------------------
 
@@ -93,6 +174,11 @@ export const missingRequirements = (
     ([trait, min]) => (save.player.traits[trait] ?? 0) < min,
   );
   if (traits.length) missing.traits = Object.fromEntries(traits);
+
+  const tendencies = Object.entries(requirements.tendencies ?? {}).filter(
+    ([tendency, min]) => (save.player.tendencies[tendency] ?? 0) < min,
+  );
+  if (tendencies.length) missing.tendencies = Object.fromEntries(tendencies);
 
   if (requirements.level && playerLevel(save) < requirements.level)
     missing.level = requirements.level;

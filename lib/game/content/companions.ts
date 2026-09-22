@@ -9,6 +9,8 @@ export type CompanionStat = {
   name: string;
   value: number;
   max: number;
+  // Its own restrained accent, same pattern as traits/tendencies.
+  color: string;
 };
 
 export type CompanionDefinition = {
@@ -19,6 +21,8 @@ export type CompanionDefinition = {
   icon: string;
   color: string;
   title?: string;
+  // A line of flavor text for the profile card.
+  bio?: string;
   stats?: CompanionStat[];
 };
 
@@ -28,11 +32,12 @@ export const companions: CompanionDefinition[] = [
     companionClass: "Feline",
     icon: "Cat",
     color: "#ff75c8",
-    title: "The Lucky Paw",
+    title: "The Soft Guardian",
+    bio: "A gentle ragdoll familiar whose gifts lie in comfort and companionship rather than battle. Few have tested her in combat. Many have benefited from the cuddles.",
     stats: [
-      { id: "luck", name: "Luck", value: 7, max: 10 },
-      { id: "stealth", name: "Stealth", value: 6, max: 10 },
-      { id: "loyalty", name: "Loyalty", value: 9, max: 10 },
+      { id: "luck", name: "Luck", value: 7, max: 10, color: "#b98bff" },
+      { id: "stealth", name: "Stealth", value: 6, max: 10, color: "#4ce0b3" },
+      { id: "loyalty", name: "Loyalty", value: 9, max: 10, color: "#ff9ecb" },
     ],
   },
 ];

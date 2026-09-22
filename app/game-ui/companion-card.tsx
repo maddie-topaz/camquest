@@ -1,8 +1,9 @@
 "use client";
 
-import { PawPrint } from "lucide-react";
+import { PawPrint, Sparkles } from "lucide-react";
 import type { CompanionView } from "@/lib/game/view";
-import { companionIcons } from "./icons";
+import { accentStyle } from "./colors";
+import { companionIcons, inventoryIcons } from "./icons";
 
 // Generic — renders whatever's in `view.companions`. No Kitana-specific
 // UI here; a second companion registered by a future quest gets the same
@@ -10,10 +11,7 @@ import { companionIcons } from "./icons";
 export function CompanionCard({ companion }: { companion: CompanionView }) {
   const Icon = companionIcons[companion.icon] || PawPrint;
   return (
-    <article
-      className="companion-card"
-      style={{ "--item-color": companion.color } as React.CSSProperties}
-    >
+    <article className="companion-card" style={accentStyle(companion.color)}>
       <div className="companion-avatar" aria-hidden="true">
         <Icon aria-hidden="true" />
       </div>
@@ -26,6 +24,7 @@ export function CompanionCard({ companion }: { companion: CompanionView }) {
           <p className="companion-title">{companion.title}</p>
         )}
       </div>
+      {companion.bio && <p className="companion-bio">{companion.bio}</p>}
       <div className="companion-level">
         <span>Level</span>
         <strong>{String(companion.level.level).padStart(2, "0")}</strong>
@@ -42,7 +41,7 @@ export function CompanionCard({ companion }: { companion: CompanionView }) {
       {companion.stats.length > 0 && (
         <div className="companion-stats trait-list">
           {companion.stats.map((stat) => (
-            <div className="trait-row" key={stat.id}>
+            <div className="trait-row" key={stat.id} style={accentStyle(stat.color)}>
               <span>{stat.name}</span>
               <div
                 className="trait-meter"
@@ -59,6 +58,24 @@ export function CompanionCard({ companion }: { companion: CompanionView }) {
           ))}
         </div>
       )}
+      <div className="companion-equipment">
+        <p className="companion-equipment-label">Equipment</p>
+        {companion.equipped.length > 0 ? (
+          <ul className="companion-equipment-list">
+            {companion.equipped.map((equipped) => {
+              const EquippedIcon = inventoryIcons[equipped.icon] || Sparkles;
+              return (
+                <li key={equipped.itemId} style={accentStyle(equipped.color)}>
+                  <EquippedIcon aria-hidden="true" />
+                  {equipped.name}
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="companion-equipment-empty">Nothing equipped yet.</p>
+        )}
+      </div>
     </article>
   );
 }

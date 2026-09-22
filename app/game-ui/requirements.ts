@@ -1,5 +1,6 @@
 import { getQuest } from "@/lib/game/content/quests";
 import { traits as traitDefinitions } from "@/lib/game/content/traits";
+import { tendencies as tendencyDefinitions } from "@/lib/game/content/tendencies";
 import type { Requirements } from "@/lib/game/types";
 
 // Turns a missing-requirements object into copy for a locked quest card.
@@ -13,6 +14,10 @@ export function describeRequirements(missing: Requirements) {
   for (const [trait, min] of Object.entries(missing.traits ?? {}))
     parts.push(
       `${traitDefinitions.find((t) => t.id === trait)?.name ?? trait} ${min}+`,
+    );
+  for (const [tendency, min] of Object.entries(missing.tendencies ?? {}))
+    parts.push(
+      `${tendencyDefinitions.find((t) => t.id === tendency)?.name ?? tendency} ${min}+`,
     );
   if (missing.level) parts.push(`level ${missing.level}`);
   for (const id of missing.achievements ?? [])

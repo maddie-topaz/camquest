@@ -5,9 +5,11 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { useGame } from "@/app/game-provider";
 import { achievements } from "@/lib/game/content/achievements";
+import { companions } from "@/lib/game/content/companions";
 import { items } from "@/lib/game/content/items";
 import { quests } from "@/lib/game/content/quests";
 import { traits } from "@/lib/game/content/traits";
+import { tendencies } from "@/lib/game/content/tendencies";
 import { scenarios } from "@/lib/game/dev/scenarios";
 import type { Command, GameEvent } from "@/lib/game/types";
 import type { SaveView } from "@/lib/game/view";
@@ -141,7 +143,7 @@ function PlayerSection({ view, r }: { view: SaveView; r: Runner }) {
     <Section
       id="player"
       title="Player"
-      blurb="Profile, XP and traits. Traits are clamped to their defined range by the reducer."
+      blurb="Profile, XP, traits (what Cam can do) and tendencies (how he tends to play). Both are clamped to their defined range by the reducer."
     >
       <div className="dev-grid">
         <div className="dev-row">
@@ -229,6 +231,57 @@ function PlayerSection({ view, r }: { view: SaveView; r: Runner }) {
                   })
                 }
                 disabled={value === trait.initial}
+              />
+            </div>
+          );
+        })}
+        {tendencies.map((tendency) => {
+          const value =
+            view.save.player.tendencies[tendency.id] ?? tendency.initial;
+          return (
+            <div className="dev-row" key={tendency.id}>
+              <span title={tendency.description}>
+                {tendency.name} <strong>{value}</strong>{" "}
+                <small>/{tendency.max}</small>
+              </span>
+              <Btn
+                mode="force"
+                label={`${tendency.name} −1`}
+                busy={r.busy}
+                onClick={() =>
+                  r.force(`${tendency.name} −1`, {
+                    action: "tendency",
+                    tendency: tendency.id,
+                    delta: -1,
+                  })
+                }
+                disabled={value <= tendency.min}
+              />
+              <Btn
+                mode="force"
+                label={`${tendency.name} +1`}
+                busy={r.busy}
+                onClick={() =>
+                  r.force(`${tendency.name} +1`, {
+                    action: "tendency",
+                    tendency: tendency.id,
+                    delta: 1,
+                  })
+                }
+                disabled={value >= tendency.max}
+              />
+              <Btn
+                mode="force"
+                label={`${tendency.name} reset`}
+                busy={r.busy}
+                onClick={() =>
+                  r.force(`${tendency.name} reset`, {
+                    action: "set-tendency",
+                    tendency: tendency.id,
+                    value: tendency.initial,
+                  })
+                }
+                disabled={value === tendency.initial}
               />
             </div>
           );
@@ -351,6 +404,77 @@ function InventorySection({ view, r }: { view: SaveView; r: Runner }) {
             </div>
           );
         })}
+      </div>
+    </Section>
+  );
+}
+
+function CompanionsSection({ view, r }: { view: SaveView; r: Runner }) {
+  return (
+    <Section
+      id="companions"
+      title="Companions"
+      blurb="Equip/unequip go through the engine and respect the equippableBy rule. An item stays in inventory the whole time — equipping only records a reference."
+    >
+      <div className="dev-grid">
+        {view.companions.length === 0 && (
+          <div className="dev-row">
+            <span>No companion registered yet.</span>
+          </div>
+        )}
+        {view.companions.map((companion) => (
+          <div className="dev-row dev-wrap" key={companion.id}>
+            <span>
+              <strong>{companion.name}</strong> <code>{companion.id}</code>{" "}
+              Level {companion.level.level} · {companion.xp} XP
+            </span>
+            {companion.equipped.map((equipped) => (
+              <Btn
+                key={equipped.itemId}
+                mode="engine"
+                label={`Unequip ${equipped.name}`}
+                busy={r.busy}
+                onClick={() =>
+                  r.engine(`Unequip ${equipped.name}`, {
+                    type: "item.unequip",
+                    ownerId: companion.id,
+                    itemId: equipped.itemId,
+                    operationId: crypto.randomUUID(),
+                  })
+                }
+              />
+            ))}
+            {companion.equippable.map((item) => (
+              <Btn
+                key={item.id}
+                mode="engine"
+                label={`Equip ${item.name}`}
+                busy={r.busy}
+                onClick={() =>
+                  r.engine(`Equip ${item.name}`, {
+                    type: "item.equip",
+                    ownerId: companion.id,
+                    itemId: item.id,
+                    reason: "dev",
+                    operationId: crypto.randomUUID(),
+                  })
+                }
+              />
+            ))}
+            {companion.equipped.length === 0 &&
+              companion.equippable.length === 0 && (
+                <small>Nothing owned that {companion.name} can equip.</small>
+              )}
+          </div>
+        ))}
+        {companions.length > view.companions.length && (
+          <div className="dev-row">
+            <small>
+              Other companion definitions exist but aren't registered yet —
+              register them via a quest reward first.
+            </small>
+          </div>
+        )}
       </div>
     </Section>
   );
@@ -830,6 +954,7 @@ function ResetSection({ r }: { r: Runner }) {
 const sections = [
   "player",
   "inventory",
+  "companions",
   "quests",
   "world",
   "scenarios",
@@ -884,6 +1009,7 @@ export function DevTools() {
         <>
           <PlayerSection view={view} r={r} />
           <InventorySection view={view} r={r} />
+          <CompanionsSection view={view} r={r} />
           <QuestsSection view={view} r={r} />
           <WorldSection view={view} r={r} />
           <ScenariosSection r={r} />

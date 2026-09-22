@@ -2262,8 +2262,11 @@ button.arcade-screen:focus-visible {
 .profile-hero {
   display: grid;
   grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "avatar identity level"
+    "bio bio bio";
   align-items: center;
-  gap: 24px;
+  gap: 8px 24px;
   margin-top: 34px;
   padding: 28px 30px;
   border: 2px solid #4d3987;
@@ -2276,6 +2279,15 @@ button.arcade-screen:focus-visible {
   box-shadow:
     7px 7px 0 #21133d,
     0 0 32px rgba(85, 231, 255, 0.1);
+}
+.profile-hero .player-avatar {
+  grid-area: avatar;
+}
+.profile-hero .player-identity {
+  grid-area: identity;
+}
+.profile-hero .player-level {
+  grid-area: level;
 }
 .player-avatar {
   position: relative;
@@ -2335,9 +2347,23 @@ button.arcade-screen:focus-visible {
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
-.profile-companion {
-  margin-top: 4px !important;
-  color: #f0b8d2 !important;
+.player-title {
+  margin: 4px 0 0 !important;
+  color: var(--arcade-gold) !important;
+}
+.player-bio {
+  grid-area: bio;
+  margin: 4px 0 0 !important;
+  max-width: 62ch;
+  padding-top: 14px;
+  border-top: 1px solid rgba(98, 71, 165, 0.4);
+  color: #b8afd0 !important;
+  font-family: Georgia, serif !important;
+  font-style: italic;
+  font-size: 0.85rem !important;
+  line-height: 1.55;
+  text-transform: none !important;
+  letter-spacing: normal !important;
 }
 .online-dot {
   display: inline-block;
@@ -2409,7 +2435,7 @@ button.arcade-screen:focus-visible {
 }
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 14px;
 }
 .trait-list {
@@ -2420,15 +2446,92 @@ button.arcade-screen:focus-visible {
   display: grid;
   gap: 18px;
 }
+/* Player + Companion: Cam keeps the dominant share (~60/40) so Kitana
+   reads as part of his party, not a second player. */
+.party-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  align-items: stretch;
+  gap: 20px;
+}
+.party-grid.is-solo {
+  grid-template-columns: 1fr;
+}
+.party-grid .profile-hero {
+  margin-top: 0;
+  height: 100%;
+}
+.party-grid .companion-card {
+  height: 100%;
+}
+@media (max-width: 900px) {
+  .party-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* Player stats + Traits + Tendencies, side by side on desktop. */
+.stats-traits-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 20px 28px;
+  margin-top: 48px;
+}
+@media (max-width: 1100px) {
+  .stats-traits-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .stats-traits-grid > :first-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 700px) {
+  .stats-traits-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .stats-traits-grid > :first-child {
+    grid-column: auto;
+  }
+}
+/* Traits and Tendencies each get their own bordered box, side by side. */
+.dial-section {
+  padding: 22px 24px;
+  border: 2px solid #4d3987;
+  border-radius: 6px;
+  background: linear-gradient(
+    135deg,
+    rgba(42, 27, 91, 0.65),
+    rgba(13, 11, 34, 0.85)
+  );
+  box-shadow: 4px 4px 0 #21133d;
+}
+/* Compact Inventory preview, below Achievements. */
+/* Sits inside the section's own .dial-section box, so it's just a
+   content block here, not a second nested card. */
+.inventory-preview-card {
+  max-width: 360px;
+}
+.inventory-preview-card > span {
+  display: block;
+  margin-bottom: 14px;
+  color: #958ba7;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 .companion-card {
   display: grid;
   grid-template-columns: auto 1fr auto;
   grid-template-areas:
     "avatar identity level"
-    "stats stats stats";
+    "bio bio bio"
+    "stats stats stats"
+    "equipment equipment equipment";
   align-items: center;
   gap: 8px 22px;
-  padding: 24px 26px;
+  /* Match .profile-hero's padding so Cam's and Kitana's cards feel like
+     one matched pair, not two differently-sized boxes. */
+  padding: 28px 30px;
   border: 2px solid #4d3987;
   border-radius: 6px;
   background: linear-gradient(
@@ -2473,6 +2576,17 @@ button.arcade-screen:focus-visible {
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
+.companion-bio {
+  grid-area: bio;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid rgba(98, 71, 165, 0.4);
+  color: #b8afd0;
+  font-family: Georgia, serif;
+  font-style: italic;
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
 .companion-level {
   grid-area: level;
   min-width: 140px;
@@ -2503,13 +2617,59 @@ button.arcade-screen:focus-visible {
   padding-top: 14px;
   border-top: 1px solid rgba(98, 71, 165, 0.4);
 }
+.companion-equipment {
+  grid-area: equipment;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(98, 71, 165, 0.4);
+}
+.companion-equipment-label {
+  margin: 0 0 8px;
+  color: #968da6;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.companion-equipment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.companion-equipment-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--item-color);
+  border-radius: 999px;
+  background: rgba(9, 7, 20, 0.6);
+  color: #f4f0ff;
+  font-size: 0.72rem;
+}
+.companion-equipment-list li svg {
+  width: 14px;
+  height: 14px;
+  color: var(--item-color);
+  filter: drop-shadow(0 0 5px var(--item-color));
+}
+.companion-equipment-empty {
+  margin: 0;
+  color: #7c7594;
+  font-size: 0.72rem;
+  font-style: italic;
+}
 @media (max-width: 640px) {
   .companion-card {
     grid-template-columns: auto 1fr;
     grid-template-areas:
       "avatar identity"
       "level level"
-      "stats stats";
+      "bio bio"
+      "stats stats"
+      "equipment equipment";
   }
   .companion-level {
     text-align: left;
@@ -2841,8 +3001,19 @@ button.arcade-screen:focus-visible {
 .trait-row span {
   color: #c0b7d0;
 }
+.trait-row .trait-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.trait-row .trait-label svg {
+  width: 15px;
+  height: 15px;
+  color: var(--item-color, var(--arcade-cyan));
+  filter: drop-shadow(0 0 5px var(--item-color, transparent));
+}
 .trait-row strong {
-  color: var(--arcade-gold);
+  color: var(--item-color, var(--arcade-gold));
   font-size: 1rem;
   min-width: 2ch;
   text-align: right;
@@ -2857,8 +3028,12 @@ button.arcade-screen:focus-visible {
 .trait-meter i {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--arcade-cyan), var(--arcade-pink));
-  box-shadow: 0 0 10px rgba(85, 231, 255, 0.5);
+  background: linear-gradient(
+    90deg,
+    var(--item-color, var(--arcade-cyan)),
+    var(--arcade-pink)
+  );
+  box-shadow: 0 0 10px var(--item-color, rgba(85, 231, 255, 0.5));
   transition: width 0.4s ease;
 }
 @media (max-width: 600px) {
@@ -3137,10 +3312,6 @@ button.arcade-screen:focus-visible {
 .inventory-sync.is-error {
   color: #ff9bc4;
 }
-.achievements-section {
-  padding-top: 8px;
-  border-top: 1px solid rgba(98, 71, 165, 0.34);
-}
 .achievement-card.is-unlocked .inventory-icon {
   color: var(--arcade-pink);
   background: rgba(255, 95, 189, 0.07);
@@ -3160,6 +3331,10 @@ button.arcade-screen:focus-visible {
 @media (max-width: 760px) {
   .profile-hero {
     grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "avatar identity"
+      "level level"
+      "bio bio";
     padding: 22px;
   }
   .player-level {
@@ -3181,6 +3356,11 @@ button.arcade-screen:focus-visible {
 @media (max-width: 480px) {
   .profile-hero {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "avatar"
+      "identity"
+      "level"
+      "bio";
     text-align: center;
   }
   .player-avatar {

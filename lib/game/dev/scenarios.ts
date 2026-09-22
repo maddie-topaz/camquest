@@ -7,6 +7,7 @@ import { achievements } from "../content/achievements";
 import { items, starterLoadout } from "../content/items";
 import { getQuest, quests, type QuestDefinition } from "../content/quests";
 import { traits } from "../content/traits";
+import { tendencies } from "../content/tendencies";
 import { START_UNLOCK_ID } from "../machines/quest";
 import type { NewGameEvent } from "../types";
 
@@ -91,6 +92,18 @@ const satisfyRequirements = (
     if (min > initial)
       events.push({
         payload: { type: "trait.changed", trait, delta: min - initial, reason },
+      });
+  }
+  for (const [tendency, min] of Object.entries(req.tendencies ?? {})) {
+    const initial = tendencies.find((t) => t.id === tendency)?.initial ?? 0;
+    if (min > initial)
+      events.push({
+        payload: {
+          type: "tendency.changed",
+          tendency,
+          delta: min - initial,
+          reason,
+        },
       });
   }
   if (req.level && req.level > 1)
@@ -191,7 +204,7 @@ export const scenarios: ScenarioDefinition[] = [
     id: "everything-unlocked",
     name: "Everything unlocked",
     description:
-      "All items, every quest completed, every achievement, traits maxed.",
+      "All items, every quest completed, every achievement, traits and tendencies maxed.",
     events: () => [
       ...grantAllItems(),
       ...acceptEverything(),
@@ -217,6 +230,14 @@ export const scenarios: ScenarioDefinition[] = [
         payload: {
           type: "trait.changed" as const,
           trait: t.id,
+          delta: t.max - t.initial,
+          reason,
+        },
+      })),
+      ...tendencies.map((t) => ({
+        payload: {
+          type: "tendency.changed" as const,
+          tendency: t.id,
           delta: t.max - t.initial,
           reason,
         },
