@@ -4,38 +4,105 @@
 // of them for a real recording without touching game code.
 
 export type SoundDefinition = {
-  file: string
-  volume?: number
-  description: string
-}
+  file: string;
+  volume?: number;
+  description: string;
+};
 
 export const sounds: Record<string, SoundDefinition> = {
-  'game-start': { file: 'game-start', volume: 0.7, description: 'Rising arpeggio when START is pressed' },
-  'inventory-open': { file: 'inventory-open', volume: 0.5, description: 'Sweep as the field pack opens' },
-  'item-acquired': { file: 'item-acquired', volume: 0.6, description: 'Blip per item, pitched by position' },
-  'inventory-ready': { file: 'inventory-ready', volume: 0.6, description: 'Chime when Accept becomes available' },
-  'inventory-accepted': { file: 'inventory-accepted', volume: 0.7, description: 'Confirm on Accept' },
-  'inventory-error': { file: 'inventory-error', volume: 0.6, description: 'Descending buzz on a failed sync' },
-  'checkpoint-unlocked': { file: 'checkpoint-unlocked', volume: 0.6, description: 'A passcode was right' },
-  'checkpoint-denied': { file: 'checkpoint-denied', volume: 0.5, description: 'A passcode was wrong' },
-  'choice-select': { file: 'choice-select', volume: 0.4, description: 'Tick when a card or option is picked' },
-  'choice-locked': { file: 'choice-locked', volume: 0.6, description: 'Stamp when a mystery card is turned over' },
-  'step-advance': { file: 'step-advance', volume: 0.5, description: 'Moving to the next round' },
-  'quest-complete': { file: 'quest-complete', volume: 0.8, description: 'Fanfare on the last step' },
-  'encounter-start': { file: 'encounter-start', volume: 0.5, description: 'Dial powering up' },
-  'encounter-hit': { file: 'encounter-hit', volume: 0.6, description: 'Locked inside the window' },
-  'encounter-miss': { file: 'encounter-miss', volume: 0.5, description: 'Missed the window' },
-  'encounter-complete': { file: 'encounter-complete', volume: 0.7, description: 'Mini-game finished' },
-}
+  "game-start": {
+    file: "game-start",
+    volume: 0.7,
+    description: "Rising arpeggio when START is pressed",
+  },
+  "inventory-open": {
+    file: "inventory-open",
+    volume: 0.5,
+    description: "Sweep as the field pack opens",
+  },
+  "item-acquired": {
+    file: "item-acquired",
+    volume: 0.6,
+    description: "Blip per item, pitched by position",
+  },
+  "inventory-ready": {
+    file: "inventory-ready",
+    volume: 0.6,
+    description: "Chime when Accept becomes available",
+  },
+  "inventory-accepted": {
+    file: "inventory-accepted",
+    volume: 0.7,
+    description: "Confirm on Accept",
+  },
+  "inventory-error": {
+    file: "inventory-error",
+    volume: 0.6,
+    description: "Descending buzz on a failed sync",
+  },
+  "checkpoint-unlocked": {
+    file: "checkpoint-unlocked",
+    volume: 0.6,
+    description: "A passcode was right",
+  },
+  "checkpoint-denied": {
+    file: "checkpoint-denied",
+    volume: 0.5,
+    description: "A passcode was wrong",
+  },
+  "choice-select": {
+    file: "choice-select",
+    volume: 0.4,
+    description: "Tick when a card or option is picked",
+  },
+  "choice-locked": {
+    file: "choice-locked",
+    volume: 0.6,
+    description: "Stamp when a mystery card is turned over",
+  },
+  "step-advance": {
+    file: "step-advance",
+    volume: 0.5,
+    description: "Moving to the next round",
+  },
+  "quest-complete": {
+    file: "quest-complete",
+    volume: 0.8,
+    description: "Fanfare on the last step",
+  },
+  "encounter-start": {
+    file: "encounter-start",
+    volume: 0.5,
+    description: "Dial powering up",
+  },
+  "encounter-hit": {
+    file: "encounter-hit",
+    volume: 0.6,
+    description: "Locked inside the window",
+  },
+  "encounter-miss": {
+    file: "encounter-miss",
+    volume: 0.5,
+    description: "Missed the window",
+  },
+  "encounter-complete": {
+    file: "encounter-complete",
+    volume: 0.7,
+    description: "Mini-game finished",
+  },
+};
 
 // Some cues carry detail that changes the sound: item-acquired climbs a
 // little with each card so a four-item reveal plays a rising run.
-export type CueDetail = Record<string, unknown> | undefined
+export type CueDetail = Record<string, unknown> | undefined;
 
-export const resolveSound = (cue: string, detail: CueDetail): { file: string; volume: number; rate: number } | null => {
-  const def = sounds[cue]
-  if (!def) return null
-  const index = typeof detail?.index === 'number' ? detail.index : 0
-  const rate = cue === 'item-acquired' ? Math.min(1.6, 1 + index * 0.12) : 1
-  return { file: `/audio/${def.file}.wav`, volume: def.volume ?? 0.6, rate }
-}
+export const resolveSound = (
+  cue: string,
+  detail: CueDetail,
+): { file: string; volume: number; rate: number } | null => {
+  const def = sounds[cue];
+  if (!def) return null;
+  const index = typeof detail?.index === "number" ? detail.index : 0;
+  const rate = cue === "item-acquired" ? Math.min(1.6, 1 + index * 0.12) : 1;
+  return { file: `/audio/${def.file}.wav`, volume: def.volume ?? 0.6, rate };
+};

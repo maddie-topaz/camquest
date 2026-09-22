@@ -17,7 +17,10 @@
 //
 // Item, trait and quest ids come from lib/game/content.
 
-const base = (process.env.CAMQUEST_URL || "http://localhost:3000").replace(/\/$/, "");
+const base = (process.env.CAMQUEST_URL || "http://localhost:3000").replace(
+  /\/$/,
+  "",
+);
 
 const usage = () => {
   console.error(`Usage:
@@ -35,25 +38,48 @@ const usage = () => {
 };
 
 const request = async (path, init) => {
-  const response = await fetch(base + path, { ...init, headers: { "Content-Type": "application/json", ...(init?.headers || {}) } });
+  const response = await fetch(base + path, {
+    ...init,
+    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+  });
   const data = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(data?.error || data?.rejection?.message || `${response.status} ${response.statusText}`);
+  if (!response.ok)
+    throw new Error(
+      data?.error ||
+        data?.rejection?.message ||
+        `${response.status} ${response.statusText}`,
+    );
   return data;
 };
 
 const printStatus = (view) => {
   const { save, level } = view;
-  console.log(`${save.player.name}  level ${level.level}  ${save.player.xp} XP  (seq ${save.seq})`);
-  console.log("traits:", Object.entries(save.player.traits).map(([k, v]) => `${k}=${v}`).join("  "));
+  console.log(
+    `${save.player.name}  level ${level.level}  ${save.player.xp} XP  (seq ${save.seq})`,
+  );
+  console.log(
+    "traits:",
+    Object.entries(save.player.traits)
+      .map(([k, v]) => `${k}=${v}`)
+      .join("  "),
+  );
   console.log("pack:");
   for (const item of view.inventory) {
-    const pending = view.pendingGrants.filter((g) => g.itemId === item.id).length;
-    console.log(`  ${item.id.padEnd(20)} x${String(item.quantity).padEnd(3)}${pending ? ` (${pending} pending accept)` : ""}`);
+    const pending = view.pendingGrants.filter(
+      (g) => g.itemId === item.id,
+    ).length;
+    console.log(
+      `  ${item.id.padEnd(20)} x${String(item.quantity).padEnd(3)}${pending ? ` (${pending} pending accept)` : ""}`,
+    );
   }
   console.log("quests:");
   for (const quest of Object.values(view.quests)) {
-    const missing = Object.keys(quest.missing).length ? `  missing ${JSON.stringify(quest.missing)}` : "";
-    console.log(`  ${quest.slug.padEnd(20)} ${quest.status}${quest.completions ? ` ×${quest.completions}` : ""}${missing}`);
+    const missing = Object.keys(quest.missing).length
+      ? `  missing ${JSON.stringify(quest.missing)}`
+      : "";
+    console.log(
+      `  ${quest.slug.padEnd(20)} ${quest.status}${quest.completions ? ` ×${quest.completions}` : ""}${missing}`,
+    );
   }
   const earned = view.achievements.filter((a) => a.unlockedAt).map((a) => a.id);
   console.log("achievements:", earned.length ? earned.join(", ") : "none yet");
@@ -61,8 +87,13 @@ const printStatus = (view) => {
 };
 
 const admin = async (body) => {
-  const { applied, view } = await request("/api/game/admin", { method: "POST", body: JSON.stringify(body) });
-  console.log(`✓ ${applied.length} event(s) appended: ${applied.map((e) => e.payload.type).join(", ") || "none (already applied)"}`);
+  const { applied, view } = await request("/api/game/admin", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  console.log(
+    `✓ ${applied.length} event(s) appended: ${applied.map((e) => e.payload.type).join(", ") || "none (already applied)"}`,
+  );
   printStatus(view);
 };
 
@@ -76,36 +107,77 @@ const main = async () => {
       const { events } = await request("/api/game/admin");
       for (const event of events.slice(0, Number(args[0] || 30))) {
         const { type, ...rest } = event.payload;
-        console.log(`${String(event.seq).padStart(4)}  ${event.at.slice(0, 19)}  ${type.padEnd(22)} ${JSON.stringify(rest)}`);
+        console.log(
+          `${String(event.seq).padStart(4)}  ${event.at.slice(0, 19)}  ${type.padEnd(22)} ${JSON.stringify(rest)}`,
+        );
       }
       break;
     }
     case "grant":
-      if (!args[0]) { usage(); return; }
-      await admin({ action: "grant", itemId: args[0], quantity: Number(args[1] || 1), reason: args[2] || "gift" });
+      if (!args[0]) {
+        usage();
+        return;
+      }
+      await admin({
+        action: "grant",
+        itemId: args[0],
+        quantity: Number(args[1] || 1),
+        reason: args[2] || "gift",
+      });
       break;
     case "xp":
-      if (!args[0]) { usage(); return; }
-      await admin({ action: "xp", amount: Number(args[0]), reason: args[1] || "admin" });
+      if (!args[0]) {
+        usage();
+        return;
+      }
+      await admin({
+        action: "xp",
+        amount: Number(args[0]),
+        reason: args[1] || "admin",
+      });
       break;
     case "trait":
-      if (!args[0] || args[1] === undefined) { usage(); return; }
-      await admin({ action: "trait", trait: args[0], delta: Number(args[1]), reason: args[2] || "admin" });
+      if (!args[0] || args[1] === undefined) {
+        usage();
+        return;
+      }
+      await admin({
+        action: "trait",
+        trait: args[0],
+        delta: Number(args[1]),
+        reason: args[2] || "admin",
+      });
       break;
     case "unlock":
-      if (!args[0]) { usage(); return; }
+      if (!args[0]) {
+        usage();
+        return;
+      }
       await admin({ action: "unlock-quest", slug: args[0] });
       break;
     case "reset-quest":
-      if (!args[0]) { usage(); return; }
+      if (!args[0]) {
+        usage();
+        return;
+      }
       await admin({ action: "reset-quest", slug: args[0] });
       break;
     case "rearm":
       await admin({ action: "rearm" });
       break;
     case "scenario":
-      if (!args[0]) { usage(); return; }
-      await admin({ action: "scenario", id: args[0], params: { slug: args[1], step: args[2] === undefined ? undefined : Number(args[2]) } });
+      if (!args[0]) {
+        usage();
+        return;
+      }
+      await admin({
+        action: "scenario",
+        id: args[0],
+        params: {
+          slug: args[1],
+          step: args[2] === undefined ? undefined : Number(args[2]),
+        },
+      });
       break;
     case "wipe":
       await admin({ action: "wipe" });

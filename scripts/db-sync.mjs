@@ -23,11 +23,15 @@ if (!destinationUrl) {
 }
 const destinationHost = new URL(destinationUrl).hostname;
 if (!["localhost", "127.0.0.1", "::1"].includes(destinationHost)) {
-  console.error(`✗ Refusing to sync into ${destinationHost}: destination must be localhost.`);
+  console.error(
+    `✗ Refusing to sync into ${destinationHost}: destination must be localhost.`,
+  );
   process.exit(1);
 }
 if (!process.env.PGHOST) {
-  console.error("✗ PGHOST is not set; load .env.local so the RDS source is configured.");
+  console.error(
+    "✗ PGHOST is not set; load .env.local so the RDS source is configured.",
+  );
   process.exit(1);
 }
 
@@ -57,7 +61,13 @@ const insertRows = async (client, table, rows) => {
         // pg hands jsonb back as parsed objects; it serialises plain objects
         // on the way in, but arrays would be sent as Postgres arrays, so
         // stringify anything structured ourselves.
-        params.push(value !== null && typeof value === "object" && !(value instanceof Date) ? JSON.stringify(value) : value);
+        params.push(
+          value !== null &&
+            typeof value === "object" &&
+            !(value instanceof Date)
+            ? JSON.stringify(value)
+            : value,
+        );
         return `$${params.length}`;
       });
       return `(${placeholders.join(", ")})`;
@@ -90,16 +100,28 @@ const resetSequences = async (client, table) => {
 const sync = async () => {
   const [sourceTables, destinationTables] = await Promise.all([
     source.connect().then(async (client) => {
-      try { return await listTables(client); } finally { client.release(); }
+      try {
+        return await listTables(client);
+      } finally {
+        client.release();
+      }
     }),
     destination.connect().then(async (client) => {
-      try { return await listTables(client); } finally { client.release(); }
+      try {
+        return await listTables(client);
+      } finally {
+        client.release();
+      }
     }),
   ]);
 
-  const missing = sourceTables.filter((table) => !destinationTables.includes(table));
+  const missing = sourceTables.filter(
+    (table) => !destinationTables.includes(table),
+  );
   if (missing.length) {
-    throw new Error(`Local schema is missing ${missing.join(", ")} — run \`pnpm db:migrate\` first.`);
+    throw new Error(
+      `Local schema is missing ${missing.join(", ")} — run \`pnpm db:migrate\` first.`,
+    );
   }
 
   console.log(`Syncing ${process.env.PGHOST} → ${destinationUrl}`);
@@ -118,7 +140,9 @@ const sync = async () => {
       const { rows } = await source.query(`SELECT * FROM ${quote(table)}`);
       await insertRows(client, table, rows);
       await resetSequences(client, table);
-      console.log(`  ${table.padEnd(20)} ${String(rows.length).padStart(5)} rows`);
+      console.log(
+        `  ${table.padEnd(20)} ${String(rows.length).padStart(5)} rows`,
+      );
     }
     await client.query("COMMIT");
   } catch (error) {

@@ -46,15 +46,15 @@ and survives restarts.
 
 ### Commands
 
-| Command               | What it does                                                    |
-| --------------------- | --------------------------------------------------------------- |
-| `pnpm dev`            | Start the container, migrate, run Next against the local DB     |
-| `pnpm db:up`          | Start the container on its own (waits until it's healthy)       |
-| `pnpm db:down`        | Stop the container (data is kept)                               |
-| `pnpm db:reset`       | Wipe the local data and re-migrate — a fresh save               |
-| `pnpm db:migrate`     | Run `scripts/migrate.mjs` against the local DB (safe to re-run) |
-| `pnpm db:sync`        | Copy every table from RDS into the local DB                     |
-| `pnpm db:psql`        | Open a `psql` shell inside the container                        |
+| Command           | What it does                                                    |
+| ----------------- | --------------------------------------------------------------- |
+| `pnpm dev`        | Start the container, migrate, run Next against the local DB     |
+| `pnpm db:up`      | Start the container on its own (waits until it's healthy)       |
+| `pnpm db:down`    | Stop the container (data is kept)                               |
+| `pnpm db:reset`   | Wipe the local data and re-migrate — a fresh save               |
+| `pnpm db:migrate` | Run `scripts/migrate.mjs` against the local DB (safe to re-run) |
+| `pnpm db:sync`    | Copy every table from RDS into the local DB                     |
+| `pnpm db:psql`    | Open a `psql` shell inside the container                        |
 
 ### Getting Cam's real data locally
 

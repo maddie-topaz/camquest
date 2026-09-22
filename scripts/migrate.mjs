@@ -14,7 +14,9 @@ import { Pool } from "pg";
 import { databasePoolConfig, isLocalDatabase } from "../lib/db-pool.mjs";
 
 const pool = new Pool({ ...databasePoolConfig(), max: 1 });
-const target = isLocalDatabase() ? process.env.DATABASE_URL : `${process.env.PGHOST} (IAM auth)`;
+const target = isLocalDatabase()
+  ? process.env.DATABASE_URL
+  : `${process.env.PGHOST} (IAM auth)`;
 console.log(`Migrating ${target}`);
 
 const sql = `
@@ -139,7 +141,9 @@ const sql = `
 
 try {
   await pool.query(sql);
-  console.log("✓ Game persistence tables, starter inventory, and the event log are ready.");
+  console.log(
+    "✓ Game persistence tables, starter inventory, and the event log are ready.",
+  );
 } catch (error) {
   console.error("✗ Migration failed:", error.message);
   process.exitCode = 1;

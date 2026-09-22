@@ -2,43 +2,70 @@
 // (level, quest statuses, what's missing) computed once on the server so
 // every screen reads the same answers.
 
-import { achievements } from './content/achievements'
-import { encounters } from './content/encounters'
-import { items, getItem } from './content/items'
-import { levelProgress } from './content/levels'
-import { quests } from './content/quests'
-import { canStartQuest, pendingGrants, questStatus } from './rules'
-import type { GrantRecord, QuestStatus, Requirements, SaveFile } from './types'
+import { achievements } from "./content/achievements";
+import { encounters } from "./content/encounters";
+import { items, getItem } from "./content/items";
+import { levelProgress } from "./content/levels";
+import { quests } from "./content/quests";
+import { canStartQuest, pendingGrants, questStatus } from "./rules";
+import type { GrantRecord, QuestStatus, Requirements, SaveFile } from "./types";
 
 export type InventoryView = {
-  id: string
-  name: string
-  description: string
-  unlockHint: string
-  icon: string
-  color: string
-  tilt: string
-  quantity: number
-  consumable: boolean
-}
+  id: string;
+  name: string;
+  description: string;
+  unlockHint: string;
+  icon: string;
+  color: string;
+  tilt: string;
+  quantity: number;
+  consumable: boolean;
+};
 
-export type PendingGrantView = GrantRecord & { name: string; description: string; icon: string; color: string; tilt: string; sortOrder: number }
+export type PendingGrantView = GrantRecord & {
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  tilt: string;
+  sortOrder: number;
+};
 
-export type QuestView = { slug: string; status: QuestStatus; missing: Requirements; completions: number; completedAt?: string }
+export type QuestView = {
+  slug: string;
+  status: QuestStatus;
+  missing: Requirements;
+  completions: number;
+  completedAt?: string;
+};
 
-export type AchievementView = { id: string; name: string; description: string; icon: string; unlockedAt?: string }
+export type AchievementView = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  unlockedAt?: string;
+};
 
-export type EncounterView = { id: string; name: string; description: string; maxScore: number; plays: number; bestScore: number; lastAt?: string }
+export type EncounterView = {
+  id: string;
+  name: string;
+  description: string;
+  maxScore: number;
+  plays: number;
+  bestScore: number;
+  lastAt?: string;
+};
 
 export type SaveView = {
-  save: SaveFile
-  level: ReturnType<typeof levelProgress>
-  inventory: InventoryView[]
-  pendingGrants: PendingGrantView[]
-  quests: Record<string, QuestView>
-  achievements: AchievementView[]
-  encounters: EncounterView[]
-}
+  save: SaveFile;
+  level: ReturnType<typeof levelProgress>;
+  inventory: InventoryView[];
+  pendingGrants: PendingGrantView[];
+  quests: Record<string, QuestView>;
+  achievements: AchievementView[];
+  encounters: EncounterView[];
+};
 
 export const buildView = (save: SaveFile): SaveView => ({
   save,
@@ -59,8 +86,20 @@ export const buildView = (save: SaveFile): SaveView => ({
     })),
   pendingGrants: pendingGrants(save)
     .flatMap((grant) => {
-      const item = getItem(grant.itemId)
-      return item ? [{ ...grant, name: item.name, description: item.description, icon: item.icon, color: item.color, tilt: item.tilt, sortOrder: item.sortOrder }] : []
+      const item = getItem(grant.itemId);
+      return item
+        ? [
+            {
+              ...grant,
+              name: item.name,
+              description: item.description,
+              icon: item.icon,
+              color: item.color,
+              tilt: item.tilt,
+              sortOrder: item.sortOrder,
+            },
+          ]
+        : [];
     })
     .sort((a, b) => a.sortOrder - b.sortOrder || a.at.localeCompare(b.at)),
   quests: Object.fromEntries(
@@ -83,7 +122,15 @@ export const buildView = (save: SaveFile): SaveView => ({
     unlockedAt: save.player.achievements[achievement.id]?.unlockedAt,
   })),
   encounters: encounters.map((encounter) => {
-    const record = save.player.encounters?.[encounter.id]
-    return { id: encounter.id, name: encounter.name, description: encounter.description, maxScore: encounter.maxScore, plays: record?.plays ?? 0, bestScore: record?.bestScore ?? 0, lastAt: record?.lastAt }
+    const record = save.player.encounters?.[encounter.id];
+    return {
+      id: encounter.id,
+      name: encounter.name,
+      description: encounter.description,
+      maxScore: encounter.maxScore,
+      plays: record?.plays ?? 0,
+      bestScore: record?.bestScore ?? 0,
+      lastAt: record?.lastAt,
+    };
   }),
-})
+});
