@@ -16,6 +16,7 @@ import {
   Ticket,
   Trophy,
   Zap,
+  PawPrint,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,6 +38,7 @@ export const inventoryIcons: Record<string, LucideIcon> = {
   Cat,
   Beef,
   Sparkles,
+  PawPrint,
 };
 export const achievementIcons: Record<string, LucideIcon> = {
   Trophy,

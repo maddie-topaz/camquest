@@ -49,7 +49,7 @@ export const items: ItemDefinition[] = [
     name: "Kitana's Blessing",
     description: "A lucky cat relic. The paw still waves.",
     unlockHint: "Starter item",
-    icon: "Cat",
+    icon: "PawPrint",
     color: "#ff75c8",
     tilt: "-5deg",
     sortOrder: 30,
