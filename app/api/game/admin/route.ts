@@ -4,7 +4,6 @@ import { achievementsById } from "@/lib/game/content/achievements";
 import { getItem, starterLoadout } from "@/lib/game/content/items";
 import { getQuest } from "@/lib/game/content/quests";
 import { traitsById } from "@/lib/game/content/traits";
-import { devToolsEnabled } from "@/lib/game/dev/enabled";
 import {
   jumpToStep,
   scenariosById,
@@ -291,8 +290,6 @@ const toEvents = (
 };
 
 export async function POST(request: NextRequest) {
-  if (!devToolsEnabled)
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
   const body = (await request.json().catch(() => null)) as AdminAction | null;
   if (!body?.action)
     return NextResponse.json({ error: "action is required" }, { status: 400 });
@@ -333,8 +330,6 @@ export async function POST(request: NextRequest) {
 
 // Recent event history, newest first.
 export async function GET(request: NextRequest) {
-  if (!devToolsEnabled)
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
   const limit = Math.min(
     500,
     Math.max(1, Number(request.nextUrl.searchParams.get("limit") || 100)),

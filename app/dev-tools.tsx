@@ -8,7 +8,6 @@ import { achievements } from "@/lib/game/content/achievements";
 import { items } from "@/lib/game/content/items";
 import { quests } from "@/lib/game/content/quests";
 import { traits } from "@/lib/game/content/traits";
-import { devToolsEnabled } from "@/lib/game/dev/enabled";
 import { scenarios } from "@/lib/game/dev/scenarios";
 import type { Command, GameEvent } from "@/lib/game/types";
 import type { SaveView } from "@/lib/game/view";
@@ -839,18 +838,6 @@ const sections = [
 export function DevTools() {
   const { view, error } = useGame();
   const r = useRunner();
-
-  if (!devToolsEnabled) {
-    return (
-      <main className="dev-page">
-        <h1>Developer tools</h1>
-        <p>
-          Not available in this build. Set{" "}
-          <code>NEXT_PUBLIC_CAMQUEST_DEV_TOOLS=1</code> to enable.
-        </p>
-      </main>
-    );
-  }
 
   return (
     <main className="dev-page">
