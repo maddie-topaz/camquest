@@ -2,6 +2,7 @@
   "name": "my-project",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.12.1",
   "scripts": {
     "dev": "pnpm db:up && pnpm db:migrate && set -a && . ./.env.docker && set +a && next dev",
     "dev:rds": "vercel env pull .env.local --yes && next dev",
