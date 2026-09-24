@@ -1,7 +1,7 @@
 import { getQuest } from "@/lib/game/content/quests";
 import { traits as traitDefinitions } from "@/lib/game/content/traits";
 import { tendencies as tendencyDefinitions } from "@/lib/game/content/tendencies";
-import type { Requirements } from "@/lib/game/types";
+import type { Requirements, WorldEvent } from "@/lib/game/types";
 
 // Turns a missing-requirements object into copy for a locked quest card.
 export function describeRequirements(missing: Requirements) {
@@ -24,3 +24,15 @@ export function describeRequirements(missing: Requirements) {
     parts.push(`the ${id.replace(/-/g, " ")} achievement`);
   return parts.length ? `Requires ${parts.join(", ")}.` : "Locked.";
 }
+
+// What a trigger-gated checkpoint is waiting for, in player terms.
+export const describeTrigger = (trigger: WorldEvent) => {
+  switch (trigger.type) {
+    case "TERMINAL_PRESSED":
+      return `Press the ${trigger.terminalId.replace(/-/g, " ")} to sync this checkpoint.`;
+    case "BEACON_ACTIVATED":
+      return `Activate the ${trigger.beaconId.replace(/-/g, " ")} to sync this checkpoint.`;
+    case "AREA_ENTERED":
+      return `Reach the ${trigger.areaId.replace(/-/g, " ")} to sync this checkpoint.`;
+  }
+};

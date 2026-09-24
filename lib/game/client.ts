@@ -1,13 +1,14 @@
 // Browser-side access to the save. Thin: the server owns every rule.
 
 import type { Command, CommandRejection, GameEvent } from "./types";
-import type { SaveView } from "./view";
+import type { QuestProgressView, SaveView } from "./view";
 
 export type {
   SaveView,
   InventoryView,
   PendingGrantView,
   QuestView,
+  QuestProgressView,
   AchievementView,
   EncounterView,
 } from "./view";
@@ -39,6 +40,14 @@ export const loadSave = async (timeoutMs = 20000): Promise<SaveView> => {
   } finally {
     globalThis.clearTimeout(timeout);
   }
+};
+
+export const loadQuest = async (slug: string): Promise<QuestProgressView> => {
+  const response = await fetch(`/api/game/quests/${encodeURIComponent(slug)}`, {
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error("Failed to load quest");
+  return (await response.json()) as QuestProgressView;
 };
 
 export const sendCommand = async (

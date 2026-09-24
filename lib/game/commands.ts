@@ -5,7 +5,7 @@
 
 import { getEncounter } from "./content/encounters";
 import { getItem } from "./content/items";
-import { getQuest, type QuestDefinition } from "./content/quests";
+import { getQuest, quests, type QuestDefinition } from "./content/quests";
 import { applyEvent } from "./reducer";
 import {
   canConsume,
@@ -15,6 +15,7 @@ import {
   hasCompleted,
   newlyEarnedAchievements,
   pendingGrants,
+  questStatus,
 } from "./rules";
 import type {
   Command,
@@ -24,6 +25,7 @@ import type {
   Requirements,
   Rewards,
   SaveFile,
+  WorldEvent,
 } from "./types";
 
 const reject = (
@@ -253,6 +255,14 @@ export const handleCommand = (
         return reject("locked", `${quest.title} is locked`, gate.missing);
       if (command.step < 0 || command.step > quest.steps.length)
         return reject("bad-step", `Step ${command.step} is out of range`);
+      // Progress carries the client's whole unlock list, but steps opened
+      // by a world trigger were unlocked server-side and the client may
+      // not have heard yet. Keep those so a save can't clobber them.
+      const triggered = (save.quests[command.slug]?.unlockedSteps ?? []).filter(
+        (stepId) =>
+          quest.steps.some((step) => step.id === stepId && step.trigger) &&
+          !command.unlockedSteps.includes(stepId),
+      );
       return {
         ok: true,
         events: [
@@ -262,7 +272,7 @@ export const handleCommand = (
               slug: command.slug,
               step: command.step,
               answers: command.answers,
-              unlockedSteps: command.unlockedSteps,
+              unlockedSteps: [...command.unlockedSteps, ...triggered],
             },
           },
         ],
@@ -453,4 +463,61 @@ export const handleCommand = (
       return reject("unknown-command", "Unknown command");
     }
   }
+};
+
+// ---------------------------------------------------------------------------
+// World events: the physical world did something. Unlike a command there
+// is nothing to reject — a terminal press that no quest is waiting for is
+// simply a no-op — so the result is always ok, possibly with no events.
+// ---------------------------------------------------------------------------
+
+const worldEventTarget = (event: WorldEvent) => {
+  switch (event.type) {
+    case "TERMINAL_PRESSED":
+      return event.terminalId;
+    case "BEACON_ACTIVATED":
+      return event.beaconId;
+    case "AREA_ENTERED":
+      return event.areaId;
+  }
+};
+
+export const describeWorldEvent = (event: WorldEvent) =>
+  `${event.type}:${worldEventTarget(event)}`;
+
+const triggeredBy = (trigger: WorldEvent | undefined, event: WorldEvent) =>
+  Boolean(trigger) &&
+  trigger!.type === event.type &&
+  worldEventTarget(trigger!) === worldEventTarget(event);
+
+// Opens every not-yet-unlocked step, in any in-progress quest, whose
+// trigger matches the event. Pressing a terminal before reaching its step
+// still counts: the checkpoint is simply already open when Cam gets there.
+export const handleWorldEvent = (
+  save: SaveFile,
+  event: WorldEvent,
+  at = new Date().toISOString(),
+): CommandResult => {
+  const events: NewGameEvent[] = [];
+  for (const quest of quests) {
+    if (questStatus(save, quest) !== "in-progress") continue;
+    const unlocked = save.quests[quest.slug]?.unlockedSteps ?? [];
+    for (const step of quest.steps) {
+      if (!triggeredBy(step.trigger, event) || unlocked.includes(step.id))
+        continue;
+      events.push({
+        payload: {
+          type: "quest.stepUnlocked",
+          slug: quest.slug,
+          stepId: step.id,
+          reason: describeWorldEvent(event),
+        },
+      });
+    }
+  }
+  if (events.length === 0) return { ok: true, events: [] };
+  return {
+    ok: true,
+    events: [...events, ...achievementEvents(save, events, at)],
+  };
 };

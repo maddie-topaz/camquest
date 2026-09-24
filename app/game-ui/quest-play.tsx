@@ -11,8 +11,9 @@ import { CommandRejectedError } from "@/lib/game/client";
 import type { EncounterResult } from "@/lib/game/content/encounters";
 import type { QuestDefinition } from "@/lib/game/content/quests";
 import { questMachine, questSelectors } from "@/lib/game/machines/quest";
+import { hasExternalObjectives, useQuest } from "@/lib/game/use-quest";
 import { choiceIcons } from "./icons";
-import { describeRequirements } from "./requirements";
+import { describeRequirements, describeTrigger } from "./requirements";
 import { Shell } from "./shell";
 import { ChallengeBody, EncounterResultCard } from "./quest-step";
 
@@ -101,6 +102,22 @@ function ChallengeRun({
       complete.unsubscribe();
     };
   }, [actor, quest.slug, dispatch, navigate]);
+
+  // Checkpoints can open from outside this screen (a terminal press
+  // handled server-side). While this screen is open on a quest that has
+  // such steps, useQuest keeps re-reading the quest; when a newer copy
+  // lands, hand the server's unlocks to the machine. A completed quest
+  // being replayed starts fresh, so its old unlocks are ignored.
+  const { data: serverQuest } = useQuest(quest.slug, {
+    poll: hasExternalObjectives(quest) && !snapshot.matches("locked"),
+  });
+  useEffect(() => {
+    if (!serverQuest?.progress || serverQuest.status === "completed") return;
+    actor.send({
+      type: "SYNC_UNLOCKS",
+      unlockedSteps: serverQuest.progress.unlockedSteps,
+    });
+  }, [actor, serverQuest]);
 
   if (snapshot.matches("locked")) {
     return (
@@ -191,31 +208,41 @@ function ChallengeRun({
           {isGated ? (
             <div className="riddle-box passcode-gate">
               <p className="eyebrow">Checkpoint synchronization required</p>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  actor.send({ type: "SUBMIT_PASSCODE" });
-                }}
-              >
-                <input
-                  id="passcode"
-                  aria-label="Passcode"
-                  value={passcodeInput}
-                  onChange={(e) =>
-                    actor.send({ type: "TYPE_PASSCODE", value: e.target.value })
-                  }
-                  placeholder="Enter code"
-                  autoComplete="off"
-                />
-                {passcodeError && (
-                  <p className="passcode-error">
-                    That code doesn't match. Try again.
-                  </p>
-                )}
-                <button type="submit" className="portal-button mt-4">
-                  Sync <ArrowRight />
-                </button>
-              </form>
+              {step.trigger && (
+                <p className="challenge-prompt" role="status">
+                  {describeTrigger(step.trigger)}
+                </p>
+              )}
+              {step.passcode && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    actor.send({ type: "SUBMIT_PASSCODE" });
+                  }}
+                >
+                  <input
+                    id="passcode"
+                    aria-label="Passcode"
+                    value={passcodeInput}
+                    onChange={(e) =>
+                      actor.send({
+                        type: "TYPE_PASSCODE",
+                        value: e.target.value,
+                      })
+                    }
+                    placeholder="Enter code"
+                    autoComplete="off"
+                  />
+                  {passcodeError && (
+                    <p className="passcode-error">
+                      That code doesn't match. Try again.
+                    </p>
+                  )}
+                  <button type="submit" className="portal-button mt-4">
+                    Sync <ArrowRight />
+                  </button>
+                </form>
+              )}
             </div>
           ) : showingOutcome && selectedCard ? (
             <div className="reveal-box outcome-reveal">

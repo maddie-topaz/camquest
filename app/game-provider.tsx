@@ -2,19 +2,24 @@
 
 import { createContext, useCallback, useContext, useMemo } from "react";
 import { useActorRef, useSelector } from "@xstate/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   adminAction,
-  loadSave,
+  CommandRejectedError,
   sendCommand,
   type SaveView,
 } from "@/lib/game/client";
 import { playerMachine } from "@/lib/game/machines/player";
+import { queryKeys, saveQuery } from "@/lib/game/queries";
 import type { Command } from "@/lib/game/types";
 
-// One save for the whole app, driven by the player machine: it loads the
-// view once and runs commands strictly one after another. Screens read
-// `view` and change it only through `dispatch` (rule-checked) or `admin`
-// (debug page); both resolve with what the server returned, so the UI
+// One save for the whole app. The view lives in the TanStack Query cache
+// (key `save`), so anything that invalidates or refetches that key (a
+// focus resync today, a push notification later) reaches every screen.
+// The player machine still runs
+// commands strictly one after another; screens change the save only
+// through `dispatch` (rule-checked) or `admin` (debug page), and whatever
+// view the server answers with goes straight into the cache, so the UI
 // never drifts from the database.
 type GameContextValue = {
   view: SaveView | null;
@@ -35,14 +40,32 @@ let jobCounter = 0;
 const nextJobId = () => `job:${Date.now().toString(36)}:${(jobCounter += 1)}`;
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient();
+  const { data: cachedView } = useQuery(saveQuery());
+
+  // Server responses are authoritative, so they replace the cached view
+  // (keepNewestSave still guards against an older one landing late).
+  const remember = (next: SaveView) => {
+    queryClient.setQueryData(queryKeys.save, next);
+    return next;
+  };
   const actor = useActorRef(playerMachine, {
     input: {
-      load: loadSave,
-      run: async (command) => (await sendCommand(command)).view,
-      admin: async (body) => (await adminAction(body)).view,
+      load: () => queryClient.fetchQuery(saveQuery()),
+      run: async (command) => {
+        try {
+          return remember((await sendCommand(command)).view);
+        } catch (error) {
+          if (error instanceof CommandRejectedError && error.view)
+            remember(error.view);
+          throw error;
+        }
+      },
+      admin: async (body) => remember((await adminAction(body)).view),
     },
   });
-  const view = useSelector(actor, (snapshot) => snapshot.context.view);
+  const machineView = useSelector(actor, (snapshot) => snapshot.context.view);
+  const view = cachedView ?? machineView;
   const error = useSelector(actor, (snapshot) =>
     snapshot.matches("failed") ? snapshot.context.error : null,
   );
@@ -92,13 +115,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const load = useCallback(
     () =>
       new Promise<SaveView>((resolve, reject) => {
+        const latest = (fallback: SaveView) =>
+          queryClient.getQueryData<SaveView>(queryKeys.save) ?? fallback;
         const snapshot = actor.getSnapshot();
-        if (snapshot.context.view) return resolve(snapshot.context.view);
+        if (snapshot.context.view)
+          return resolve(latest(snapshot.context.view));
         if (snapshot.matches("failed")) actor.send({ type: "RETRY" });
         const subscription = actor.subscribe((next) => {
           if (next.context.view) {
             subscription.unsubscribe();
-            resolve(next.context.view);
+            resolve(latest(next.context.view));
           } else if (next.matches("failed")) {
             subscription.unsubscribe();
             reject(
@@ -109,13 +135,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           }
         });
       }),
-    [actor],
+    [actor, queryClient],
   );
 
-  const refresh = useCallback(() => {
-    actor.send({ type: "LOAD" });
-    return load();
-  }, [actor, load]);
+  const refresh = useCallback(
+    () => queryClient.fetchQuery({ ...saveQuery(), staleTime: 0 }),
+    [queryClient],
+  );
 
   const value = useMemo<GameContextValue>(
     () => ({ view, error, loading, syncing, load, refresh, dispatch, admin }),

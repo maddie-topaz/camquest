@@ -3,7 +3,10 @@
 // every screen reads the same answers.
 
 import { achievements } from "./content/achievements";
-import { getCompanionDefinition, type CompanionStat } from "./content/companions";
+import {
+  getCompanionDefinition,
+  type CompanionStat,
+} from "./content/companions";
 import { encounters } from "./content/encounters";
 import {
   items,
@@ -13,9 +16,15 @@ import {
   type ItemTrait,
 } from "./content/items";
 import { levelProgress } from "./content/levels";
-import { quests } from "./content/quests";
+import { quests, type QuestDefinition } from "./content/quests";
 import { canStartQuest, pendingGrants, questStatus } from "./rules";
-import type { GrantRecord, QuestStatus, Requirements, SaveFile } from "./types";
+import type {
+  GrantRecord,
+  QuestSave,
+  QuestStatus,
+  Requirements,
+  SaveFile,
+} from "./types";
 
 export type InventoryView = {
   id: string;
@@ -46,6 +55,10 @@ export type QuestView = {
   completions: number;
   completedAt?: string;
 };
+
+// One quest on its own: its status plus the saved progress, for screens
+// that only care about the quest being played.
+export type QuestProgressView = QuestView & { progress: QuestSave | null };
 
 export type AchievementView = {
   id: string;
@@ -103,7 +116,10 @@ export type SaveView = {
   companions: CompanionView[];
 };
 
-const toInventoryView = (item: ItemDefinition, save: SaveFile): InventoryView => ({
+const toInventoryView = (
+  item: ItemDefinition,
+  save: SaveFile,
+): InventoryView => ({
   id: item.id,
   name: item.name,
   description: item.description,
@@ -114,6 +130,22 @@ const toInventoryView = (item: ItemDefinition, save: SaveFile): InventoryView =>
   quantity: save.player.inventory[item.id]?.quantity ?? 0,
   kind: item.kind,
   traits: item.traits ?? [],
+});
+
+const toQuestView = (quest: QuestDefinition, save: SaveFile): QuestView => ({
+  slug: quest.slug,
+  status: questStatus(save, quest),
+  missing: canStartQuest(save, quest).missing,
+  completions: save.quests[quest.slug]?.completions ?? 0,
+  completedAt: save.quests[quest.slug]?.completedAt,
+});
+
+export const buildQuestView = (
+  save: SaveFile,
+  quest: QuestDefinition,
+): QuestProgressView => ({
+  ...toQuestView(quest, save),
+  progress: save.quests[quest.slug] ?? null,
 });
 
 const sortedItems = items.slice().sort((a, b) => a.sortOrder - b.sortOrder);
@@ -141,16 +173,7 @@ export const buildView = (save: SaveFile): SaveView => ({
     })
     .sort((a, b) => a.sortOrder - b.sortOrder || a.at.localeCompare(b.at)),
   quests: Object.fromEntries(
-    quests.map((quest) => [
-      quest.slug,
-      {
-        slug: quest.slug,
-        status: questStatus(save, quest),
-        missing: canStartQuest(save, quest).missing,
-        completions: save.quests[quest.slug]?.completions ?? 0,
-        completedAt: save.quests[quest.slug]?.completedAt,
-      },
-    ]),
+    quests.map((quest) => [quest.slug, toQuestView(quest, save)]),
   ),
   achievements: achievements.map((achievement) => ({
     id: achievement.id,
@@ -191,7 +214,14 @@ export const buildView = (save: SaveFile): SaveView => ({
       equipped: equippedIds.flatMap((itemId) => {
         const item = getItem(itemId);
         return item
-          ? [{ itemId: item.id, name: item.name, icon: item.icon, color: item.color }]
+          ? [
+              {
+                itemId: item.id,
+                name: item.name,
+                icon: item.icon,
+                color: item.color,
+              },
+            ]
           : [];
       }),
       equippable: sortedItems

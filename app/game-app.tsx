@@ -13,6 +13,7 @@ import {
 import { AudioProvider } from "@/app/audio-provider";
 import { DevTools } from "@/app/dev-tools";
 import { GameProvider, useGame } from "@/app/game-provider";
+import { QueryProvider } from "@/app/query-provider";
 import { getQuest, type QuestDefinition } from "@/lib/game/content/quests";
 import { Archive } from "./game-ui/archive";
 import { Inventory } from "./game-ui/inventory";
@@ -137,13 +138,15 @@ export function GameApp({ initialPath = "/" }: { initialPath?: string }) {
   // Keep one router mounted for the lifetime of the app so the CRT boot
   // sequence is not restarted when hydration completes.
   return (
-    <AudioProvider>
-      <GameProvider>
-        <MemoryRouter initialEntries={[initialPath]}>
-          <BrowserUrlSync />
-          <AppRoutes />
-        </MemoryRouter>
-      </GameProvider>
-    </AudioProvider>
+    <QueryProvider>
+      <AudioProvider>
+        <GameProvider>
+          <MemoryRouter initialEntries={[initialPath]}>
+            <BrowserUrlSync />
+            <AppRoutes />
+          </MemoryRouter>
+        </GameProvider>
+      </AudioProvider>
+    </QueryProvider>
   );
 }

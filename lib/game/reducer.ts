@@ -114,7 +114,9 @@ export const normaliseSave = (save: SaveFile): SaveFile => {
               ),
             }
           : initialTendencies()),
-      traits: isPreSplit ? initialTraits() : (save.player.traits ?? initialTraits()),
+      traits: isPreSplit
+        ? initialTraits()
+        : (save.player.traits ?? initialTraits()),
     },
     world: {
       ...save.world,
@@ -382,6 +384,20 @@ export const applyEvent = (save: SaveFile, event: GameEvent): SaveFile => {
             answers: payload.answers,
             unlockedSteps: payload.unlockedSteps,
             startedAt: current.startedAt ?? event.at,
+          },
+        },
+      };
+    }
+
+    case "quest.stepUnlocked": {
+      const current = base.quests[payload.slug] ?? emptyQuest();
+      return {
+        ...base,
+        quests: {
+          ...base.quests,
+          [payload.slug]: {
+            ...current,
+            unlockedSteps: addToSet(current.unlockedSteps, payload.stepId),
           },
         },
       };
