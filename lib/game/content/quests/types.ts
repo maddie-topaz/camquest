@@ -1,7 +1,7 @@
 // The shape of a quest. One quest per file in this directory; the index
 // lists them in the order the quest log shows them.
 //
-import type { Requirements, Rewards } from "../../types";
+import type { Requirements, Rewards, WorldEvent } from "../../types";
 
 // `status` is an authoring flag only. 'coming-soon' hides the steps until
 // the content is ready; everything else is derived at runtime from the
@@ -16,7 +16,12 @@ export type MysteryCard = {
   summaryValue?: string;
   tags?: string[];
 };
-export type ChallengeStep =
+// Any step can also be opened by a `trigger`: a world event (a physical
+// terminal pressed, a beacon activated) that the server matches against
+// in-progress quests and records as a `quest.stepUnlocked`. A step with a
+// trigger is gated like a passcode step until that happens; if it also has
+// a passcode, either one opens it.
+export type ChallengeStep = (
   | {
       type: "choice";
       id: string;
@@ -78,7 +83,8 @@ export type ChallengeStep =
       prompt: string;
       encounterId: string;
       passcode?: string;
-    };
+    }
+) & { trigger?: WorldEvent };
 
 export type QuestDefinition = {
   id: string;

@@ -6,7 +6,9 @@
 //
 // States:
 //   locked      the save doesn't meet the quest's requirements (final)
-//   step.gated  the current step has a passcode that hasn't been entered
+//   step.gated  the current step has a passcode that hasn't been entered,
+//               or a world trigger (e.g. a terminal press) that hasn't
+//               happened; SYNC_UNLOCKS brings in server-side unlocks
 //   step.open   choosing (answer not committed) or revealed (mystery card
 //               turned over / confirm pressed)
 //   completing  waiting for the React side to record the completion
@@ -57,7 +59,10 @@ export type QuestEvent =
   | { type: "REVEAL" }
   | { type: "NEXT" }
   | { type: "COMPLETED" }
-  | { type: "COMPLETION_FAILED" };
+  | { type: "COMPLETION_FAILED" }
+  // The server's unlock list for this quest, e.g. after a terminal press
+  // opened a checkpoint. Merged in; never removes a local unlock.
+  | { type: "SYNC_UNLOCKS"; unlockedSteps: string[] };
 
 export type QuestEmitted =
   | { type: "progress"; progress: QuestProgress }
@@ -88,7 +93,16 @@ export const questMachine = setup({
     stepGated: ({ context }) => {
       const step = currentStep(context);
       return (
-        Boolean(step?.passcode) && !context.unlockedSteps.includes(step!.id)
+        Boolean(step?.passcode || step?.trigger) &&
+        !context.unlockedSteps.includes(step!.id)
+      );
+    },
+    syncOpensStep: ({ context, event }) => {
+      const step = currentStep(context);
+      return (
+        event.type === "SYNC_UNLOCKS" &&
+        Boolean(step) &&
+        event.unlockedSteps.includes(step!.id)
       );
     },
     // A restored mystery answer, or an encounter already played, comes
@@ -99,9 +113,15 @@ export const questMachine = setup({
         (type === "mystery" || type === "encounter") && Boolean(context.answer)
       );
     },
-    passcodeMatches: ({ context }) =>
-      normalise(context.passcodeInput) ===
-      normalise(currentStep(context)?.passcode),
+    // A trigger-only step has no passcode, and an empty guess must not
+    // "match" it.
+    passcodeMatches: ({ context }) => {
+      const passcode = currentStep(context)?.passcode;
+      return (
+        Boolean(passcode) &&
+        normalise(context.passcodeInput) === normalise(passcode)
+      );
+    },
     isLastStep: ({ context }) =>
       context.stepIndex >= context.quest.steps.length - 1,
     canAdvance: ({ context }) => {
@@ -128,6 +148,17 @@ export const questMachine = setup({
         passcodeInput: "",
         passcodeError: false,
       };
+    }),
+    mergeUnlocks: assign({
+      unlockedSteps: ({ context, event }) =>
+        event.type === "SYNC_UNLOCKS"
+          ? [
+              ...context.unlockedSteps,
+              ...event.unlockedSteps.filter(
+                (id) => !context.unlockedSteps.includes(id),
+              ),
+            ]
+          : context.unlockedSteps,
     }),
     rejectPasscode: assign({ passcodeError: true }),
     typePasscode: assign({
@@ -215,6 +246,9 @@ export const questMachine = setup({
     };
   },
   initial: "deciding",
+  on: {
+    SYNC_UNLOCKS: { actions: "mergeUnlocks" },
+  },
   states: {
     deciding: {
       always: [{ guard: "questLocked", target: "locked" }, { target: "step" }],
@@ -232,6 +266,18 @@ export const questMachine = setup({
         },
         gated: {
           on: {
+            // Already saved server-side, so no progress event here.
+            SYNC_UNLOCKS: [
+              {
+                guard: "syncOpensStep",
+                actions: [
+                  "mergeUnlocks",
+                  { type: "cue", params: { cue: "checkpoint-unlocked" } },
+                ],
+                target: "open",
+              },
+              { actions: "mergeUnlocks" },
+            ],
             TYPE_PASSCODE: { actions: "typePasscode" },
             SUBMIT_PASSCODE: [
               {

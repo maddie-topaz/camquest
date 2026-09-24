@@ -11,17 +11,19 @@
 import { randomUUID } from "node:crypto";
 import type { ClientBase } from "pg";
 import { withConnection } from "@/lib/db";
-import { handleCommand } from "./commands";
+import { handleCommand, handleWorldEvent } from "./commands";
 import { starterLoadout } from "./content/items";
 import { applyEvent, emptySave, normaliseSave, replay } from "./reducer";
 import type {
   Command,
   CommandRejection,
+  CommandResult,
   GameEvent,
   GameEventPayload,
   NewGameEvent,
   PlayerId,
   SaveFile,
+  WorldEvent,
 } from "./types";
 
 export const DEFAULT_PLAYER: PlayerId = "cam";
@@ -150,15 +152,16 @@ export type CommandOutcome =
   | { ok: true; save: SaveFile; applied: GameEvent[] }
   | { ok: false; save: SaveFile; rejection: CommandRejection };
 
-// Validates and applies a command under the player's row lock, so the
-// rules always see the freshest save.
-export const runCommand = (
-  command: Command,
-  playerId: PlayerId = DEFAULT_PLAYER,
+// Asks the engine what should happen against the freshest save, under
+// the player's row lock, and commits the answer. Resolves only once the
+// transaction has committed.
+const runDecision = (
+  decide: (save: SaveFile) => CommandResult,
+  playerId: PlayerId,
 ): Promise<CommandOutcome> =>
   inTransaction(async (client) => {
     const save = await loadWithClient(client, playerId, true);
-    const result = handleCommand(save, command);
+    const result = decide(save);
     if (!result.ok) return { ok: false, save, rejection: result.rejection };
     const { save: next, applied } = await appendWithClient(
       client,
@@ -167,6 +170,21 @@ export const runCommand = (
     );
     return { ok: true, save: next, applied };
   });
+
+// Validates and applies a command under the player's row lock, so the
+// rules always see the freshest save.
+export const runCommand = (
+  command: Command,
+  playerId: PlayerId = DEFAULT_PLAYER,
+): Promise<CommandOutcome> =>
+  runDecision((save) => handleCommand(save, command), playerId);
+
+// Something happened in the physical world; let the engine react to it.
+export const runWorldEvent = (
+  event: WorldEvent,
+  playerId: PlayerId = DEFAULT_PLAYER,
+): Promise<CommandOutcome> =>
+  runDecision((save) => handleWorldEvent(save, event), playerId);
 
 // Admin path: append raw events with no rule checks. Used by the debug
 // page and the CLI for gifts, resets and re-arms.

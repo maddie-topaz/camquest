@@ -183,6 +183,9 @@ export type GameEventPayload =
       unlockedSteps: string[];
     }
   | { type: "quest.completed"; slug: string; answers: Record<string, string> }
+  // A step's checkpoint opened because something happened in the world
+  // (see WorldEvent), not because the player typed a passcode.
+  | { type: "quest.stepUnlocked"; slug: string; stepId: string; reason: string }
   | { type: "quest.reset"; slug: string; reason: string }
   | { type: "location.discovered"; locationId: string; reason: string }
   | { type: "secret.found"; secretId: string; reason: string }
@@ -276,6 +279,20 @@ export type CommandRejection = {
 export type CommandResult =
   | { ok: true; events: NewGameEvent[] }
   | { ok: false; rejection: CommandRejection };
+
+// ---------------------------------------------------------------------------
+// World events: something happened in the physical world — a terminal was
+// pressed, a beacon lit up, someone walked into an area. How it was
+// detected is not the engine's business; integrations (lib/integrations)
+// translate their own payloads into these before they reach it.
+// ---------------------------------------------------------------------------
+
+export type WorldEvent =
+  | { type: "TERMINAL_PRESSED"; terminalId: string }
+  | { type: "BEACON_ACTIVATED"; beaconId: string }
+  | { type: "AREA_ENTERED"; areaId: string };
+
+export type WorldEventType = WorldEvent["type"];
 
 // ---------------------------------------------------------------------------
 // Content shapes shared by definitions and rules
