@@ -950,23 +950,28 @@ function ResetSection({ r }: { r: Runner }) {
   );
 }
 
-const sendPhoneNotification = async (message: string) => {
-  const response = await fetch("/api/dev/ha-notification", {
+// Runs one of the gateway actions /api/dev/ha-action allows.
+const runHAAction = async (
+  action: "test_phone_notification" | "say_on_maddies_phone",
+  message: string,
+) => {
+  const response = await fetch("/api/dev/ha-action", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ action, message }),
   });
   const data = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(data?.error || "Notification failed");
+  if (!response.ok) throw new Error(data?.error || "Action failed");
 };
 
 const HomeAssistantSection = ({ r }: { r: Runner }) => {
   const [message, setMessage] = useState("Test notification from Cam Quest");
+  const [speech, setSpeech] = useState("Hello from Cam Quest");
   return (
     <Section
       id="home-assistant"
       title="Home Assistant"
-      blurb="Talks to Home Assistant through ha-gateway, never directly. Send phone notification runs the gateway's test_phone_notification action, which pushes to Maddie's Pixel. Needs HA_GATEWAY_URL and HA_GATEWAY_API_KEY on the server."
+      blurb="Talks to Home Assistant through ha-gateway, never directly. Send phone notification runs test_phone_notification (a push to Maddie's Pixel); Read aloud on phone runs say_on_maddies_phone (the Pixel speaks the text on its media volume, so turn that up). Needs HA_GATEWAY_URL and HA_GATEWAY_API_KEY on the server."
     >
       <div className="dev-grid">
         <div className="dev-row">
@@ -986,7 +991,29 @@ const HomeAssistantSection = ({ r }: { r: Runner }) => {
             disabled={!message.trim()}
             onClick={() =>
               void r.run("Send phone notification", () =>
-                sendPhoneNotification(message),
+                runHAAction("test_phone_notification", message),
+              )
+            }
+          />
+        </div>
+        <div className="dev-row">
+          <label>
+            Say{" "}
+            <input
+              className="dev-input"
+              value={speech}
+              maxLength={200}
+              onChange={(e) => setSpeech(e.target.value)}
+            />
+          </label>
+          <Btn
+            mode="ha"
+            label="Read aloud on phone"
+            busy={r.busy}
+            disabled={!speech.trim()}
+            onClick={() =>
+              void r.run("Read aloud on phone", () =>
+                runHAAction("say_on_maddies_phone", speech),
               )
             }
           />

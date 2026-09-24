@@ -8,6 +8,8 @@
 export type HAGatewayAction = {
   // Maddie's Pixel, via notify.maddie_s_mobile.
   test_phone_notification: { title?: string; message?: string };
+  // Maddie's Pixel reads `message` aloud (companion app TTS, media volume).
+  say_on_maddies_phone: { message: string };
 };
 
 export type HAGatewayActionName = keyof HAGatewayAction;
