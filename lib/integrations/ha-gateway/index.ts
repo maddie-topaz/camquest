@@ -6,3 +6,10 @@ export { createHAGatewayWebhook } from "./webhook";
 export { toWorldEvent } from "./adapter";
 export { validateHAGatewayEvent } from "./events";
 export type { HAGatewayEvent, HAGatewayEventName } from "./types";
+export {
+  createHAGatewayActions,
+  HAGatewayActionError,
+  type HAGatewayAction,
+  type HAGatewayActionName,
+  type HAGatewayActions,
+} from "./actions";

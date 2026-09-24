@@ -18,10 +18,12 @@ import { resettableSystems } from "@/lib/game/types";
 // The control room. A debugging frontend over the existing engine: every
 // button either dispatches a Command (ENGINE — rule-checked, exactly what
 // gameplay does) or posts an admin action (FORCE — raw events, no rules).
+// HA buttons are the exception: they reach Home Assistant through
+// ha-gateway and leave the save alone.
 // Nothing here holds game state of its own; it renders the save view and
 // reads results back from the same provider the game uses.
 
-type Mode = "engine" | "force";
+type Mode = "engine" | "force" | "ha";
 
 // ---------------------------------------------------------------------------
 // Plumbing: one hook that runs an action and reports on it
@@ -41,7 +43,7 @@ const useRunner = () => {
     [],
   );
   const run = useCallback(
-    async (label: string, work: () => Promise<SaveView>) => {
+    async (label: string, work: () => Promise<unknown>) => {
       setBusy(label);
       try {
         await work();
@@ -66,10 +68,16 @@ const useRunner = () => {
       run(label, () => admin(body)),
     [admin, run],
   );
-  return { busy, log, engine, force };
+  return { busy, log, run, engine, force };
 };
 
 type Runner = ReturnType<typeof useRunner>;
+
+const modeTitles: Record<Mode, string> = {
+  engine: "Engine: rule-checked command",
+  force: "Force: raw event, bypasses rules",
+  ha: "Home Assistant, via ha-gateway; doesn't touch the save",
+};
 
 function Btn({
   mode,
@@ -94,16 +102,9 @@ function Btn({
       className={`dev-btn is-${mode} ${danger ? "is-danger" : ""}`}
       onClick={onClick}
       disabled={disabled || busy === label}
-      title={
-        title ??
-        (mode === "engine"
-          ? "Engine: rule-checked command"
-          : "Force: raw event, bypasses rules")
-      }
+      title={title ?? modeTitles[mode]}
     >
-      <span className="dev-badge">
-        {mode === "engine" ? "ENGINE" : "FORCE"}
-      </span>
+      <span className="dev-badge">{mode.toUpperCase()}</span>
       {busy === label ? "…" : label}
     </button>
   );
@@ -949,6 +950,52 @@ function ResetSection({ r }: { r: Runner }) {
   );
 }
 
+const sendPhoneNotification = async (message: string) => {
+  const response = await fetch("/api/dev/ha-notification", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message }),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(data?.error || "Notification failed");
+};
+
+const HomeAssistantSection = ({ r }: { r: Runner }) => {
+  const [message, setMessage] = useState("Test notification from Cam Quest");
+  return (
+    <Section
+      id="home-assistant"
+      title="Home Assistant"
+      blurb="Talks to Home Assistant through ha-gateway, never directly. Send phone notification runs the gateway's test_phone_notification action, which pushes to Maddie's Pixel. Needs HA_GATEWAY_URL and HA_GATEWAY_API_KEY on the server."
+    >
+      <div className="dev-grid">
+        <div className="dev-row">
+          <label>
+            Message{" "}
+            <input
+              className="dev-input"
+              value={message}
+              maxLength={200}
+              onChange={(e) => setMessage(e.target.value)}
+            />
+          </label>
+          <Btn
+            mode="ha"
+            label="Send phone notification"
+            busy={r.busy}
+            disabled={!message.trim()}
+            onClick={() =>
+              void r.run("Send phone notification", () =>
+                sendPhoneNotification(message),
+              )
+            }
+          />
+        </div>
+      </div>
+    </Section>
+  );
+};
+
 // ---------------------------------------------------------------------------
 
 const sections = [
@@ -959,6 +1006,7 @@ const sections = [
   "world",
   "scenarios",
   "save",
+  "home-assistant",
   "reset",
 ];
 
@@ -1014,6 +1062,7 @@ export function DevTools() {
           <WorldSection view={view} r={r} />
           <ScenariosSection r={r} />
           <SaveStateSection view={view} />
+          <HomeAssistantSection r={r} />
           <ResetSection r={r} />
         </>
       )}
